@@ -1,0 +1,594 @@
+<!DOCTYPE html>
+<html lang="ru" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Фитнес Дневник</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        tgBg: 'var(--tg-theme-bg-color, #1c1c1e)',
+                        tgText: 'var(--tg-theme-text-color, #ffffff)',
+                        tgHint: 'var(--tg-theme-hint-color, #8e8e93)',
+                        tgLink: 'var(--tg-theme-link-color, #3b82f6)',
+                        tgButton: 'var(--tg-theme-button-color, #3b82f6)',
+                        tgSecondaryBg: 'var(--tg-theme-secondary-bg-color, #2c2c2e)',
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            background-color: var(--tg-theme-bg-color, #1c1c1e);
+            color: var(--tg-theme-text-color, #ffffff);
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            -webkit-tap-highlight-color: transparent;
+        }
+        input, select, textarea {
+            background-color: var(--tg-theme-secondary-bg-color, #2c2c2e);
+            color: var(--tg-theme-text-color, #ffffff);
+            border: 1px solid var(--tg-theme-hint-color, #8e8e93);
+        }
+        .fade-in { animation: fadeIn 0.2s ease-in-out; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        input[type=number]::-webkit-inner-spin-button, 
+        input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+        input[type=number] { -moz-appearance: textfield; }
+    </style>
+</head>
+<body class="min-h-screen pb-24">
+
+    <header id="app-header" class="sticky top-0 z-10 bg-tgBg/90 backdrop-blur-md px-4 py-3 flex items-center justify-between border-b border-tgSecondaryBg">
+        <button id="btn-back" class="text-tgLink text-xl hidden" onclick="navigate('home')">
+            <i class="fa-solid fa-arrow-left"></i>
+        </button>
+        <h1 id="header-title" class="text-lg font-semibold flex-1 text-center">Фитнес Дневник</h1>
+        <div class="w-6"></div>
+    </header>
+
+    <main id="app-content" class="p-4 fade-in"></main>
+
+    <script>
+        // ==========================================
+        // 1. UTILS & HELPERS
+        // ==========================================
+        function esc(str = '') {
+            return String(str)
+                .replaceAll('&', '&amp;')
+                .replaceAll('<', '&lt;')
+                .replaceAll('>', '&gt;')
+                .replaceAll('"', '&quot;')
+                .replaceAll("'", '&#39;');
+        }
+
+        function createId() {
+            return typeof crypto !== 'undefined' && crypto.randomUUID 
+                ? crypto.randomUUID() 
+                : Date.now().toString(36) + Math.random().toString(36).slice(2);
+        }
+
+        function parseOptionalInt(value) {
+            const n = parseInt(value, 10);
+            return Number.isFinite(n) && n >= 0 ? n : null;
+        }
+
+        function appConfirm(message) {
+            return new Promise(resolve => {
+                tg.showConfirm(message, ok => resolve(ok));
+            });
+        }
+
+        // ==========================================
+        // 2. INITIALIZATION & TELEGRAM SDK
+        // ==========================================
+        const tg = window.Telegram.WebApp;
+        tg.ready();
+        tg.expand();
+        
+        const USER_ID = tg.initDataUnsafe?.user?.id || 'local_test_user_' + Math.random().toString(36).substr(2, 9);
+        const haptic = (type = 'light') => tg.HapticFeedback?.impactOccurred(type);
+
+        let mainButtonHandler = null;
+        function setMainButton(text, onClick, show = true) {
+            if (mainButtonHandler) {
+                tg.MainButton.offClick(mainButtonHandler);
+                mainButtonHandler = null;
+            }
+            if (show && text && onClick) {
+                tg.MainButton.setText(text);
+                tg.MainButton.show();
+                mainButtonHandler = onClick;
+                tg.MainButton.onClick(mainButtonHandler);
+            } else {
+                tg.MainButton.hide();
+            }
+        }
+
+        // ==========================================
+        // 3. DATA ACCESS LAYER (API)
+        // ==========================================
+        const DataAPI = {
+            _key(type) { return `twa_fitness_${type}_${USER_ID}`; },
+            
+            getPrograms() { return JSON.parse(localStorage.getItem(this._key('programs')) || '[]'); },
+            savePrograms(data) { localStorage.setItem(this._key('programs'), JSON.stringify(data)); },
+            
+            getHistory() { return JSON.parse(localStorage.getItem(this._key('history')) || '[]'); },
+            saveHistory(data) { localStorage.setItem(this._key('history'), JSON.stringify(data)); },
+
+            getProgramById(id) { return this.getPrograms().find(p => p.id === id); },
+            getHistoryEntryById(id) { return this.getHistory().find(h => h.id === id); },
+
+            exportData() {
+                try {
+                    const data = {
+                        userId: USER_ID,
+                        exportDate: new Date().toISOString(),
+                        programs: this.getPrograms(),
+                        history: this.getHistory()
+                    };
+                    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = `fitness_backup_${USER_ID}.json`;
+                    document.body.appendChild(a);
+                    a.click();
+                    a.remove();
+                    URL.revokeObjectURL(url);
+                    tg.showPopup({ title: 'Экспорт', message: 'Файл успешно сформирован для скачивания' });
+                } catch (e) {
+                    tg.showPopup({ title: 'Ошибка', message: 'Не удалось скачать файл. Попробуйте открыть приложение в браузере.' });
+                }
+            }
+        };
+
+        const ACTIVE_KEY = `twa_fitness_active_workout_${USER_ID}`;
+        function saveActiveWorkout() {
+            if (state.activeWorkout) {
+                localStorage.setItem(ACTIVE_KEY, JSON.stringify(state.activeWorkout));
+            } else {
+                localStorage.removeItem(ACTIVE_KEY);
+            }
+        }
+
+        function restoreActiveWorkout() {
+            const saved = localStorage.getItem(ACTIVE_KEY);
+            if (!saved) return false;
+            try {
+                state.activeWorkout = JSON.parse(saved);
+                return true;
+            } catch (e) {
+                localStorage.removeItem(ACTIVE_KEY);
+                return false;
+            }
+        }
+
+        // ==========================================
+        // 4. STATE & ROUTING
+        // ==========================================
+        let state = {
+            currentScreen: 'home',
+            activeWorkout: null,
+            editingProgram: null,
+            workoutTimer: null
+        };
+
+        function navigate(screen, data = {}) {
+            haptic('light');
+            
+            if (state.workoutTimer) {
+                clearInterval(state.workoutTimer);
+                state.workoutTimer = null;
+            }
+            
+            state.currentScreen = screen;
+            if (data.programId !== undefined) {
+                state.editingProgram = data.programId ? DataAPI.getProgramById(data.programId) : { name: '', exercises: [] };
+            }
+            
+            const content = document.getElementById('app-content');
+            const title = document.getElementById('header-title');
+            const backBtn = document.getElementById('btn-back');
+            
+            content.classList.remove('fade-in');
+            void content.offsetWidth;
+            content.classList.add('fade-in');
+
+            backBtn.classList.toggle('hidden', screen === 'home');
+            setMainButton(null, null, false);
+
+            switch(screen) {
+                case 'home': renderHome(); break;
+                case 'programs': renderPrograms(); break;
+                case 'program_edit': renderProgramEdit(); break;
+                case 'workout': renderWorkout(); break;
+                case 'history': renderHistory(); break;
+                case 'history_detail': renderHistoryDetail(data.entryId); break;
+            }
+        }
+
+        // ==========================================
+        // 5. SCREEN RENDERERS (с XSS защитой)
+        // ==========================================
+        function renderHome() {
+            document.getElementById('header-title').innerText = 'Фитнес Дневник';
+            const programs = DataAPI.getPrograms();
+            
+            let quickStartHTML = '';
+            if (programs.length > 0) {
+                quickStartHTML = `
+                    <div class="mb-6">
+                        <h2 class="text-tgHint text-sm uppercase mb-2">Быстрый старт</h2>
+                        <div class="grid grid-cols-2 gap-3">
+                            ${programs.map(p => `
+                                <button onclick="startWorkout('${p.id}')" 
+                                    class="bg-tgSecondaryBg p-4 rounded-xl text-left active:scale-95 transition-transform">
+                                    <i class="fa-solid fa-dumbbell text-tgLink mb-2"></i>
+                                    <div class="font-medium truncate">${esc(p.name)}</div>
+                                </button>
+                            `).join('')}
+                        </div>
+                    </div>
+                `;
+            }
+
+            document.getElementById('app-content').innerHTML = `
+                ${quickStartHTML}
+                <div class="space-y-3">
+                    <button onclick="navigate('programs')" class="w-full bg-tgSecondaryBg p-4 rounded-xl flex items-center justify-between active:scale-95 transition-transform">
+                        <span class="flex items-center"><i class="fa-solid fa-list-check text-tgLink mr-3"></i> Мои программы</span>
+                        <i class="fa-solid fa-chevron-right text-tgHint"></i>
+                    </button>
+                    <button onclick="navigate('history')" class="w-full bg-tgSecondaryBg p-4 rounded-xl flex items-center justify-between active:scale-95 transition-transform">
+                        <span class="flex items-center"><i class="fa-solid fa-clock-rotate-left text-tgLink mr-3"></i> История тренировок</span>
+                        <i class="fa-solid fa-chevron-right text-tgHint"></i>
+                    </button>
+                    <button onclick="DataAPI.exportData()" class="w-full bg-tgSecondaryBg p-4 rounded-xl flex items-center justify-between active:scale-95 transition-transform">
+                        <span class="flex items-center"><i class="fa-solid fa-file-export text-tgLink mr-3"></i> Экспорт данных (JSON)</span>
+                        <i class="fa-solid fa-chevron-right text-tgHint"></i>
+                    </button>
+                </div>
+            `;
+        }
+
+        function renderPrograms() {
+            document.getElementById('header-title').innerText = 'Программы';
+            const programs = DataAPI.getPrograms();
+            
+            let listHTML = programs.length ? programs.map(p => `
+                <div class="bg-tgSecondaryBg p-4 rounded-xl mb-3 flex justify-between items-center">
+                    <div onclick="navigate('program_edit', {programId: '${p.id}'})" class="flex-1 active:opacity-70">
+                        <div class="font-semibold">${esc(p.name)}</div>
+                        <div class="text-tgHint text-sm">${p.exercises.length} упр.</div>
+                    </div>
+                    <div class="flex gap-3 text-tgHint">
+                        <button onclick="startWorkout('${p.id}')" class="text-tgLink text-xl"><i class="fa-solid fa-play"></i></button>
+                        <button onclick="deleteProgram('${p.id}')" class="text-red-500 text-xl"><i class="fa-solid fa-trash"></i></button>
+                    </div>
+                </div>
+            `).join('') : '<p class="text-center text-tgHint mt-10">Нет созданных программ</p>';
+
+            document.getElementById('app-content').innerHTML = listHTML;
+            setMainButton('Создать программу', () => navigate('program_edit', { programId: null }));
+        }
+
+        function renderProgramEdit() {
+            const isEdit = !!state.editingProgram && state.editingProgram.id;
+            document.getElementById('header-title').innerText = isEdit ? 'Редактирование' : 'Новая программа';
+            
+            const prog = state.editingProgram || { name: '', exercises: [] };
+
+            let exercisesHTML = prog.exercises.map((ex, idx) => `
+                <div class="bg-tgSecondaryBg p-3 rounded-xl mb-2">
+                    <div class="flex justify-between items-center mb-2">
+                        <span class="font-medium">Упражнение ${idx + 1}</span>
+                        <button onclick="removeExercise(${idx})" class="text-red-500"><i class="fa-solid fa-times"></i></button>
+                    </div>
+                    <input type="text" placeholder="Название (напр. Жим лежа)" value="${esc(ex.name)}" 
+                        onchange="updateExercise(${idx}, 'name', this.value)"
+                        class="w-full p-2 rounded-lg mb-2 text-sm">
+                    <div class="flex gap-2">
+                        <div class="flex-1">
+                            <label class="text-xs text-tgHint">Подходы</label>
+                            <input type="number" value="${ex.targetSets ?? 3}" onchange="updateExercise(${idx}, 'targetSets', parseOptionalInt(this.value))"
+                                class="w-full p-2 rounded-lg text-sm">
+                        </div>
+                        <div class="flex-1">
+                            <label class="text-xs text-tgHint">Повторения</label>
+                            <input type="number" value="${ex.targetReps ?? 10}" onchange="updateExercise(${idx}, 'targetReps', parseOptionalInt(this.value))"
+                                class="w-full p-2 rounded-lg text-sm">
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+
+            document.getElementById('app-content').innerHTML = `
+                <input type="text" id="prog-name" placeholder="Название программы" value="${esc(prog.name)}" 
+                    class="w-full p-3 rounded-xl mb-4 text-lg font-semibold">
+                <div id="exercises-list">
+                    ${exercisesHTML}
+                </div>
+                <button onclick="addExercise()" class="w-full py-3 border-2 border-dashed border-tgHint rounded-xl text-tgHint mt-2 active:bg-tgSecondaryBg">
+                    <i class="fa-solid fa-plus mr-2"></i> Добавить упражнение
+                </button>
+            `;
+            setMainButton('Сохранить', saveProgram);
+        }
+
+        function renderWorkout() {
+            const w = state.activeWorkout;
+            document.getElementById('header-title').innerText = 'Тренировка';
+            
+            let exercisesHTML = w.exercises.map((ex, exIdx) => {
+                let setsHTML = ex.sets.map((s, sIdx) => `
+                    <div class="flex items-center gap-2 bg-tgBg p-2 rounded-lg mb-1">
+                        <span class="text-tgHint w-6">${sIdx + 1}.</span>
+                        <input type="number" placeholder="Вес" value="${s.weight}" 
+                            onchange="updateSet(${exIdx}, ${sIdx}, 'weight', parseFloat(this.value)||0)"
+                            class="flex-1 p-1 rounded text-center text-sm">
+                        <span class="text-tgHint">кг ×</span>
+                        <input type="number" placeholder="Повт" value="${s.reps}" 
+                            onchange="updateSet(${exIdx}, ${sIdx}, 'reps', parseOptionalInt(this.value) ?? 0)"
+                            class="flex-1 p-1 rounded text-center text-sm">
+                        <button onclick="removeSet(${exIdx}, ${sIdx})" class="text-red-500 px-2"><i class="fa-solid fa-trash-can"></i></button>
+                    </div>
+                `).join('');
+
+                return `
+                    <div class="bg-tgSecondaryBg p-3 rounded-xl mb-4">
+                        <div class="flex justify-between items-center mb-3">
+                            <h3 class="font-bold text-lg">${esc(ex.name)}</h3>
+                            <span class="text-xs text-tgHint">Цель: ${ex.targetSets ?? 3} × ${ex.targetReps ?? 10}</span>
+                        </div>
+                        ${setsHTML}
+                        <button onclick="addSet(${exIdx})" class="w-full py-2 mt-2 bg-tgBg rounded-lg text-tgLink text-sm font-medium active:opacity-70">
+                            + Добавить подход
+                        </button>
+                    </div>
+                `;
+            }).join('');
+
+            document.getElementById('app-content').innerHTML = `
+                <div class="text-center mb-4">
+                    <div class="text-3xl font-mono font-bold text-tgLink" id="workout-timer">00:00:00</div>
+                    <div class="text-tgHint text-sm">Время тренировки</div>
+                </div>
+                ${exercisesHTML}
+            `;
+            startTimer();
+            setMainButton('Завершить тренировку', finishWorkout);
+        }
+
+        function renderHistory() {
+            document.getElementById('header-title').innerText = 'История';
+            const history = DataAPI.getHistory().sort((a, b) => new Date(b.date) - new Date(a.date));
+            
+            let listHTML = history.length ? history.map(h => {
+                const date = new Date(h.date);
+                const dateStr = date.toLocaleDateString('ru-RU', { day: 'numeric', month: 'long' });
+                const timeStr = date.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
+                const durationMin = Math.round(h.duration / 60);
+                const totalSets = h.exercises.reduce((acc, ex) => acc + ex.sets.length, 0);
+
+                return `
+                    <div onclick='navigate("history_detail", {entryId: "${h.id}"})' 
+                        class="bg-tgSecondaryBg p-4 rounded-xl mb-3 active:scale-95 transition-transform cursor-pointer">
+                        <div class="flex justify-between items-start mb-2">
+                            <div class="font-semibold">${esc(h.programName)}</div>
+                            <div class="text-tgHint text-sm">${dateStr}</div>
+                        </div>
+                        <div class="flex gap-4 text-sm text-tgHint">
+                            <span><i class="fa-regular fa-clock mr-1"></i> ${durationMin} мин</span>
+                            <span><i class="fa-solid fa-layer-group mr-1"></i> ${totalSets} подходов</span>
+                            <span>${timeStr}</span>
+                        </div>
+                    </div>
+                `;
+            }).join('') : '<p class="text-center text-tgHint mt-10">История пуста</p>';
+
+            document.getElementById('app-content').innerHTML = listHTML;
+        }
+
+        function renderHistoryDetail(entryId) {
+            document.getElementById('header-title').innerText = 'Детали';
+            const entry = DataAPI.getHistoryEntryById(entryId);
+            if (!entry) {
+                document.getElementById('app-content').innerHTML = '<p class="text-center text-tgHint">Запись не найдена</p>';
+                return;
+            }
+            
+            const date = new Date(entry.date).toLocaleString('ru-RU');
+            
+            let exHTML = entry.exercises.map(ex => {
+                let setsHTML = ex.sets.map((s, i) => `
+                    <div class="flex justify-between py-1 border-b border-tgBg last:border-0">
+                        <span class="text-tgHint">${i + 1}.</span>
+                        <span>${s.weight} кг × ${s.reps} повт</span>
+                    </div>
+                `).join('');
+                return `
+                    <div class="mb-4">
+                        <h3 class="font-bold mb-2">${esc(ex.name)}</h3>
+                        <div class="bg-tgSecondaryBg p-3 rounded-xl text-sm">
+                            ${setsHTML}
+                        </div>
+                    </div>
+                `;
+            }).join('');
+
+            document.getElementById('app-content').innerHTML = `
+                <div class="text-center mb-6">
+                    <h2 class="text-xl font-bold">${esc(entry.programName)}</h2>
+                    <p class="text-tgHint">${date}</p>
+                </div>
+                ${exHTML}
+            `;
+        }
+
+        // ==========================================
+        // 6. LOGIC & ACTIONS
+        // ==========================================
+        function addExercise() {
+            if (!state.editingProgram) state.editingProgram = { name: '', exercises: [] };
+            state.editingProgram.exercises.push({ id: createId(), name: '', targetSets: 3, targetReps: 10 });
+            renderProgramEdit();
+        }
+
+        function removeExercise(idx) {
+            state.editingProgram.exercises.splice(idx, 1);
+            renderProgramEdit();
+        }
+
+        function updateExercise(idx, field, value) {
+            state.editingProgram.exercises[idx][field] = value;
+        }
+
+        function saveProgram() {
+            const name = document.getElementById('prog-name').value.trim();
+            if (!name) { tg.showPopup({message: 'Введите название программы'}); return; }
+            if (state.editingProgram.exercises.length === 0) { tg.showPopup({message: 'Добавьте хотя бы одно упражнение'}); return; }
+
+            state.editingProgram.name = name;
+            let programs = DataAPI.getPrograms();
+            
+            const existIdx = programs.findIndex(p => p.id === state.editingProgram.id);
+            if (existIdx > -1) {
+                programs[existIdx] = state.editingProgram;
+            } else {
+                state.editingProgram.id = createId();
+                programs.push(state.editingProgram);
+            }
+
+            DataAPI.savePrograms(programs);
+            haptic('success');
+            state.editingProgram = null;
+            navigate('programs');
+        }
+
+        async function deleteProgram(id) {
+            const ok = await appConfirm('Удалить программу?');
+            if (!ok) return;
+            let programs = DataAPI.getPrograms().filter(p => p.id !== id);
+            DataAPI.savePrograms(programs);
+            renderPrograms();
+        }
+
+        function startWorkout(programId) {
+            const program = DataAPI.getProgramById(programId);
+            if (!program) return;
+
+            state.activeWorkout = {
+                programId: program.id,
+                programName: program.name,
+                startTime: Date.now(),
+                exercises: program.exercises.map(ex => ({
+                    name: ex.name,
+                    targetSets: ex.targetSets,
+                    targetReps: ex.targetReps,
+                    sets: []
+                }))
+            };
+            saveActiveWorkout();
+            navigate('workout');
+        }
+
+        function addSet(exIdx) {
+            const exercise = state.activeWorkout.exercises[exIdx];
+            const sets = exercise.sets;
+            
+            let defaultWeight = 0;
+            let defaultReps = exercise.targetReps ?? 10;
+            
+            if (sets.length > 0) {
+                const lastSet = sets[sets.length - 1];
+                defaultWeight = lastSet.weight;
+                defaultReps = lastSet.reps;
+            }
+            
+            sets.push({ weight: defaultWeight, reps: defaultReps });
+            saveActiveWorkout();
+            renderWorkout();
+        }
+
+        function removeSet(exIdx, sIdx) {
+            state.activeWorkout.exercises[exIdx].sets.splice(sIdx, 1);
+            saveActiveWorkout();
+            renderWorkout();
+        }
+
+        function updateSet(exIdx, sIdx, field, value) {
+            state.activeWorkout.exercises[exIdx].sets[sIdx][field] = value;
+            saveActiveWorkout();
+        }
+
+        function startTimer() {
+            if (state.workoutTimer) clearInterval(state.workoutTimer);
+            
+            const update = () => {
+                if (!state.activeWorkout) return;
+                const elapsed = Date.now() - state.activeWorkout.startTime;
+                const h = Math.floor(elapsed / 3600000).toString().padStart(2, '0');
+                const m = Math.floor((elapsed % 3600000) / 60000).toString().padStart(2, '0');
+                const s = Math.floor((elapsed % 60000) / 1000).toString().padStart(2, '0');
+                const el = document.getElementById('workout-timer');
+                if(el) el.innerText = `${h}:${m}:${s}`;
+            };
+            
+            update();
+            state.workoutTimer = setInterval(update, 1000);
+        }
+
+        async function finishWorkout() {
+            const ok = await appConfirm('Завершить и сохранить тренировку?');
+            if (!ok) return;
+
+            if (state.workoutTimer) {
+                clearInterval(state.workoutTimer);
+                state.workoutTimer = null;
+            }
+            
+            const w = state.activeWorkout;
+            const entry = {
+                id: createId(),
+                date: new Date(w.startTime).toISOString(),
+                duration: Math.round((Date.now() - w.startTime) / 1000),
+                programName: w.programName,
+                exercises: w.exercises
+            };
+
+            let history = DataAPI.getHistory();
+            history.push(entry);
+            DataAPI.saveHistory(history);
+            
+            state.activeWorkout = null;
+            saveActiveWorkout(); // Очищаем active_workout из localStorage
+            haptic('success');
+            navigate('home');
+        }
+
+        // ==========================================
+        // 7. INIT & EVENT LISTENERS
+        // ==========================================
+        document.addEventListener('visibilitychange', () => {
+            if (state.currentScreen === 'workout' && state.activeWorkout) {
+                startTimer(); // Перезапускаем таймер при возврате в приложение
+            }
+        });
+
+        // Восстановление сессии или старт с нуля
+        if (restoreActiveWorkout()) {
+            navigate('workout');
+        } else {
+            navigate('home');
+        }
+    </script>
+</body>
+</html>
