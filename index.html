@@ -216,8 +216,6 @@
             updateBackButton(isSubScreen);
 
             tg.MainButton.hide();
-            tg.MainButton.offClick(finishWorkout);
-            tg.MainButton.offClick(saveProgram);
 
             switch(screen) {
                 case 'stats': renderStats(); break;
@@ -616,7 +614,7 @@
             state.editingProgram.exercises[idx][field] = value;
         }
 
-        // ИСПРАВЛЕНИЕ ПУНКТА 7: Используем switchTab('programs') вместо navigate
+        // ⭐ ПУНКТ 7: После сохранения — переход на вкладку "Программы"
         function saveProgram() {
             const nameInput = document.getElementById('prog-name');
             const name = nameInput ? nameInput.value.trim() : '';
@@ -634,9 +632,7 @@
             haptic('success');
             state.editingProgram = null;
 
-            // Очищаем MainButton и переходим на вкладку Программы
-            tg.MainButton.offClick(saveProgram);
-            tg.MainButton.hide();
+            // Переходим на вкладку "Программы" (где список всех программ + кнопка "Создать программу")
             switchTab('programs');
         }
 
@@ -710,7 +706,7 @@
             state.workoutTimer = setInterval(update, 1000);
         }
 
-        // ИСПРАВЛЕНИЕ ПУНКТА 9: Используем switchTab('programs') вместо navigate
+        // ⭐ ПУНКТ 9: После завершения тренировки — переход на вкладку "Программы"
         async function finishWorkout() {
             const ok = await appConfirm('Завершить и сохранить тренировку?');
             if (!ok) return;
@@ -730,9 +726,7 @@
             saveActiveWorkout();
             haptic('success');
 
-            // Очищаем MainButton и переходим на вкладку Программы
-            tg.MainButton.offClick(finishWorkout);
-            tg.MainButton.hide();
+            // Переходим на вкладку "Программы" (где список всех программ + кнопка "Создать программу")
             switchTab('programs');
         }
 
