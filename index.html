@@ -127,7 +127,6 @@
             else tg.BackButton.hide();
         }
 
-        // ⭐ ЕДИНОЕ УПРАВЛЕНИЕ MAINBUTTON
         let currentMainButtonHandler = null;
 
         function setMainButton(text, handler) {
@@ -148,7 +147,11 @@
         }
 
         function clearMainButton() {
-            setMainButton(null, null);
+            if (currentMainButtonHandler) {
+                tg.MainButton.offClick(currentMainButtonHandler);
+                currentMainButtonHandler = null;
+            }
+            tg.MainButton.hide();
         }
 
         const DataAPI = {
@@ -239,7 +242,6 @@
             const isSubScreen = ['program_edit', 'history_detail', 'workout'].includes(screen);
             updateBackButton(isSubScreen);
 
-            // ⭐ ОЧИСТКА MAINBUTTON ПРИ СМЕНЕ ЭКРАНА
             clearMainButton();
 
             switch(screen) {
@@ -441,7 +443,6 @@
         }
 
         function renderProgramEdit() {
-            const isEdit = !!state.editingProgram && state.editingProgram.id;
             const prog = state.editingProgram || { name: '', exercises: [] };
 
             let exercisesHTML = prog.exercises.map((ex, idx) => `
@@ -482,7 +483,6 @@
                 </button>
             `;
 
-            // ⭐ ИСПОЛЬЗУЕМ setMainButton
             setMainButton('Сохранить программу', saveProgram);
         }
 
@@ -493,6 +493,7 @@
 
         function renderWorkout() {
             const w = state.activeWorkout;
+            if (!w) return;
 
             let exercisesHTML = w.exercises.map((ex, exIdx) => {
                 const completedSets = ex.sets.filter(s => s.weight > 0 && s.reps > 0).length;
@@ -547,7 +548,6 @@
             `;
 
             startTimer();
-            // ⭐ ИСПОЛЬЗУЕМ setMainButton
             setMainButton('Завершить тренировку', finishWorkout);
         }
 
@@ -637,7 +637,6 @@
             state.editingProgram.exercises[idx][field] = value;
         }
 
-        // ⭐ ИСПРАВЛЕННОЕ СОХРАНЕНИЕ ПРОГРАММЫ
         function saveProgram() {
             const nameInput = document.getElementById('prog-name');
             const name = nameInput ? nameInput.value.trim() : '';
@@ -650,6 +649,14 @@
             if (!state.editingProgram || state.editingProgram.exercises.length === 0) {
                 tg.showPopup({ message: 'Добавьте хотя бы одно упражнение' });
                 return;
+            }
+
+            // Валидация названий упражнений
+            for (let ex of state.editingProgram.exercises) {
+                if (!ex.name || !ex.name.trim()) {
+                    tg.showPopup({ message: 'Заполните названия всех упражнений' });
+                    return;
+                }
             }
 
             state.editingProgram.name = name;
@@ -669,6 +676,7 @@
             haptic('success');
             state.editingProgram = null;
 
+            // Сначала гасим системную кнопку Telegram, затем переключаем вкладку
             clearMainButton();
             switchTab('programs');
         }
@@ -718,7 +726,13 @@
         }
 
         function removeSet(exIdx, sIdx) {
-            state.activeWorkout.exercises[exIdx].sets.splice(sIdx, 1);
+            const sets = state.activeWorkout.exercises[exIdx].sets;
+            if (sets.length <= 1) {
+                // Оставляем хотя бы один пустой подход, чтобы не ломать верстку
+                sets[0] = { weight: 0, reps: 10 };
+            } else {
+                sets.splice(sIdx, 1);
+            }
             saveActiveWorkout();
             renderWorkout();
         }
@@ -729,7 +743,10 @@
         }
 
         function startTimer() {
-            if (state.workoutTimer) clearInterval(state.workoutTimer);
+            if (state.workoutTimer) {
+                clearInterval(state.workoutTimer);
+                state.workoutTimer = null;
+            }
             const update = () => {
                 if (!state.activeWorkout) return;
                 const elapsed = Date.now() - state.activeWorkout.startTime;
@@ -743,7 +760,6 @@
             state.workoutTimer = setInterval(update, 1000);
         }
 
-        // ⭐ ИСПРАВЛЕННОЕ ЗАВЕРШЕНИЕ ТРЕНИРОВКИ
         async function finishWorkout() {
             const ok = await appConfirm('Завершить и сохранить тренировку?');
             if (!ok) return;
@@ -778,13 +794,16 @@
             saveActiveWorkout();
 
             haptic('success');
+            
+            // Сначала гасим системную кнопку Telegram, затем переключаем вкладку
             clearMainButton();
-
             switchTab('programs');
         }
 
         document.addEventListener('visibilitychange', () => {
-            if (state.currentScreen === 'workout' && state.activeWorkout) startTimer();
+            if (document.visibilityState === 'visible' && state.currentScreen === 'workout' && state.activeWorkout) {
+                startTimer();
+            }
         });
 
         if (restoreActiveWorkout()) navigate('workout');
