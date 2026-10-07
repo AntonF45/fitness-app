@@ -323,6 +323,14 @@
                         ${exercisesHTML}
                     </div>
                 </div>
+
+                <div class="mt-8 pt-6 border-t border-tgSecondaryBg card-enter" style="animation-delay: 0.2s">
+                    <button onclick="resetAllData()" 
+                        class="w-full py-3 rounded-xl border border-red-500/30 text-red-500 font-medium text-sm active:bg-red-500/10 transition-colors flex items-center justify-center gap-2">
+                        <i class="fa-solid fa-trash-can"></i>
+                        Сбросить все данные приложения
+                    </button>
+                </div>
             `;
             renderChart();
         }
@@ -412,6 +420,25 @@
             renderStats();
         }
 
+        function resetAllData() {
+    tg.showConfirm('Вы уверены? Это БЕЗВОЗВРАТНО удалит все программы, историю тренировок и текущий процесс. Продолжить?', (ok) => {
+        if (ok) {
+            // Очищаем localStorage по ключам текущего пользователя
+            localStorage.removeItem(DataAPI._key('programs'));
+            localStorage.removeItem(DataAPI._key('history'));
+            localStorage.removeItem(ACTIVE_KEY);
+            
+            // Сбрасываем состояние в памяти
+            state.activeWorkout = null;
+            state.selectedExercise = null;
+            state.selectedMuscleGroup = 'Все';
+            
+            haptic('heavy');
+            tg.showPopup({ title: 'Готово', message: 'Все данные приложения очищены' });
+            navigate('stats');
+        }
+    });
+}
         function renderPrograms() {
             const programs = DataAPI.getPrograms();
             let listHTML = programs.length ? programs.map((p, index) => {
