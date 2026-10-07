@@ -195,13 +195,18 @@
         const MUSCLE_GROUPS = ['Грудь', 'Спина', 'Ноги', 'Плечи', 'Руки'];
 
         const tg = window.Telegram.WebApp;
-        tg.ready();
-        tg.expand();
+
+        try {
+            tg.ready();
+            tg.expand();
+        } catch (error) {
+            console.warn('Telegram init error:', error);
+        }
 
         const USER_ID = tg.initDataUnsafe?.user?.id ||
             'local_test_user_' + Math.random().toString(36).substr(2, 9);
 
-        const haptic = (type = 'light') => {
+        function haptic(type = 'light') {
             try {
                 if (type === 'success' || type === 'error' || type === 'warning') {
                     tg.HapticFeedback?.notificationOccurred(type);
@@ -209,38 +214,67 @@
                     tg.HapticFeedback?.impactOccurred(type);
                 }
             } catch (error) {
-                console.warn('Haptic feedback error:', error);
+                console.warn('Haptic error:', error);
             }
-        };
+        }
 
-        tg.BackButton.onClick(() => navigateBack());
+        function showAlert(message) {
+            try {
+                tg.showAlert(message);
+            } catch (error) {
+                alert(message);
+            }
+        }
+
+        function showConfirm(message, callback) {
+            try {
+                tg.showConfirm(message, callback);
+            } catch (error) {
+                const result = confirm(message);
+                callback(result);
+            }
+        }
+
+        try {
+            tg.BackButton.onClick(() => navigateBack());
+        } catch (error) {
+            console.warn('BackButton error:', error);
+        }
 
         function updateBackButton(isSubScreen) {
-            if (isSubScreen) {
-                tg.BackButton.show();
-            } else {
-                tg.BackButton.hide();
+            try {
+                if (isSubScreen) {
+                    tg.BackButton.show();
+                } else {
+                    tg.BackButton.hide();
+                }
+            } catch (error) {
+                console.warn('BackButton update error:', error);
             }
         }
 
         let currentMainButtonHandler = null;
 
         function setMainButton(text, handler) {
-            if (currentMainButtonHandler) {
-                tg.MainButton.offClick(currentMainButtonHandler);
-                currentMainButtonHandler = null;
+            try {
+                if (currentMainButtonHandler) {
+                    tg.MainButton.offClick(currentMainButtonHandler);
+                    currentMainButtonHandler = null;
+                }
+
+                if (!text || !handler) {
+                    tg.MainButton.hide();
+                    return;
+                }
+
+                tg.MainButton.setText(text);
+                tg.MainButton.show();
+                tg.MainButton.onClick(handler);
+
+                currentMainButtonHandler = handler;
+            } catch (error) {
+                console.warn('MainButton error:', error);
             }
-
-            if (!text || !handler) {
-                tg.MainButton.hide();
-                return;
-            }
-
-            tg.MainButton.setText(text);
-            tg.MainButton.show();
-            tg.MainButton.onClick(handler);
-
-            currentMainButtonHandler = handler;
         }
 
         function clearMainButton() {
@@ -253,7 +287,11 @@
             },
 
             getPrograms() {
-                return JSON.parse(localStorage.getItem(this._key('programs')) || '[]');
+                try {
+                    return JSON.parse(localStorage.getItem(this._key('programs')) || '[]');
+                } catch (error) {
+                    return [];
+                }
             },
 
             savePrograms(data) {
@@ -261,7 +299,11 @@
             },
 
             getHistory() {
-                return JSON.parse(localStorage.getItem(this._key('history')) || '[]');
+                try {
+                    return JSON.parse(localStorage.getItem(this._key('history')) || '[]');
+                } catch (error) {
+                    return [];
+                }
             },
 
             saveHistory(data) {
@@ -280,7 +322,7 @@
                 const exerciseMap = new Map();
 
                 const addExercise = exercise => {
-                    if (!exercise.name) return;
+                    if (!exercise || !exercise.name) return;
 
                     if (!exerciseMap.has(exercise.name)) {
                         exerciseMap.set(exercise.name, {
@@ -291,11 +333,11 @@
                 };
 
                 this.getPrograms().forEach(program => {
-                    program.exercises.forEach(addExercise);
+                    (program.exercises || []).forEach(addExercise);
                 });
 
                 this.getHistory().forEach(entry => {
-                    entry.exercises.forEach(addExercise);
+                    (entry.exercises || []).forEach(addExercise);
                 });
 
                 return Array.from(exerciseMap.values());
@@ -305,9 +347,9 @@
                 const results = [];
 
                 this.getHistory().forEach(entry => {
-                    entry.exercises.forEach(exercise => {
+                    (entry.exercises || []).forEach(exercise => {
                         if (exercise.name === exerciseName) {
-                            exercise.sets.forEach(set => {
+                            (exercise.sets || []).forEach(set => {
                                 results.push({
                                     date: entry.date,
                                     weight: set.weight,
@@ -374,6 +416,17 @@
             });
         }
 
+        function openProgramsScreen() {
+            state.currentTab = 'programs';
+            state.currentScreen = 'programs';
+
+            updateTabUI('programs');
+            updateBackButton(false);
+            clearMainButton();
+
+            renderPrograms();
+        }
+
         function navigateToTab(tab) {
             state.currentTab = tab;
             updateTabUI(tab);
@@ -416,10 +469,7 @@
         function navigate(screen, data = {}) {
             haptic('light');
 
-            if (state.workoutTimer) {
-                clearInterval(state.workoutTimer);
-                state.workoutTimer = null;
-            }
+            stopWorkoutTimer();
 
             state.currentScreen = screen;
 
@@ -547,7 +597,7 @@
         }
 
         function resetAllData() {
-            tg.showConfirm(
+            showConfirm(
                 'Вы уверены? Это БЕЗВОЗВРАТНО удалит все программы, историю тренировок и текущий процесс. Продолжить?',
                 ok => {
                     if (!ok) return;
@@ -561,10 +611,6 @@
                     state.selectedMuscleGroup = 'Грудь';
 
                     haptic('warning');
-                    tg.showPopup({
-                        title: 'Готово',
-                        message: 'Все данные приложения очищены'
-                    });
 
                     navigateToTab('stats');
                 }
@@ -688,7 +734,9 @@
 
             let listHTML = programs.length
                 ? programs.map((program, index) => {
-                    const exercisesList = program.exercises.map(exercise => `
+                    const exercises = program.exercises || [];
+
+                    const exercisesList = exercises.map(exercise => `
                         <div class="text-tgHint text-xs">
                             ${esc(exercise.name)} — ${exercise.targetSets ?? 3}×${exercise.targetReps ?? 10}
                         </div>
@@ -739,8 +787,9 @@
 
         function renderProgramEdit() {
             const program = state.editingProgram || { name: '', exercises: [] };
+            const exercises = program.exercises || [];
 
-            let exercisesHTML = program.exercises.map((exercise, index) => `
+            let exercisesHTML = exercises.map((exercise, index) => `
                 <div class="bg-tgSecondaryBg p-4 rounded-2xl mb-3 card-enter" style="animation-delay: ${index * 0.05}s">
                     <div class="flex justify-between items-center mb-3">
                         <span class="font-medium text-sm text-tgHint">Упражнение ${index + 1}</span>
@@ -828,17 +877,23 @@
         function renderWorkout() {
             const workout = state.activeWorkout;
 
-            if (!workout) return;
+            if (!workout) {
+                openProgramsScreen();
+                return;
+            }
 
-            let exercisesHTML = workout.exercises.map((exercise, exerciseIndex) => {
-                const completedSets = exercise.sets.filter(
+            const exercises = workout.exercises || [];
+
+            let exercisesHTML = exercises.map((exercise, exerciseIndex) => {
+                const sets = exercise.sets || [];
+                const completedSets = sets.filter(
                     set => set.weight > 0 && set.reps > 0
                 ).length;
 
                 const targetSets = exercise.targetSets ?? 3;
                 const isComplete = completedSets >= targetSets;
 
-                let setsHTML = exercise.sets.map((set, setIndex) => `
+                let setsHTML = sets.map((set, setIndex) => `
                     <div class="bg-tgBg rounded-xl p-3 mb-2 card-enter" style="animation-delay: ${setIndex * 0.03}s">
                         <div class="flex items-center justify-between mb-2">
                             <span class="text-tgHint text-sm font-medium">Подход ${setIndex + 1}</span>
@@ -979,8 +1034,8 @@
                         minute: '2-digit'
                     });
                     const durationMin = Math.round(entry.duration / 60);
-                    const totalSets = entry.exercises.reduce(
-                        (sum, exercise) => sum + exercise.sets.length,
+                    const totalSets = (entry.exercises || []).reduce(
+                        (sum, exercise) => sum + (exercise.sets || []).length,
                         0
                     );
 
@@ -1022,8 +1077,8 @@
 
             const date = new Date(entry.date).toLocaleString('ru-RU');
 
-            let exercisesHTML = entry.exercises.map((exercise, index) => {
-                let setsHTML = exercise.sets.map((set, setIndex) => `
+            let exercisesHTML = (entry.exercises || []).map((exercise, index) => {
+                let setsHTML = (exercise.sets || []).map((set, setIndex) => `
                     <div class="flex justify-between py-2 border-b border-tgBg last:border-0">
                         <span class="text-tgHint text-sm">${setIndex + 1}.</span>
                         <span class="font-medium">${set.weight} кг × ${set.reps} повт</span>
@@ -1055,6 +1110,10 @@
                 state.editingProgram = { name: '', exercises: [] };
             }
 
+            if (!state.editingProgram.exercises) {
+                state.editingProgram.exercises = [];
+            }
+
             state.editingProgram.exercises.push({
                 id: createId(),
                 name: '',
@@ -1084,18 +1143,18 @@
             const name = nameInput ? nameInput.value.trim() : '';
 
             if (!name) {
-                tg.showAlert('Введите название программы');
+                showAlert('Введите название программы');
                 return;
             }
 
-            if (!state.editingProgram || state.editingProgram.exercises.length === 0) {
-                tg.showAlert('Добавьте хотя бы одно упражнение');
+            if (!state.editingProgram || (state.editingProgram.exercises || []).length === 0) {
+                showAlert('Добавьте хотя бы одно упражнение');
                 return;
             }
 
             for (const exercise of state.editingProgram.exercises) {
                 if (!exercise.name || !exercise.name.trim()) {
-                    tg.showAlert('Заполните названия всех упражнений');
+                    showAlert('Заполните названия всех упражнений');
                     return;
                 }
             }
@@ -1119,12 +1178,11 @@
             haptic('success');
             state.editingProgram = null;
 
-            clearMainButton();
-            navigateToTab('programs');
+            openProgramsScreen();
         }
 
         function deleteProgram(id) {
-            tg.showConfirm('Удалить программу?', ok => {
+            showConfirm('Удалить программу?', ok => {
                 if (!ok) return;
 
                 DataAPI.savePrograms(
@@ -1138,8 +1196,8 @@
         function startWorkout(programId) {
             const program = DataAPI.getProgramById(programId);
 
-            if (!program || program.exercises.length === 0) {
-                tg.showAlert('В программе нет упражнений');
+            if (!program || !(program.exercises || []).length) {
+                showAlert('В программе нет упражнений');
                 return;
             }
 
@@ -1210,10 +1268,7 @@
         }
 
         function startTimer() {
-            if (state.workoutTimer) {
-                clearInterval(state.workoutTimer);
-                state.workoutTimer = null;
-            }
+            stopWorkoutTimer();
 
             const update = () => {
                 if (!state.activeWorkout) return;
@@ -1268,10 +1323,10 @@
             modal.className = 'modal-backdrop';
 
             modal.innerHTML = `
-                <div class="modal-sheet" role="dialog" aria-modal="true" aria-labelledby="workout-dialog-title">
+                <div class="modal-sheet" role="dialog" aria-modal="true">
                     <div class="w-10 h-1 bg-tgHint/40 rounded-full mx-auto mb-5"></div>
 
-                    <h2 id="workout-dialog-title" class="text-xl font-bold text-center mb-2">
+                    <h2 class="text-xl font-bold text-center mb-2">
                         Завершить тренировку?
                     </h2>
 
@@ -1317,12 +1372,12 @@
 
             document.getElementById('workout-save-btn').onclick = () => {
                 closeDialog();
-                finishWorkoutAndNavigate(targetTab);
+                saveWorkoutAndOpenPrograms();
             };
 
             document.getElementById('workout-discard-btn').onclick = () => {
                 closeDialog();
-                discardWorkoutAndNavigate(targetTab);
+                discardWorkoutAndOpenPrograms();
             };
 
             modal.addEventListener('click', event => {
@@ -1332,55 +1387,51 @@
             });
         }
 
-        function finishWorkoutAndNavigate(targetTab = 'programs') {
-            const workout = state.activeWorkout;
+        function saveWorkoutAndOpenPrograms() {
+            try {
+                const workout = state.activeWorkout;
 
-            if (!workout) {
+                if (workout) {
+                    const history = DataAPI.getHistory();
+
+                    history.push({
+                        id: createId(),
+                        date: new Date(workout.startTime).toISOString(),
+                        duration: Math.max(
+                            0,
+                            Math.round((Date.now() - workout.startTime) / 1000)
+                        ),
+                        programName: workout.programName,
+                        exercises: workout.exercises.map(exercise => ({
+                            name: exercise.name,
+                            muscleGroup: exercise.muscleGroup || '',
+                            targetSets: exercise.targetSets ?? 3,
+                            targetReps: exercise.targetReps ?? 10,
+                            sets: (exercise.sets || []).map(set => ({
+                                weight: Number(set.weight) || 0,
+                                reps: Number(set.reps) || 0
+                            }))
+                        }))
+                    });
+
+                    DataAPI.saveHistory(history);
+                }
+
                 clearWorkoutState();
-                navigateToTab(targetTab);
-                return;
+                haptic('success');
+            } catch (error) {
+                console.error('Save workout error:', error);
+                clearWorkoutState();
             }
 
-            stopWorkoutTimer();
-
-            const history = DataAPI.getHistory();
-
-            history.push({
-                id: createId(),
-                date: new Date(workout.startTime).toISOString(),
-                duration: Math.max(
-                    0,
-                    Math.round((Date.now() - workout.startTime) / 1000)
-                ),
-                programName: workout.programName,
-                exercises: workout.exercises.map(exercise => ({
-                    name: exercise.name,
-                    muscleGroup: exercise.muscleGroup || '',
-                    targetSets: exercise.targetSets ?? 3,
-                    targetReps: exercise.targetReps ?? 10,
-                    sets: exercise.sets.map(set => ({
-                        weight: Number(set.weight) || 0,
-                        reps: Number(set.reps) || 0
-                    }))
-                }))
-            });
-
-            DataAPI.saveHistory(history);
-
-            clearWorkoutState();
-
-            haptic('success');
-
-            navigateToTab(targetTab);
+            openProgramsScreen();
         }
 
-        function discardWorkoutAndNavigate(targetTab = 'programs') {
-            stopWorkoutTimer();
+        function discardWorkoutAndOpenPrograms() {
             clearWorkoutState();
-
             haptic('light');
 
-            navigateToTab(targetTab);
+            openProgramsScreen();
         }
 
         document.addEventListener('visibilitychange', () => {
