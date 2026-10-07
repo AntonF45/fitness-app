@@ -199,7 +199,8 @@
         function navigateBack() {
             haptic('light');
             const tabMap = { 'program_edit': 'programs', 'history_detail': 'history', 'workout': 'programs' };
-            navigate(tabMap[state.currentScreen] || state.currentTab || 'stats');
+            const target = tabMap[state.currentScreen] || state.currentTab || 'stats';
+            switchTab(target);
         }
 
         function navigate(screen, data = {}) {
@@ -305,7 +306,7 @@
                     state.selectedMuscleGroup = 'Грудь';
                     haptic('heavy');
                     tg.showPopup({ title: 'Готово', message: 'Все данные приложения очищены' });
-                    navigate('stats');
+                    switchTab('stats');
                 }
             });
         }
@@ -615,6 +616,7 @@
             state.editingProgram.exercises[idx][field] = value;
         }
 
+        // ИСПРАВЛЕНИЕ ПУНКТА 7: Используем switchTab('programs') вместо navigate
         function saveProgram() {
             const nameInput = document.getElementById('prog-name');
             const name = nameInput ? nameInput.value.trim() : '';
@@ -631,11 +633,11 @@
             DataAPI.savePrograms(programs);
             haptic('success');
             state.editingProgram = null;
-            tg.MainButton.hide();
-            tg.MainButton.offClick(saveProgram);
 
-            tg.showPopup({ title: 'Сохранено ✓', message: `Программа "${name}" готова` });
-            setTimeout(() => navigate('programs'), 400);
+            // Очищаем MainButton и переходим на вкладку Программы
+            tg.MainButton.offClick(saveProgram);
+            tg.MainButton.hide();
+            switchTab('programs');
         }
 
         async function deleteProgram(id) {
@@ -708,6 +710,7 @@
             state.workoutTimer = setInterval(update, 1000);
         }
 
+        // ИСПРАВЛЕНИЕ ПУНКТА 9: Используем switchTab('programs') вместо navigate
         async function finishWorkout() {
             const ok = await appConfirm('Завершить и сохранить тренировку?');
             if (!ok) return;
@@ -726,9 +729,11 @@
             state.activeWorkout = null;
             saveActiveWorkout();
             haptic('success');
-            tg.MainButton.hide();
+
+            // Очищаем MainButton и переходим на вкладку Программы
             tg.MainButton.offClick(finishWorkout);
-            navigate('programs');
+            tg.MainButton.hide();
+            switchTab('programs');
         }
 
         document.addEventListener('visibilitychange', () => {
