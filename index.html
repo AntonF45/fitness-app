@@ -127,6 +127,30 @@
             else tg.BackButton.hide();
         }
 
+        // ⭐ ЕДИНОЕ УПРАВЛЕНИЕ MAINBUTTON
+        let currentMainButtonHandler = null;
+
+        function setMainButton(text, handler) {
+            if (currentMainButtonHandler) {
+                tg.MainButton.offClick(currentMainButtonHandler);
+                currentMainButtonHandler = null;
+            }
+
+            if (!text || !handler) {
+                tg.MainButton.hide();
+                return;
+            }
+
+            tg.MainButton.setText(text);
+            tg.MainButton.show();
+            tg.MainButton.onClick(handler);
+            currentMainButtonHandler = handler;
+        }
+
+        function clearMainButton() {
+            setMainButton(null, null);
+        }
+
         const DataAPI = {
             _key(type) { return `twa_fitness_${type}_${USER_ID}`; },
             getPrograms() { return JSON.parse(localStorage.getItem(this._key('programs')) || '[]'); },
@@ -215,7 +239,8 @@
             const isSubScreen = ['program_edit', 'history_detail', 'workout'].includes(screen);
             updateBackButton(isSubScreen);
 
-            tg.MainButton.hide();
+            // ⭐ ОЧИСТКА MAINBUTTON ПРИ СМЕНЕ ЭКРАНА
+            clearMainButton();
 
             switch(screen) {
                 case 'stats': renderStats(); break;
@@ -457,9 +482,8 @@
                 </button>
             `;
 
-            tg.MainButton.setText('Сохранить программу');
-            tg.MainButton.show();
-            tg.MainButton.onClick(saveProgram);
+            // ⭐ ИСПОЛЬЗУЕМ setMainButton
+            setMainButton('Сохранить программу', saveProgram);
         }
 
         function updateProgramName(value) {
@@ -523,9 +547,8 @@
             `;
 
             startTimer();
-            tg.MainButton.setText('Завершить тренировку');
-            tg.MainButton.show();
-            tg.MainButton.onClick(finishWorkout);
+            // ⭐ ИСПОЛЬЗУЕМ setMainButton
+            setMainButton('Завершить тренировку', finishWorkout);
         }
 
         function adjustSet(exIdx, sIdx, field, delta) {
@@ -614,25 +637,39 @@
             state.editingProgram.exercises[idx][field] = value;
         }
 
-        // ⭐ ПУНКТ 7: После сохранения — переход на вкладку "Программы"
+        // ⭐ ИСПРАВЛЕННОЕ СОХРАНЕНИЕ ПРОГРАММЫ
         function saveProgram() {
             const nameInput = document.getElementById('prog-name');
             const name = nameInput ? nameInput.value.trim() : '';
-            if (!name) { tg.showPopup({message: 'Введите название программы'}); return; }
-            if (state.editingProgram.exercises.length === 0) { tg.showPopup({message: 'Добавьте хотя бы одно упражнение'}); return; }
+
+            if (!name) {
+                tg.showPopup({ message: 'Введите название программы' });
+                return;
+            }
+
+            if (!state.editingProgram || state.editingProgram.exercises.length === 0) {
+                tg.showPopup({ message: 'Добавьте хотя бы одно упражнение' });
+                return;
+            }
 
             state.editingProgram.name = name;
-            let programs = DataAPI.getPrograms();
+
+            const programs = DataAPI.getPrograms();
             const existIdx = programs.findIndex(p => p.id === state.editingProgram.id);
 
-            if (existIdx > -1) programs[existIdx] = state.editingProgram;
-            else { state.editingProgram.id = createId(); programs.push(state.editingProgram); }
+            if (existIdx > -1) {
+                programs[existIdx] = state.editingProgram;
+            } else {
+                state.editingProgram.id = createId();
+                programs.push(state.editingProgram);
+            }
 
             DataAPI.savePrograms(programs);
+
             haptic('success');
             state.editingProgram = null;
 
-            // Переходим на вкладку "Программы" (где список всех программ + кнопка "Создать программу")
+            clearMainButton();
             switchTab('programs');
         }
 
@@ -706,27 +743,43 @@
             state.workoutTimer = setInterval(update, 1000);
         }
 
-        // ⭐ ПУНКТ 9: После завершения тренировки — переход на вкладку "Программы"
+        // ⭐ ИСПРАВЛЕННОЕ ЗАВЕРШЕНИЕ ТРЕНИРОВКИ
         async function finishWorkout() {
             const ok = await appConfirm('Завершить и сохранить тренировку?');
             if (!ok) return;
 
-            if (state.workoutTimer) { clearInterval(state.workoutTimer); state.workoutTimer = null; }
+            const workout = state.activeWorkout;
 
-            const w = state.activeWorkout;
-            DataAPI.saveHistory([...DataAPI.getHistory(), {
+            if (!workout) {
+                tg.showPopup({ message: 'Активная тренировка не найдена' });
+                clearMainButton();
+                switchTab('programs');
+                return;
+            }
+
+            if (state.workoutTimer) {
+                clearInterval(state.workoutTimer);
+                state.workoutTimer = null;
+            }
+
+            const history = DataAPI.getHistory();
+
+            history.push({
                 id: createId(),
-                date: new Date(w.startTime).toISOString(),
-                duration: Math.round((Date.now() - w.startTime) / 1000),
-                programName: w.programName,
-                exercises: w.exercises
-            }]);
+                date: new Date(workout.startTime).toISOString(),
+                duration: Math.round((Date.now() - workout.startTime) / 1000),
+                programName: workout.programName,
+                exercises: workout.exercises
+            });
+
+            DataAPI.saveHistory(history);
 
             state.activeWorkout = null;
             saveActiveWorkout();
-            haptic('success');
 
-            // Переходим на вкладку "Программы" (где список всех программ + кнопка "Создать программу")
+            haptic('success');
+            clearMainButton();
+
             switchTab('programs');
         }
 
