@@ -874,7 +874,7 @@
             state.editingProgram.name = value;
         }
 
-        function renderWorkout() {
+                function renderWorkout() {
             const workout = state.activeWorkout;
 
             if (!workout) {
@@ -915,6 +915,7 @@
 
                             <input
                                 type="number"
+                                id="set-${exerciseIndex}-${setIndex}-weight"
                                 inputmode="decimal"
                                 value="${set.weight}"
                                 onchange="updateSet(${exerciseIndex}, ${setIndex}, 'weight', parseFloat(this.value) || 0)"
@@ -938,6 +939,7 @@
 
                             <input
                                 type="number"
+                                id="set-${exerciseIndex}-${setIndex}-reps"
                                 inputmode="numeric"
                                 value="${set.reps}"
                                 onchange="updateSet(${exerciseIndex}, ${setIndex}, 'reps', parseInt(this.value) || 0)"
@@ -959,7 +961,7 @@
                         <div class="flex justify-between items-center mb-3">
                             <h3 class="font-bold text-base">${esc(exercise.name)}</h3>
 
-                            <span class="text-xs font-medium px-2 py-1 rounded-md ${
+                            <span id="badge-${exerciseIndex}" class="text-xs font-medium px-2 py-1 rounded-md ${
                                 isComplete
                                     ? 'bg-green-500/20 text-green-500'
                                     : 'bg-tgBg text-tgHint'
@@ -1004,18 +1006,35 @@
         }
 
         function adjustSet(exerciseIndex, setIndex, field, delta) {
-            const current = state.activeWorkout
-                .exercises[exerciseIndex]
-                .sets[setIndex][field] || 0;
+            const exercise = state.activeWorkout.exercises[exerciseIndex];
+            const current = exercise.sets[setIndex][field] || 0;
 
             const newValue = field === 'weight'
                 ? Math.max(0, parseFloat((current + delta).toFixed(1)))
                 : Math.max(0, current + delta);
 
+            // 1. Обновляем данные в состоянии и сохраняем в localStorage
             updateSet(exerciseIndex, setIndex, field, newValue);
-
             haptic('light');
-            renderWorkout();
+
+            // 2. ТОЧЕЧНО обновляем значение в поле ввода без перерисовки всего экрана
+            const inputElement = document.getElementById(`set-${exerciseIndex}-${setIndex}-${field}`);
+            if (inputElement) {
+                inputElement.value = newValue;
+            }
+
+            // 3. Обновляем индикатор выполнения (бейдж), если количество завершенных подходов изменилось
+            const completedSets = exercise.sets.filter(s => s.weight > 0 && s.reps > 0).length;
+            const targetSets = exercise.targetSets ?? 3;
+            const isComplete = completedSets >= targetSets;
+            
+            const badge = document.getElementById(`badge-${exerciseIndex}`);
+            if (badge) {
+                badge.className = `text-xs font-medium px-2 py-1 rounded-md ${
+                    isComplete ? 'bg-green-500/20 text-green-500' : 'bg-tgBg text-tgHint'
+                }`;
+                badge.innerText = isComplete ? '✓ Готово' : `${completedSets}/${targetSets}`;
+            }
         }
 
         function renderHistory() {
