@@ -109,10 +109,6 @@
             return typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : Date.now().toString(36) + Math.random().toString(36).slice(2);
         }
 
-        function appConfirm(message) {
-            return new Promise(resolve => { tg.showConfirm(message, ok => resolve(ok)); });
-        }
-
         const MUSCLE_GROUPS = ['Грудь', 'Спина', 'Ноги', 'Плечи', 'Руки'];
         const tg = window.Telegram.WebApp;
         tg.ready();
@@ -198,10 +194,18 @@
             selectedExercise: null
         };
 
-        // ⭐ 1. ОБРАБОТКА ВЫХОДА ИЗ ТРЕНИРОВКИ С ДИАЛОГАМИ
-        function handleWorkoutExit(callback) {
-            tg.showConfirm('Сохранить результаты тренировки перед выходом?', (ok) => {
-                if (ok) {
+        // ⭐ ЕДИНОЕ ДИАЛОГОВОЕ ОКНО ДЛЯ ЗАВЕРШЕНИЯ ТРЕНИРОВКИ
+        function promptWorkoutExit(targetTab = 'programs') {
+            tg.showPopup({
+                title: 'Завершить тренировку',
+                message: 'Что сделать с текущей тренировкой?',
+                buttons: [
+                    { id: 'save', type: 'default', text: 'Завершить и сохранить' },
+                    { id: 'discard', type: 'destructive', text: 'Не сохранять' },
+                    { id: 'cancel', type: 'cancel', text: 'Отмена' }
+                ]
+            }, (buttonId) => {
+                if (buttonId === 'save') {
                     if (state.workoutTimer) { clearInterval(state.workoutTimer); state.workoutTimer = null; }
                     const workout = state.activeWorkout;
                     if (workout) {
@@ -217,49 +221,30 @@
                     saveActiveWorkout();
                     clearMainButton();
                     haptic('success');
-                    callback();
-                } else {
-                    tg.showConfirm('Выйти без сохранения? Все введенные данные будут потеряны.', (discard) => {
-                        if (discard) {
-                            state.activeWorkout = null;
-                            saveActiveWorkout();
-                            clearMainButton();
-                            if (state.workoutTimer) { clearInterval(state.workoutTimer); state.workoutTimer = null; }
-                            callback();
-                        }
-                    });
+                    
+                    state.currentTab = targetTab;
+                    updateTabUI(targetTab);
+                    navigate(targetTab);
+                } else if (buttonId === 'discard') {
+                    state.activeWorkout = null;
+                    saveActiveWorkout();
+                    clearMainButton();
+                    if (state.workoutTimer) { clearInterval(state.workoutTimer); state.workoutTimer = null; }
+                    haptic('light');
+                    
+                    state.currentTab = targetTab;
+                    updateTabUI(targetTab);
+                    navigate(targetTab);
                 }
+                // Если 'cancel', ничего не делаем, остаемся на экране тренировки
             });
         }
 
-        function switchTab(tab) {
-            // Перехват переключения вкладок во время активной тренировки
-            if (state.currentScreen === 'workout' && state.activeWorkout && tab !== 'workout') {
-                handleWorkoutExit(() => {
-                    state.currentTab = tab;
-                    haptic('light');
-                    ['stats', 'programs', 'history'].forEach(t => {
-                        const btn = document.getElementById(`tab-${t}`);
-                        if (t === tab) {
-                            btn.classList.remove('text-tgHint');
-                            btn.classList.add('text-tgLink');
-                            btn.setAttribute('aria-selected', 'true');
-                        } else {
-                            btn.classList.remove('text-tgLink');
-                            btn.classList.add('text-tgHint');
-                            btn.setAttribute('aria-selected', 'false');
-                        }
-                    });
-                    navigate(tab);
-                });
-                return;
-            }
-
-            state.currentTab = tab;
-            haptic('light');
+        function updateTabUI(activeTab) {
             ['stats', 'programs', 'history'].forEach(t => {
                 const btn = document.getElementById(`tab-${t}`);
-                if (t === tab) {
+                if (!btn) return;
+                if (t === activeTab) {
                     btn.classList.remove('text-tgHint');
                     btn.classList.add('text-tgLink');
                     btn.setAttribute('aria-selected', 'true');
@@ -269,23 +254,34 @@
                     btn.setAttribute('aria-selected', 'false');
                 }
             });
+        }
+
+        function switchTab(tab) {
+            // Перехват попытки уйти с экрана активной тренировки
+            if (state.currentScreen === 'workout' && state.activeWorkout && tab !== 'workout') {
+                promptWorkoutExit(tab);
+                return;
+            }
+
+            state.currentTab = tab;
+            haptic('light');
+            updateTabUI(tab);
             navigate(tab);
         }
 
         function navigateBack() {
             // Перехват кнопки "Назад" во время активной тренировки
             if (state.currentScreen === 'workout' && state.activeWorkout) {
-                handleWorkoutExit(() => {
-                    haptic('light');
-                    switchTab('programs');
-                });
+                promptWorkoutExit('programs');
                 return;
             }
 
             haptic('light');
             const tabMap = { 'program_edit': 'programs', 'history_detail': 'history', 'workout': 'programs' };
             const target = tabMap[state.currentScreen] || state.currentTab || 'stats';
-            switchTab(target);
+            state.currentTab = target;
+            updateTabUI(target);
+            navigate(target);
         }
 
         function navigate(screen, data = {}) {
@@ -555,7 +551,7 @@
                             </button>
                         </div>
                         
-                        <!-- ⭐ 2. РАЗМЕР ПОЛЕЙ: Вес (w-20) шире, чем Повторения (w-14) -->
+                        <!-- Поле веса (w-20) шире, чем поле повторений (w-14) -->
                         <div class="flex items-center gap-2 mb-2">
                             <button onclick="adjustSet(${exIdx}, ${sIdx}, 'weight', -2.5)" class="w-10 h-10 rounded-lg bg-tgSecondaryBg text-lg flex items-center justify-center active:opacity-70 font-bold shrink-0">−</button>
                             <input type="number" inputmode="decimal" value="${s.weight}" onchange="updateSet(${exIdx}, ${sIdx}, 'weight', parseFloat(this.value)||0)" class="w-20 h-10 text-center bg-transparent text-xl font-semibold shrink-0">
@@ -588,7 +584,7 @@
             }).join('');
 
             document.getElementById('app-content').innerHTML = `
-                <!-- ⭐ 3. ЗАКРЕПЛЕННЫЙ ТАЙМЕР СВЕРХУ -->
+                <!-- ЗАКРЕПЛЕННЫЙ ТАЙМЕР СВЕРХУ -->
                 <div class="sticky top-0 z-10 bg-tgBg/95 backdrop-blur-md py-4 mb-4 border-b border-tgSecondaryBg card-enter">
                     <div class="text-4xl font-mono font-bold text-tgLink tracking-wider text-center" id="workout-timer">00:00:00</div>
                     <div class="text-tgHint text-xs mt-1 uppercase tracking-wide text-center">Время тренировки</div>
@@ -597,7 +593,8 @@
             `;
 
             startTimer();
-            setMainButton('Завершить тренировку', finishWorkout);
+            // Главная кнопка вызывает то же самое диалоговое окно
+            setMainButton('Завершить тренировку', () => promptWorkoutExit('programs'));
         }
 
         function adjustSet(exIdx, sIdx, field, delta) {
@@ -685,6 +682,7 @@
             state.editingProgram.exercises[idx][field] = value;
         }
 
+        // ⭐ НАДЕЖНЫЙ ПЕРЕХОД ПОСЛЕ СОХРАНЕНИЯ ПРОГРАММЫ
         function saveProgram() {
             const nameInput = document.getElementById('prog-name');
             const name = nameInput ? nameInput.value.trim() : '';
@@ -695,21 +693,30 @@
             const programs = DataAPI.getPrograms();
             const existIdx = programs.findIndex(p => p.id === state.editingProgram.id);
 
-            if (existIdx > -1) programs[existIdx] = state.editingProgram;
-            else { state.editingProgram.id = createId(); programs.push(state.editingProgram); }
+            if (existIdx > -1) {
+                programs[existIdx] = state.editingProgram;
+            } else {
+                state.editingProgram.id = createId();
+                programs.push(state.editingProgram);
+            }
 
             DataAPI.savePrograms(programs);
             haptic('success');
             state.editingProgram = null;
             clearMainButton();
-            switchTab('programs');
+            
+            // Явное обновление вкладки и переход
+            state.currentTab = 'programs';
+            updateTabUI('programs');
+            navigate('programs');
         }
 
         async function deleteProgram(id) {
-            const ok = await appConfirm('Удалить программу?');
-            if (!ok) return;
-            DataAPI.savePrograms(DataAPI.getPrograms().filter(p => p.id !== id));
-            renderPrograms();
+            tg.showConfirm('Удалить программу?', (ok) => {
+                if (!ok) return;
+                DataAPI.savePrograms(DataAPI.getPrograms().filter(p => p.id !== id));
+                renderPrograms();
+            });
         }
 
         function startWorkout(programId) {
@@ -771,35 +778,6 @@
             };
             update();
             state.workoutTimer = setInterval(update, 1000);
-        }
-
-        async function finishWorkout() {
-            const ok = await appConfirm('Завершить и сохранить тренировку?');
-            if (!ok) return;
-
-            const workout = state.activeWorkout;
-            if (!workout) {
-                tg.showPopup({ message: 'Активная тренировка не найдена' });
-                clearMainButton();
-                switchTab('programs');
-                return;
-            }
-
-            if (state.workoutTimer) { clearInterval(state.workoutTimer); state.workoutTimer = null; }
-
-            DataAPI.saveHistory([...DataAPI.getHistory(), {
-                id: createId(),
-                date: new Date(workout.startTime).toISOString(),
-                duration: Math.round((Date.now() - workout.startTime) / 1000),
-                programName: workout.programName,
-                exercises: workout.exercises
-            }]);
-
-            state.activeWorkout = null;
-            saveActiveWorkout();
-            haptic('success');
-            clearMainButton();
-            switchTab('programs');
         }
 
         document.addEventListener('visibilitychange', () => {
