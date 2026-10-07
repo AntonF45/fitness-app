@@ -37,7 +37,6 @@
             color: var(--tg-theme-text-color, #ffffff);
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
             -webkit-tap-highlight-color: transparent;
-            /* Safe area padding */
             padding-bottom: calc(var(--bottom-nav-height) + var(--safe-bottom) + 16px);
         }
         input, select {
@@ -59,7 +58,6 @@
         .snap-x { scroll-snap-type: x mandatory; }
         .snap-center { scroll-snap-align: center; }
 
-        /* Микроанимации */
         .chip {
             transition: background-color 0.18s ease, color 0.18s ease, transform 0.12s ease, box-shadow 0.18s ease;
         }
@@ -73,7 +71,6 @@
             to { opacity: 1; transform: translateY(0); }
         }
 
-        /* Фиксированная область графика */
         .chart-wrapper {
             position: relative;
             height: 220px;
@@ -85,7 +82,6 @@
 <body class="min-h-screen">
 
     <header id="app-header" class="sticky top-0 z-10 bg-tgBg/90 backdrop-blur-md px-4 py-3 flex items-center justify-between border-b border-tgSecondaryBg">
-        <!-- Кнопка назад управляется через tg.BackButton, но оставим placeholder для структуры -->
         <div class="w-10"></div>
         <h1 id="header-title" class="text-lg font-semibold flex-1 text-center">Fitnary</h1>
         <div class="w-10"></div>
@@ -107,7 +103,7 @@
         <button onclick="switchTab('history')" id="tab-history" role="tab" aria-selected="false" class="flex flex-col items-center justify-center min-h-[56px] min-w-[64px] text-tgHint">
             <i class="fa-solid fa-clock-rotate-left text-xl mb-1"></i>
             <span class="text-xs font-medium">История</span>
-        </button “>
+        </button>
     </nav>
 
     <script>
@@ -131,7 +127,6 @@
         const USER_ID = tg.initDataUnsafe?.user?.id || 'local_test_user_' + Math.random().toString(36).substr(2, 9);
         const haptic = (type = 'light') => tg.HapticFeedback?.impactOccurred(type);
 
-        // Управление системной кнопкой "Назад"
         tg.BackButton.onClick(() => navigateBack());
         function updateBackButton(isSubScreen) {
             if (isSubScreen) tg.BackButton.show();
@@ -165,18 +160,6 @@
                     });
                 });
                 return results.sort((a, b) => new Date(a.date) - new Date(b.date));
-            },
-
-            getStatsSummary() {
-                const history = this.getHistory();
-                const totalWorkouts = history.length;
-                let totalVolume = 0;
-                history.forEach(entry => {
-                    entry.exercises.forEach(ex => {
-                        ex.sets.forEach(set => { totalVolume += (set.weight * set.reps); });
-                    });
-                });
-                return { totalWorkouts, totalVolume: Math.round(totalVolume) };
             }
         };
 
@@ -241,7 +224,6 @@
             updateBackButton(isSubScreen);
             title.innerText = screen === 'stats' ? 'Fitnary' : (screen === 'programs' ? 'Программы' : (screen === 'history' ? 'История' : (screen === 'workout' ? 'Тренировка' : 'Fitnary')));
 
-            // Очищаем MainButton при смене экрана
             tg.MainButton.hide();
             tg.MainButton.offClick(finishWorkout);
             tg.MainButton.offClick(saveProgram);
@@ -258,7 +240,6 @@
 
         function renderStats() {
             const exercises = DataAPI.getUserExercises();
-            const summary = DataAPI.getStatsSummary();
             
             const muscleGroupsHTML = ['Все', ...MUSCLE_GROUPS].map(group => `
                 <button onclick="selectMuscleGroup('${group}')" role="tab" aria-selected="${state.selectedMuscleGroup === group}"
@@ -272,7 +253,7 @@
             `).join('');
             
             const filteredExercises = state.selectedMuscleGroup === 'Все' 
-                ? exercises.slice(-5) // Показываем последние 5 добавленных, если "Все"
+                ? exercises.slice(-5)
                 : exercises.filter(ex => ex.muscleGroup === state.selectedMuscleGroup);
 
             const exercisesHTML = filteredExercises.length ? filteredExercises.map(ex => `
@@ -287,18 +268,6 @@
             `).join('') : '<p class="text-tgHint text-sm px-4 py-3">Нет упражнений в этой группе</p>';
             
             document.getElementById('app-content').innerHTML = `
-                <!-- Hero Summary -->
-                <div class="grid grid-cols-2 gap-3 mb-6 card-enter">
-                    <div class="bg-tgSecondaryBg p-4 rounded-2xl">
-                        <div class="text-tgHint text-xs mb-1">Всего тренировок</div>
-                        <div class="text-2xl font-bold text-tgLink">${summary.totalWorkouts}</div>
-                    </div>
-                <div class="bg-tgSecondaryBg p-4 rounded-2xl">
-                        <div class="text-tgHint text-xs mb-1">Поднятый тоннаж</div>
-                        <div class="text-2xl font-bold text-tgLink">${(summary.totalVolume / 1000).toFixed(1)}т</div>
-                    </div>
-                </div>
-
                 <div class="bg-tgSecondaryBg p-4 rounded-2xl mb-6 card-enter" style="animation-delay: 0.05s">
                     <div class="flex justify-between items-center mb-3">
                         <h3 class="text-sm font-semibold text-tgHint">Прогресс веса</h3>
@@ -312,14 +281,14 @@
                 
                 <div class="mb-4 card-enter" style="animation-delay: 0.1s">
                     <h3 class="text-sm font-semibold mb-2 text-tgHint px-1">Группа мышц</h3>
-                    <div class="flex overflow-x-auto gap-3 pb-2 snap-x scroll-container">
+                    <div class="flex overflow-x-auto gap-3 pb-2 snap-x scroll-container px-4">
                         ${muscleGroupsHTML}
                     </div>
                 </div>
                 
                 <div class="mb-4 card-enter" style="animation-delay: 0.15s">
                     <h3 class="text-sm font-semibold mb-2 text-tgHint px-1">${state.selectedMuscleGroup === 'Все' ? 'Недавние упражнения' : 'Упражнения'}</h3>
-                    <div class="flex overflow-x-auto gap-3 pb-2 snap-x scroll-container">
+                    <div class="flex overflow-x-auto gap-3 pb-2 snap-x scroll-container px-4">
                         ${exercisesHTML}
                     </div>
                 </div>
@@ -332,7 +301,37 @@
                     </button>
                 </div>
             `;
+            
+            // Исправление #4: Прокрутка к выбранному элементу после рендера
+            setTimeout(() => {
+                const containers = document.querySelectorAll('.scroll-container');
+                containers.forEach(container => {
+                    const activeChip = container.querySelector('[aria-selected="true"]');
+                    if (activeChip) {
+                        activeChip.scrollIntoView({ behavior: 'auto', inline: 'center', block: 'nearest' });
+                    }
+                });
+            }, 50);
+
             renderChart();
+        }
+
+        function resetAllData() {
+            tg.showConfirm('Вы уверены? Это БЕЗВОЗВРАТНО удалит все программы, историю тренировок и текущий процесс. Продолжить?', (ok) => {
+                if (ok) {
+                    localStorage.removeItem(DataAPI._key('programs'));
+                    localStorage.removeItem(DataAPI._key('history'));
+                    localStorage.removeItem(ACTIVE_KEY);
+                    
+                    state.activeWorkout = null;
+                    state.selectedExercise = null;
+                    state.selectedMuscleGroup = 'Все';
+                    
+                    haptic('heavy');
+                    tg.showPopup({ title: 'Готово', message: 'Все данные приложения очищены' });
+                    navigate('stats');
+                }
+            });
         }
 
         function renderChart() {
@@ -362,7 +361,6 @@
                 return;
             }
             
-            // Группировка по ISO дате, чтобы избежать дублирования "01.10" из разных годов
             const dataByDate = {};
             history.forEach(h => {
                 const key = new Date(h.date).toISOString().slice(0, 10);
@@ -420,25 +418,6 @@
             renderStats();
         }
 
-        function resetAllData() {
-    tg.showConfirm('Вы уверены? Это БЕЗВОЗВРАТНО удалит все программы, историю тренировок и текущий процесс. Продолжить?', (ok) => {
-        if (ok) {
-            // Очищаем localStorage по ключам текущего пользователя
-            localStorage.removeItem(DataAPI._key('programs'));
-            localStorage.removeItem(DataAPI._key('history'));
-            localStorage.removeItem(ACTIVE_KEY);
-            
-            // Сбрасываем состояние в памяти
-            state.activeWorkout = null;
-            state.selectedExercise = null;
-            state.selectedMuscleGroup = 'Все';
-            
-            haptic('heavy');
-            tg.showPopup({ title: 'Готово', message: 'Все данные приложения очищены' });
-            navigate('stats');
-        }
-    });
-}
         function renderPrograms() {
             const programs = DataAPI.getPrograms();
             let listHTML = programs.length ? programs.map((p, index) => {
@@ -462,7 +441,7 @@
                                 <button onclick="deleteProgram('${p.id}')" aria-label="Удалить программу"
                                     class="w-11 h-11 flex items-center justify-center rounded-full bg-tgBg text-red-500 active:opacity-70 transition-opacity">
                                     <i class="fa-solid fa-trash text-lg"></i>
-                                </button
+                                </button>
                             </div>
                         </div>
                     </div>
@@ -506,7 +485,7 @@
                             <label class="text-xs text-tgHint mb-1 block">Повторения</label>
                             <input type="number" inputmode="numeric" value="${ex.targetReps ?? 10}" onchange="updateExercise(${idx}, 'targetReps', parseInt(this.value)||10)" class="w-full p-3 rounded-xl text-sm text-center">
                         </div>
-                    </div
+                    </div>
                 </div>
             `).join('');
 
@@ -520,7 +499,6 @@
                 </button>
             `;
             
-            // Используем MainButton для сохранения
             tg.MainButton.setText('Сохранить программу');
             tg.MainButton.show();
             tg.MainButton.onClick(saveProgram);
@@ -584,8 +562,6 @@
             `;
             
             startTimer();
-            
-            // Главное действие экрана тренировки - через MainButton
             tg.MainButton.setText('Завершить тренировку');
             tg.MainButton.show();
             tg.MainButton.onClick(finishWorkout);
@@ -595,9 +571,6 @@
             const current = state.activeWorkout.exercises[exIdx].sets[sIdx][field] || 0;
             const newVal = field === 'weight' ? Math.max(0, parseFloat((current + delta).toFixed(1))) : Math.max(0, current + delta);
             updateSet(exIdx, sIdx, field, newVal);
-            
-            // Обновляем значение в input без полной перерисовки для плавности
-            // (в простой реализации перерисуем, но с haptic это ощущается хорошо)
             haptic('light');
             renderWorkout();
         }
@@ -724,7 +697,7 @@
                     muscleGroup: ex.muscleGroup,
                     targetSets: ex.targetSets,
                     targetReps: ex.targetReps,
-                    sets: [{ weight: 0, reps: ex.targetReps || 10 }] // Сразу добавляем 1 пустой подход для удобства
+                    sets: [{ weight: 0, reps: ex.targetReps || 10 }]
                 }))
             };
             saveActiveWorkout();
@@ -797,7 +770,6 @@
             if (state.currentScreen === 'workout' && state.activeWorkout) startTimer();
         });
 
-        // Init
         if (restoreActiveWorkout()) navigate('workout');
         else switchTab('stats');
     </script>
