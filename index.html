@@ -132,6 +132,59 @@
             from { opacity: 0; transform: translateY(20px); }
             to { opacity: 1; transform: translateY(0); }
         }
+
+        /* Визуальные стили для дроп-сетов */
+        .set-drop {
+            border-left: 3px solid #f97316;
+            background: linear-gradient(90deg, rgba(249, 115, 22, 0.08), transparent);
+        }
+
+        /* Визуальные стили для суперсетов */
+        .superset-group {
+            border-left: 4px solid #a855f7;
+            background: linear-gradient(90deg, rgba(168, 85, 247, 0.05), transparent);
+            padding: 12px;
+            border-radius: 16px;
+            margin-bottom: 16px;
+        }
+
+        .superset-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            background: rgba(168, 85, 247, 0.2);
+            color: #c084fc;
+            padding: 4px 10px;
+            border-radius: 8px;
+            font-size: 11px;
+            font-weight: 600;
+            letter-spacing: 0.5px;
+        }
+
+        .drop-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            background: rgba(249, 115, 22, 0.2);
+            color: #fb923c;
+            padding: 2px 8px;
+            border-radius: 6px;
+            font-size: 10px;
+            font-weight: 700;
+            letter-spacing: 0.5px;
+        }
+
+        .bodyweight-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            background: rgba(34, 197, 94, 0.15);
+            color: #4ade80;
+            padding: 2px 8px;
+            border-radius: 6px;
+            font-size: 10px;
+            font-weight: 600;
+        }
     </style>
 </head>
 
@@ -162,6 +215,9 @@
     </nav>
 
     <script>
+        // ==========================================
+        // УТИЛИТЫ
+        // ==========================================
         function esc(str = '') {
             return String(str)
                 .replaceAll('&', '&amp;')
@@ -177,15 +233,28 @@
                 : Date.now().toString(36) + Math.random().toString(36).slice(2);
         }
 
+        // Миграция данных для обратной совместимости
+        function migrateExercise(ex) {
+            if (!ex) return ex;
+            return {
+                ...ex,
+                exerciseType: ex.exerciseType || 'weighted',
+                supersetId: ex.supersetId || null
+            };
+        }
+
+        function migrateSet(set) {
+            if (!set) return set;
+            return {
+                ...set,
+                setType: set.setType || 'regular'
+            };
+        }
+
         const MUSCLE_GROUPS = ['Грудь', 'Спина', 'Ноги', 'Плечи', 'Руки'];
         const tg = window.Telegram.WebApp;
 
-        try {
-            tg.ready();
-            tg.expand();
-        } catch (error) {
-            console.warn('Telegram init error:', error);
-        }
+        try { tg.ready(); tg.expand(); } catch (error) { console.warn('Telegram init error:', error); }
 
         const USER_ID = tg.initDataUnsafe?.user?.id || 'local_test_user_' + Math.random().toString(36).substr(2, 9);
 
@@ -196,9 +265,7 @@
                 } else {
                     tg.HapticFeedback?.impactOccurred(type);
                 }
-            } catch (error) {
-                console.warn('Haptic error:', error);
-            }
+            } catch (error) { console.warn('Haptic error:', error); }
         }
 
         function showAlert(message) {
@@ -237,14 +304,24 @@
             } catch (error) { console.warn('MainButton error:', error); }
         }
 
-        function clearMainButton() {
-            setMainButton(null, null);
-        }
+        function clearMainButton() { setMainButton(null, null); }
 
+        // ==========================================
+        // DATA API
+        // ==========================================
         const DataAPI = {
             _key(type) { return `twa_fitness_${type}_${USER_ID}`; },
             getPrograms() {
-                try { return JSON.parse(localStorage.getItem(this._key('programs')) || '[]'); } catch (error) { return []; }
+                try {
+                    const data = JSON.parse(localStorage.getItem(this._key('programs')) || '[]');
+                    return data.map(p => ({
+                        ...p,
+                        exercises: (p.exercises || []).map(migrateExercise).map(ex => ({
+                            ...ex,
+                            sets: (ex.sets || []).map(migrateSet)
+                        }))
+                    }));
+                } catch (error) { return []; }
             },
             savePrograms(data) { localStorage.setItem(this._key('programs'), JSON.stringify(data)); },
             getHistory() {
@@ -259,7 +336,11 @@
                 const addExercise = exercise => {
                     if (!exercise || !exercise.name) return;
                     if (!exerciseMap.has(exercise.name)) {
-                        exerciseMap.set(exercise.name, { name: exercise.name, muscleGroup: exercise.muscleGroup || 'Другое' });
+                        exerciseMap.set(exercise.name, {
+                            name: exercise.name,
+                            muscleGroup: exercise.muscleGroup || 'Другое',
+                            exerciseType: exercise.exerciseType || 'weighted'
+                        });
                     }
                 };
                 this.getPrograms().forEach(program => (program.exercises || []).forEach(addExercise));
@@ -311,6 +392,9 @@
             selectedExercise: null
         };
 
+        // ==========================================
+        // НАВИГАЦИЯ
+        // ==========================================
         function updateTabUI(activeTab) {
             ['stats', 'programs', 'history'].forEach(tab => {
                 const button = document.getElementById(`tab-${tab}`);
@@ -383,6 +467,9 @@
             }
         }
 
+        // ==========================================
+        // СТАТИСТИКА
+        // ==========================================
         function renderStats() {
             const exercises = DataAPI.getUserExercises();
             const muscleGroupsHTML = MUSCLE_GROUPS.map(group => `
@@ -508,18 +595,52 @@
             renderStats();
         }
 
+        // ==========================================
+        // ПРОГРАММЫ
+        // ==========================================
         function renderPrograms() {
             const programs = DataAPI.getPrograms();
             let listHTML = programs.length
                 ? programs.map((program, index) => {
                     const exercises = program.exercises || [];
-                    const exercisesList = exercises.map(exercise => `<div class="text-tgHint text-xs">${esc(exercise.name)} — ${exercise.targetSets ?? 3}×${exercise.targetReps ?? 10}</div>`).join('');
+                    
+                    // Группируем упражнения по суперсетам для отображения
+                    const exerciseBlocks = [];
+                    const processed = new Set();
+                    
+                    exercises.forEach((exercise, idx) => {
+                        if (processed.has(idx)) return;
+                        
+                        if (exercise.supersetId) {
+                            const group = exercises
+                                .map((e, i) => ({ ...e, originalIndex: i }))
+                                .filter(e => e.supersetId === exercise.supersetId);
+                            group.forEach(e => processed.add(e.originalIndex));
+                            
+                            const groupHTML = group.map(e => 
+                                `<div class="text-tgHint text-xs">${esc(e.name)} — ${e.targetSets ?? 3}×${e.targetReps ?? 10}</div>`
+                            ).join('');
+                            
+                            exerciseBlocks.push(`
+                                <div class="superset-group">
+                                    <div class="superset-badge mb-2"><i class="fa-solid fa-bolt"></i> СУПЕРСЕТ</div>
+                                    ${groupHTML}
+                                </div>
+                            `);
+                        } else {
+                            processed.add(idx);
+                            exerciseBlocks.push(`
+                                <div class="text-tgHint text-xs">${esc(exercise.name)} — ${exercise.targetSets ?? 3}×${exercise.targetReps ?? 10}</div>
+                            `);
+                        }
+                    });
+
                     return `
                         <div class="bg-tgSecondaryBg p-4 rounded-2xl mb-3 card-enter" style="animation-delay: ${index * 0.05}s">
                             <div class="flex justify-between items-start">
                                 <div onclick="startWorkout('${program.id}')" class="flex-1 active:opacity-70 pr-2 cursor-pointer">
                                     <div class="font-semibold text-base mb-2">${esc(program.name)}</div>
-                                    ${exercisesList || '<div class="text-tgHint text-xs italic">Нет упражнений</div>'}
+                                    ${exerciseBlocks.join('') || '<div class="text-tgHint text-xs italic">Нет упражнений</div>'}
                                 </div>
                                 <div class="flex flex-col gap-2">
                                     <button onclick="navigate('program_edit', {programId: '${program.id}'})" aria-label="Редактировать программу" class="w-11 h-11 flex items-center justify-center rounded-full bg-tgBg text-tgLink active:opacity-70 transition-opacity">
@@ -547,31 +668,49 @@
             const program = state.editingProgram || { name: '', exercises: [] };
             const exercises = program.exercises || [];
 
-            let exercisesHTML = exercises.map((exercise, index) => `
-                <div class="bg-tgSecondaryBg p-4 rounded-2xl mb-3 card-enter" style="animation-delay: ${index * 0.05}s">
-                    <div class="flex justify-between items-center mb-3">
-                        <span class="font-medium text-sm text-tgHint">Упражнение ${index + 1}</span>
-                        <button onclick="removeExercise(${index})" aria-label="Удалить упражнение" class="w-8 h-8 flex items-center justify-center rounded-full text-red-500 active:opacity-70">
-                            <i class="fa-solid fa-times"></i>
-                        </button>
-                    </div>
-                    <input type="text" placeholder="Название (напр. Жим лежа)" value="${esc(exercise.name)}" oninput="updateExercise(${index}, 'name', this.value)" class="w-full p-3 rounded-xl mb-3 text-sm font-medium">
-                    <select onchange="updateExercise(${index}, 'muscleGroup', this.value)" class="w-full p-3 rounded-xl mb-3 text-sm">
-                        <option value="">Выберите группу мышц</option>
-                        ${MUSCLE_GROUPS.map(group => `<option value="${group}" ${exercise.muscleGroup === group ? 'selected' : ''}>${group}</option>`).join('')}
-                    </select>
-                    <div class="flex gap-3">
-                        <div class="flex-1">
-                            <label class="text-xs text-tgHint mb-1 block">Подходы</label>
-                            <input type="number" inputmode="numeric" value="${exercise.targetSets ?? 3}" onchange="updateExercise(${index}, 'targetSets', parseInt(this.value) || 3)" class="w-full p-3 rounded-xl text-sm text-center">
+            let exercisesHTML = exercises.map((exercise, index) => {
+                const isInSuperset = !!exercise.supersetId;
+                
+                return `
+                    <div class="bg-tgSecondaryBg p-4 rounded-2xl mb-3 card-enter ${isInSuperset ? 'border-l-4 border-purple-500' : ''}" style="animation-delay: ${index * 0.05}s">
+                        <div class="flex justify-between items-center mb-3">
+                            <div class="flex items-center gap-2">
+                                <span class="font-medium text-sm text-tgHint">Упражнение ${index + 1}</span>
+                                ${isInSuperset ? '<span class="superset-badge"><i class="fa-solid fa-bolt"></i> СУПЕРСЕТ</span>' : ''}
+                            </div>
+                            <div class="flex gap-1">
+                                <button onclick="toggleSuperset(${index})" aria-label="В суперсет" class="w-8 h-8 flex items-center justify-center rounded-full ${isInSuperset ? 'bg-purple-500/20 text-purple-400' : 'text-tgHint'} active:opacity-70">
+                                    <i class="fa-solid fa-link"></i>
+                                </button>
+                                <button onclick="removeExercise(${index})" aria-label="Удалить упражнение" class="w-8 h-8 flex items-center justify-center rounded-full text-red-500 active:opacity-70">
+                                    <i class="fa-solid fa-times"></i>
+                                </button>
+                            </div>
                         </div>
-                        <div class="flex-1">
-                            <label class="text-xs text-tgHint mb-1 block">Повторения</label>
-                            <input type="number" inputmode="numeric" value="${exercise.targetReps ?? 10}" onchange="updateExercise(${index}, 'targetReps', parseInt(this.value) || 10)" class="w-full p-3 rounded-xl text-sm text-center">
+                        <input type="text" placeholder="Название (напр. Жим лежа)" value="${esc(exercise.name)}" oninput="updateExercise(${index}, 'name', this.value)" class="w-full p-3 rounded-xl mb-3 text-sm font-medium">
+                        
+                        <select onchange="updateExercise(${index}, 'exerciseType', this.value)" class="w-full p-3 rounded-xl mb-3 text-sm">
+                            <option value="weighted" ${exercise.exerciseType === 'weighted' ? 'selected' : ''}>🏋️ Со свободным весом (штанга/гантели)</option>
+                            <option value="bodyweight" ${exercise.exerciseType === 'bodyweight' ? 'selected' : ''}>🤸 Собственный вес (подтягивания, брусья)</option>
+                        </select>
+                        
+                        <select onchange="updateExercise(${index}, 'muscleGroup', this.value)" class="w-full p-3 rounded-xl mb-3 text-sm">
+                            <option value="">Выберите группу мышц</option>
+                            ${MUSCLE_GROUPS.map(group => `<option value="${group}" ${exercise.muscleGroup === group ? 'selected' : ''}>${group}</option>`).join('')}
+                        </select>
+                        <div class="flex gap-3">
+                            <div class="flex-1">
+                                <label class="text-xs text-tgHint mb-1 block">Подходы</label>
+                                <input type="number" inputmode="numeric" value="${exercise.targetSets ?? 3}" onchange="updateExercise(${index}, 'targetSets', parseInt(this.value) || 3)" class="w-full p-3 rounded-xl text-sm text-center">
+                            </div>
+                            <div class="flex-1">
+                                <label class="text-xs text-tgHint mb-1 block">Повторения</label>
+                                <input type="number" inputmode="numeric" value="${exercise.targetReps ?? 10}" onchange="updateExercise(${index}, 'targetReps', parseInt(this.value) || 10)" class="w-full p-3 rounded-xl text-sm text-center">
+                            </div>
                         </div>
                     </div>
-                </div>
-            `).join('');
+                `;
+            }).join('');
 
             document.getElementById('app-content').innerHTML = `
                 <input type="text" id="prog-name" placeholder="Название программы" value="${esc(program.name)}" oninput="updateProgramName(this.value)" class="w-full p-4 rounded-2xl mb-4 text-lg font-semibold card-enter">
@@ -588,25 +727,132 @@
             state.editingProgram.name = value;
         }
 
-        // ==========================================
-        // ОПТИМИЗИРОВАННЫЕ ФУНКЦИИ ТРЕНИРОВКИ
-        // ==========================================
+        function addExercise() {
+            if (!state.editingProgram) state.editingProgram = { name: '', exercises: [] };
+            if (!state.editingProgram.exercises) state.editingProgram.exercises = [];
+            state.editingProgram.exercises.push({
+                id: createId(),
+                name: '',
+                muscleGroup: '',
+                exerciseType: 'weighted',
+                supersetId: null,
+                targetSets: 3,
+                targetReps: 10
+            });
+            renderProgramEdit();
+        }
 
-        function generateSetHTML(exerciseIndex, setIndex, set) {
+        function removeExercise(index) {
+            const exercises = state.editingProgram.exercises;
+            const removed = exercises[index];
+            
+            // Если удаляемое упражнение было в суперсете, разрываем связи
+            if (removed.supersetId) {
+                exercises.forEach(ex => {
+                    if (ex.supersetId === removed.supersetId) {
+                        ex.supersetId = null;
+                    }
+                });
+            }
+            
+            exercises.splice(index, 1);
+            renderProgramEdit();
+        }
+
+        function updateExercise(index, field, value) {
+            if (!state.editingProgram) state.editingProgram = { name: '', exercises: [] };
+            state.editingProgram.exercises[index][field] = value;
+        }
+
+        // ==========================================
+        // СУПЕРСЕТЫ
+        // ==========================================
+        function toggleSuperset(exerciseIndex) {
+            const exercises = state.editingProgram.exercises;
+            const current = exercises[exerciseIndex];
+            
+            if (current.supersetId) {
+                // Разрываем все связи этого суперсета
+                const ssId = current.supersetId;
+                exercises.forEach(ex => {
+                    if (ex.supersetId === ssId) ex.supersetId = null;
+                });
+                haptic('light');
+            } else {
+                // Ищем предыдущее упражнение
+                if (exerciseIndex === 0) {
+                    showAlert('Это первое упражнение. Сначала добавьте ещё одно, затем свяжите их.');
+                    return;
+                }
+                
+                const prev = exercises[exerciseIndex - 1];
+                const ssId = prev.supersetId || createId();
+                prev.supersetId = ssId;
+                current.supersetId = ssId;
+                haptic('medium');
+            }
+            
+            renderProgramEdit();
+        }
+
+        function saveProgram() {
+            const nameInput = document.getElementById('prog-name');
+            const name = nameInput ? nameInput.value.trim() : '';
+            if (!name) { showAlert('Введите название программы'); return; }
+            if (!state.editingProgram || (state.editingProgram.exercises || []).length === 0) { showAlert('Добавьте хотя бы одно упражнение'); return; }
+            for (const exercise of state.editingProgram.exercises) {
+                if (!exercise.name || !exercise.name.trim()) { showAlert('Заполните названия всех упражнений'); return; }
+            }
+
+            state.editingProgram.name = name;
+            const programs = DataAPI.getPrograms();
+            const existingIndex = programs.findIndex(program => program.id === state.editingProgram.id);
+
+            if (existingIndex > -1) programs[existingIndex] = state.editingProgram;
+            else { state.editingProgram.id = createId(); programs.push(state.editingProgram); }
+
+            DataAPI.savePrograms(programs);
+            haptic('success');
+            state.editingProgram = null;
+            openProgramsScreen();
+        }
+
+        function deleteProgram(id) {
+            showConfirm('Удалить программу?', ok => {
+                if (!ok) return;
+                DataAPI.savePrograms(DataAPI.getPrograms().filter(program => program.id !== id));
+                renderPrograms();
+            });
+        }
+
+        // ==========================================
+        // ТРЕНИРОВКА (С ПОДДЕРЖКОЙ BODYWEIGHT, DROP-SETS, SUPERSETS)
+        // ==========================================
+        function generateSetHTML(exerciseIndex, setIndex, set, exerciseType) {
+            const isBodyweight = exerciseType === 'bodyweight';
+            const weightLabel = isBodyweight ? 'Доп. вес' : 'Вес';
+            const isDropSet = set.setType === 'drop';
+            
             return `
-                <div id="set-row-${exerciseIndex}-${setIndex}" class="bg-tgBg rounded-xl p-3 mb-2 card-enter" style="animation-delay: 0.03s">
+                <div id="set-row-${exerciseIndex}-${setIndex}" class="bg-tgBg rounded-xl p-3 mb-2 card-enter ${isDropSet ? 'set-drop' : ''}" style="animation-delay: 0.03s">
                     <div class="flex items-center justify-between mb-2">
-                        <span class="text-tgHint text-sm font-medium">Подход ${setIndex + 1}</span>
+                        <div class="flex items-center gap-2">
+                            <span class="text-tgHint text-sm font-medium">Подход ${setIndex + 1}</span>
+                            ${isDropSet ? '<span class="drop-badge"><i class="fa-solid fa-fire"></i> DROP</span>' : ''}
+                            ${isBodyweight ? '<span class="bodyweight-badge"><i class="fa-solid fa-person"></i> BW</span>' : ''}
+                        </div>
                         <button onclick="removeSet(${exerciseIndex}, ${setIndex})" aria-label="Удалить подход" class="w-8 h-8 flex items-center justify-center rounded-full text-red-500 active:opacity-70">
                             <i class="fa-solid fa-trash-can text-sm"></i>
                         </button>
                     </div>
+
                     <div class="flex items-center gap-2 mb-2">
                         <button onclick="adjustSet(${exerciseIndex}, ${setIndex}, 'weight', -2.5)" class="w-10 h-10 rounded-lg bg-tgSecondaryBg text-lg flex items-center justify-center active:opacity-70 font-bold shrink-0">−</button>
                         <input type="number" id="set-${exerciseIndex}-${setIndex}-weight" inputmode="decimal" value="${set.weight}" onchange="updateSet(${exerciseIndex}, ${setIndex}, 'weight', parseFloat(this.value) || 0)" class="w-20 h-10 text-center bg-transparent text-xl font-semibold shrink-0">
                         <button onclick="adjustSet(${exerciseIndex}, ${setIndex}, 'weight', 2.5)" class="w-10 h-10 rounded-lg bg-tgSecondaryBg text-lg flex items-center justify-center active:opacity-70 font-bold shrink-0">+</button>
-                        <span class="text-tgHint text-sm w-8 text-center shrink-0">кг</span>
+                        <span class="text-tgHint text-sm w-16 text-center shrink-0">${weightLabel}</span>
                     </div>
+
                     <div class="flex items-center gap-2">
                         <button onclick="adjustSet(${exerciseIndex}, ${setIndex}, 'reps', -1)" class="w-10 h-10 rounded-lg bg-tgSecondaryBg text-lg flex items-center justify-center active:opacity-70 font-bold shrink-0">−</button>
                         <input type="number" id="set-${exerciseIndex}-${setIndex}-reps" inputmode="numeric" value="${set.reps}" onchange="updateSet(${exerciseIndex}, ${setIndex}, 'reps', parseInt(this.value) || 0)" class="w-14 h-10 text-center bg-transparent text-xl font-semibold shrink-0">
@@ -617,34 +863,37 @@
             `;
         }
 
-        function renderExerciseCard(exerciseIndex) {
-            const exercise = state.activeWorkout.exercises[exerciseIndex];
+        function renderExerciseCard(exerciseIndex, exercise) {
             const sets = exercise.sets || [];
-            const completedSets = sets.filter(s => s.weight > 0 && s.reps > 0).length;
+            const completedSets = sets.filter(s => s.weight >= 0 && s.reps > 0).length;
             const targetSets = exercise.targetSets ?? 3;
             const isComplete = completedSets >= targetSets;
+            const exerciseType = exercise.exerciseType || 'weighted';
 
-            const setsHTML = sets.map((set, setIndex) => generateSetHTML(exerciseIndex, setIndex, set)).join('');
+            const setsHTML = sets.map((set, setIndex) => generateSetHTML(exerciseIndex, setIndex, set, exerciseType)).join('');
 
-            const cardHTML = `
+            return `
                 <div id="exercise-card-${exerciseIndex}" class="bg-tgSecondaryBg p-4 rounded-2xl mb-4 card-enter" style="animation-delay: ${exerciseIndex * 0.1}s">
                     <div class="flex justify-between items-center mb-3">
-                        <h3 class="font-bold text-base">${esc(exercise.name)}</h3>
-                        <span id="badge-${exerciseIndex}" class="text-xs font-medium px-2 py-1 rounded-md ${isComplete ? 'bg-green-500/20 text-green-500' : 'bg-tgBg text-tgHint'}">
+                        <div class="flex items-center gap-2 flex-1 min-w-0">
+                            <h3 class="font-bold text-base truncate">${esc(exercise.name)}</h3>
+                            ${exerciseType === 'bodyweight' ? '<span class="bodyweight-badge shrink-0"><i class="fa-solid fa-person"></i> BW</span>' : ''}
+                        </div>
+                        <span id="badge-${exerciseIndex}" class="text-xs font-medium px-2 py-1 rounded-md shrink-0 ${isComplete ? 'bg-green-500/20 text-green-500' : 'bg-tgBg text-tgHint'}">
                             ${isComplete ? '✓ Готово' : `${completedSets}/${targetSets}`}
                         </span>
                     </div>
                     <div id="sets-container-${exerciseIndex}">${setsHTML}</div>
-                    <button id="add-set-btn-${exerciseIndex}" onclick="addSet(${exerciseIndex})" class="w-full py-3 mt-1 bg-tgBg rounded-xl text-tgLink text-sm font-semibold active:opacity-70 transition-opacity">
-                        + Добавить подход
-                    </button>
+                    <div class="flex gap-2 mt-1">
+                        <button id="add-set-btn-${exerciseIndex}" onclick="addSet(${exerciseIndex})" class="flex-1 py-3 bg-tgBg rounded-xl text-tgLink text-sm font-semibold active:opacity-70 transition-opacity">
+                            + Подход
+                        </button>
+                        <button onclick="addDropSet(${exerciseIndex})" class="flex-1 py-3 bg-orange-500/15 rounded-xl text-orange-400 text-sm font-semibold active:opacity-70 transition-opacity">
+                            <i class="fa-solid fa-fire mr-1"></i> Дроп
+                        </button>
+                    </div>
                 </div>
             `;
-
-            const existingCard = document.getElementById(`exercise-card-${exerciseIndex}`);
-            if (existingCard) {
-                existingCard.outerHTML = cardHTML;
-            }
         }
 
         function renderWorkout() {
@@ -655,27 +904,41 @@
             }
 
             const exercises = workout.exercises || [];
-            let exercisesHTML = exercises.map((exercise, exerciseIndex) => {
-                const sets = exercise.sets || [];
-                const completedSets = sets.filter(s => s.weight > 0 && s.reps > 0).length;
-                const targetSets = exercise.targetSets ?? 3;
-                const isComplete = completedSets >= targetSets;
-                const setsHTML = sets.map((set, setIndex) => generateSetHTML(exerciseIndex, setIndex, set)).join('');
+            
+            // Группируем упражнения по суперсетам
+            const groups = [];
+            const processed = new Set();
+            
+            exercises.forEach((exercise, idx) => {
+                if (processed.has(idx)) return;
+                
+                if (exercise.supersetId) {
+                    const group = exercises
+                        .map((e, i) => ({ ...e, originalIndex: i }))
+                        .filter(e => e.supersetId === exercise.supersetId);
+                    group.forEach(e => processed.add(e.originalIndex));
+                    groups.push({ type: 'superset', exercises: group });
+                } else {
+                    processed.add(idx);
+                    groups.push({ type: 'single', exercise: exercise, originalIndex: idx });
+                }
+            });
 
-                return `
-                    <div id="exercise-card-${exerciseIndex}" class="bg-tgSecondaryBg p-4 rounded-2xl mb-4 card-enter" style="animation-delay: ${exerciseIndex * 0.1}s">
-                        <div class="flex justify-between items-center mb-3">
-                            <h3 class="font-bold text-base">${esc(exercise.name)}</h3>
-                            <span id="badge-${exerciseIndex}" class="text-xs font-medium px-2 py-1 rounded-md ${isComplete ? 'bg-green-500/20 text-green-500' : 'bg-tgBg text-tgHint'}">
-                                ${isComplete ? '✓ Готово' : `${completedSets}/${targetSets}`}
-                            </span>
+            let groupsHTML = groups.map((group, groupIndex) => {
+                if (group.type === 'superset') {
+                    const cardsHTML = group.exercises.map(ex => 
+                        renderExerciseCard(ex.originalIndex, ex)
+                    ).join('');
+                    
+                    return `
+                        <div class="superset-group card-enter" style="animation-delay: ${groupIndex * 0.1}s">
+                            <div class="superset-badge mb-3"><i class="fa-solid fa-bolt"></i> СУПЕРСЕТ — выполнять без отдыха</div>
+                            ${cardsHTML}
                         </div>
-                        <div id="sets-container-${exerciseIndex}">${setsHTML}</div>
-                        <button id="add-set-btn-${exerciseIndex}" onclick="addSet(${exerciseIndex})" class="w-full py-3 mt-1 bg-tgBg rounded-xl text-tgLink text-sm font-semibold active:opacity-70 transition-opacity">
-                            + Добавить подход
-                        </button>
-                    </div>
-                `;
+                    `;
+                } else {
+                    return renderExerciseCard(group.originalIndex, group.exercise);
+                }
             }).join('');
 
             document.getElementById('app-content').innerHTML = `
@@ -683,7 +946,7 @@
                     <div class="text-4xl font-mono font-bold text-tgLink tracking-wider text-center" id="workout-timer">00:00:00</div>
                     <div class="text-tgHint text-xs mt-1 uppercase tracking-wide text-center">Время тренировки</div>
                 </div>
-                ${exercisesHTML}
+                ${groupsHTML}
             `;
 
             startTimer();
@@ -701,13 +964,13 @@
             const inputElement = document.getElementById(`set-${exerciseIndex}-${setIndex}-${field}`);
             if (inputElement) inputElement.value = newValue;
 
-            const completedSets = exercise.sets.filter(s => s.weight > 0 && s.reps > 0).length;
+            const completedSets = exercise.sets.filter(s => s.weight >= 0 && s.reps > 0).length;
             const targetSets = exercise.targetSets ?? 3;
             const isComplete = completedSets >= targetSets;
             
             const badge = document.getElementById(`badge-${exerciseIndex}`);
             if (badge) {
-                badge.className = `text-xs font-medium px-2 py-1 rounded-md ${isComplete ? 'bg-green-500/20 text-green-500' : 'bg-tgBg text-tgHint'}`;
+                badge.className = `text-xs font-medium px-2 py-1 rounded-md shrink-0 ${isComplete ? 'bg-green-500/20 text-green-500' : 'bg-tgBg text-tgHint'}`;
                 badge.innerText = isComplete ? '✓ Готово' : `${completedSets}/${targetSets}`;
             }
         }
@@ -724,22 +987,50 @@
                 defaultReps = lastSet.reps;
             }
 
-            sets.push({ weight: defaultWeight, reps: defaultReps });
+            sets.push({ weight: defaultWeight, reps: defaultReps, setType: 'regular' });
             saveActiveWorkout();
             haptic('light');
-            renderExerciseCard(exerciseIndex);
+            renderExerciseCard(exerciseIndex, exercise);
+        }
+
+        // ==========================================
+        // ДРОП-СЕТЫ
+        // ==========================================
+        function addDropSet(exerciseIndex) {
+            const exercise = state.activeWorkout.exercises[exerciseIndex];
+            const sets = exercise.sets;
+            
+            if (sets.length === 0) {
+                showAlert('Сначала добавьте обычный подход');
+                return;
+            }
+            
+            const lastSet = sets[sets.length - 1];
+            
+            // Автоматически снижаем вес на 25% (округляем до 2.5)
+            const dropWeight = Math.max(0, Math.round((lastSet.weight * 0.75) / 2.5) * 2.5);
+            
+            sets.push({
+                weight: dropWeight,
+                reps: lastSet.reps,
+                setType: 'drop'
+            });
+            
+            saveActiveWorkout();
+            haptic('medium');
+            renderExerciseCard(exerciseIndex, exercise);
         }
 
         function removeSet(exerciseIndex, setIndex) {
             const sets = state.activeWorkout.exercises[exerciseIndex].sets;
             if (sets.length <= 1) {
-                sets[0] = { weight: 0, reps: 10 };
+                sets[0] = { weight: 0, reps: 10, setType: 'regular' };
             } else {
                 sets.splice(setIndex, 1);
             }
             saveActiveWorkout();
             haptic('light');
-            renderExerciseCard(exerciseIndex);
+            renderExerciseCard(exerciseIndex, state.activeWorkout.exercises[exerciseIndex]);
         }
 
         function updateSet(exerciseIndex, setIndex, field, value) {
@@ -747,10 +1038,65 @@
             saveActiveWorkout();
         }
 
-        // ==========================================
-        // ОСТАЛЬНЫЕ ФУНКЦИИ
-        // ==========================================
+        function startWorkout(programId) {
+            const program = DataAPI.getProgramById(programId);
+            if (!program || !(program.exercises || []).length) {
+                showAlert('В программе нет упражнений');
+                return;
+            }
+            state.activeWorkout = {
+                programId: program.id,
+                programName: program.name,
+                startTime: Date.now(),
+                exercises: program.exercises.map(exercise => ({
+                    name: exercise.name,
+                    muscleGroup: exercise.muscleGroup,
+                    exerciseType: exercise.exerciseType || 'weighted',
+                    supersetId: exercise.supersetId || null,
+                    targetSets: exercise.targetSets,
+                    targetReps: exercise.targetReps,
+                    sets: [{ weight: 0, reps: exercise.targetReps || 10, setType: 'regular' }]
+                }))
+            };
+            saveActiveWorkout();
+            navigate('workout');
+        }
 
+        // ==========================================
+        // ТАЙМЕР
+        // ==========================================
+        function startTimer() {
+            stopWorkoutTimer();
+            const update = () => {
+                if (!state.activeWorkout) return;
+                const elapsed = Date.now() - state.activeWorkout.startTime;
+                const hours = Math.floor(elapsed / 3600000).toString().padStart(2, '0');
+                const minutes = Math.floor((elapsed % 3600000) / 60000).toString().padStart(2, '0');
+                const seconds = Math.floor((elapsed % 60000) / 1000).toString().padStart(2, '0');
+                const timerElement = document.getElementById('workout-timer');
+                if (timerElement) timerElement.innerText = `${hours}:${minutes}:${seconds}`;
+            };
+            update();
+            state.workoutTimer = setInterval(update, 1000);
+        }
+
+        function stopWorkoutTimer() {
+            if (state.workoutTimer) {
+                clearInterval(state.workoutTimer);
+                state.workoutTimer = null;
+            }
+        }
+
+        function clearWorkoutState() {
+            stopWorkoutTimer();
+            state.activeWorkout = null;
+            saveActiveWorkout();
+            clearMainButton();
+        }
+
+        // ==========================================
+        // ИСТОРИЯ
+        // ==========================================
         function renderHistory() {
             const history = DataAPI.getHistory().sort((a, b) => new Date(b.date) - new Date(a.date));
             let listHTML = history.length
@@ -788,15 +1134,28 @@
             }
             const date = new Date(entry.date).toLocaleString('ru-RU');
             let exercisesHTML = (entry.exercises || []).map((exercise, index) => {
-                let setsHTML = (exercise.sets || []).map((set, setIndex) => `
-                    <div class="flex justify-between py-2 border-b border-tgBg last:border-0">
-                        <span class="text-tgHint text-sm">${setIndex + 1}.</span>
-                        <span class="font-medium">${set.weight} кг × ${set.reps} повт</span>
-                    </div>
-                `).join('');
+                const isBodyweight = exercise.exerciseType === 'bodyweight';
+                const weightLabel = isBodyweight ? 'Доп. вес' : 'Вес';
+                
+                let setsHTML = (exercise.sets || []).map((set, setIndex) => {
+                    const isDrop = set.setType === 'drop';
+                    return `
+                        <div class="flex justify-between py-2 border-b border-tgBg last:border-0 ${isDrop ? 'text-orange-400' : ''}">
+                            <span class="text-tgHint text-sm flex items-center gap-2">
+                                ${setIndex + 1}.
+                                ${isDrop ? '<span class="drop-badge"><i class="fa-solid fa-fire"></i> DROP</span>' : ''}
+                            </span>
+                            <span class="font-medium">${set.weight} кг × ${set.reps} повт</span>
+                        </div>
+                    `;
+                }).join('');
+
                 return `
                     <div class="mb-4 card-enter" style="animation-delay: ${index * 0.05}s">
-                        <h3 class="font-bold mb-2 text-base">${esc(exercise.name)}</h3>
+                        <div class="flex items-center gap-2 mb-2">
+                            <h3 class="font-bold text-base">${esc(exercise.name)}</h3>
+                            ${isBodyweight ? '<span class="bodyweight-badge"><i class="fa-solid fa-person"></i> BW</span>' : ''}
+                        </div>
                         <div class="bg-tgSecondaryBg p-4 rounded-2xl text-sm">${setsHTML}</div>
                     </div>
                 `;
@@ -811,104 +1170,9 @@
             `;
         }
 
-        function addExercise() {
-            if (!state.editingProgram) state.editingProgram = { name: '', exercises: [] };
-            if (!state.editingProgram.exercises) state.editingProgram.exercises = [];
-            state.editingProgram.exercises.push({ id: createId(), name: '', muscleGroup: '', targetSets: 3, targetReps: 10 });
-            renderProgramEdit();
-        }
-
-        function removeExercise(index) {
-            state.editingProgram.exercises.splice(index, 1);
-            renderProgramEdit();
-        }
-
-        function updateExercise(index, field, value) {
-            if (!state.editingProgram) state.editingProgram = { name: '', exercises: [] };
-            state.editingProgram.exercises[index][field] = value;
-        }
-
-        function saveProgram() {
-            const nameInput = document.getElementById('prog-name');
-            const name = nameInput ? nameInput.value.trim() : '';
-            if (!name) { showAlert('Введите название программы'); return; }
-            if (!state.editingProgram || (state.editingProgram.exercises || []).length === 0) { showAlert('Добавьте хотя бы одно упражнение'); return; }
-            for (const exercise of state.editingProgram.exercises) {
-                if (!exercise.name || !exercise.name.trim()) { showAlert('Заполните названия всех упражнений'); return; }
-            }
-
-            state.editingProgram.name = name;
-            const programs = DataAPI.getPrograms();
-            const existingIndex = programs.findIndex(program => program.id === state.editingProgram.id);
-
-            if (existingIndex > -1) programs[existingIndex] = state.editingProgram;
-            else { state.editingProgram.id = createId(); programs.push(state.editingProgram); }
-
-            DataAPI.savePrograms(programs);
-            haptic('success');
-            state.editingProgram = null;
-            openProgramsScreen();
-        }
-
-        function deleteProgram(id) {
-            showConfirm('Удалить программу?', ok => {
-                if (!ok) return;
-                DataAPI.savePrograms(DataAPI.getPrograms().filter(program => program.id !== id));
-                renderPrograms();
-            });
-        }
-
-        function startWorkout(programId) {
-            const program = DataAPI.getProgramById(programId);
-            if (!program || !(program.exercises || []).length) {
-                showAlert('В программе нет упражнений');
-                return;
-            }
-            state.activeWorkout = {
-                programId: program.id,
-                programName: program.name,
-                startTime: Date.now(),
-                exercises: program.exercises.map(exercise => ({
-                    name: exercise.name,
-                    muscleGroup: exercise.muscleGroup,
-                    targetSets: exercise.targetSets,
-                    targetReps: exercise.targetReps,
-                    sets: [{ weight: 0, reps: exercise.targetReps || 10 }]
-                }))
-            };
-            saveActiveWorkout();
-            navigate('workout');
-        }
-
-        function startTimer() {
-            stopWorkoutTimer();
-            const update = () => {
-                if (!state.activeWorkout) return;
-                const elapsed = Date.now() - state.activeWorkout.startTime;
-                const hours = Math.floor(elapsed / 3600000).toString().padStart(2, '0');
-                const minutes = Math.floor((elapsed % 3600000) / 60000).toString().padStart(2, '0');
-                const seconds = Math.floor((elapsed % 60000) / 1000).toString().padStart(2, '0');
-                const timerElement = document.getElementById('workout-timer');
-                if (timerElement) timerElement.innerText = `${hours}:${minutes}:${seconds}`;
-            };
-            update();
-            state.workoutTimer = setInterval(update, 1000);
-        }
-
-        function stopWorkoutTimer() {
-            if (state.workoutTimer) {
-                clearInterval(state.workoutTimer);
-                state.workoutTimer = null;
-            }
-        }
-
-        function clearWorkoutState() {
-            stopWorkoutTimer();
-            state.activeWorkout = null;
-            saveActiveWorkout();
-            clearMainButton();
-        }
-
+        // ==========================================
+        // ДИАЛОГ ЗАВЕРШЕНИЯ ТРЕНИРОВКИ
+        // ==========================================
         let workoutDialogOpen = false;
 
         function promptWorkoutExit(targetTab = 'programs') {
@@ -964,9 +1228,15 @@
                         exercises: workout.exercises.map(exercise => ({
                             name: exercise.name,
                             muscleGroup: exercise.muscleGroup || '',
+                            exerciseType: exercise.exerciseType || 'weighted',
+                            supersetId: exercise.supersetId || null,
                             targetSets: exercise.targetSets ?? 3,
                             targetReps: exercise.targetReps ?? 10,
-                            sets: (exercise.sets || []).map(set => ({ weight: Number(set.weight) || 0, reps: Number(set.reps) || 0 }))
+                            sets: (exercise.sets || []).map(set => ({
+                                weight: Number(set.weight) || 0,
+                                reps: Number(set.reps) || 0,
+                                setType: set.setType || 'regular'
+                            }))
                         }))
                     });
                     DataAPI.saveHistory(history);
