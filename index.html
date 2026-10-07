@@ -3,9 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Fitnary</title>
+    <title>Фитнес Дневник</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script>
         tailwind.config = {
@@ -40,23 +41,53 @@
         @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
         input[type=number]::-webkit-inner-spin-button, 
         input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
-        input[type=number] { 
-    -moz-appearance: textfield;
-    appearance: textfield;  /* ← добавили стандартное свойство */
-}
+        input[type=number] { -moz-appearance: textfield; }
+        
+        /* Горизонтальный скролл без полосы прокрутки */
+        .scroll-container {
+            scrollbar-width: none;
+            -ms-overflow-style: none;
+        }
+        .scroll-container::-webkit-scrollbar {
+            display: none;
+        }
+        
+        /* Привязка к карточкам */
+        .snap-x {
+            scroll-snap-type: x mandatory;
+        }
+        .snap-center {
+            scroll-snap-align: center;
+        }
     </style>
 </head>
-<body class="min-h-screen pb-24">
+<body class="min-h-screen pb-20">
 
     <header id="app-header" class="sticky top-0 z-10 bg-tgBg/90 backdrop-blur-md px-4 py-3 flex items-center justify-between border-b border-tgSecondaryBg">
         <button id="btn-back" class="text-tgLink text-xl hidden" onclick="navigate('home')">
             <i class="fa-solid fa-arrow-left"></i>
         </button>
-        <h1 id="header-title" class="text-lg font-semibold flex-1 text-center">Fitnary</h1>
+        <h1 id="header-title" class="text-lg font-semibold flex-1 text-center">Фитнес Дневник</h1>
         <div class="w-6"></div>
     </header>
 
     <main id="app-content" class="p-4 fade-in"></main>
+
+    <!-- Нижняя навигация -->
+    <nav id="bottom-nav" class="fixed bottom-0 left-0 right-0 bg-tgBg border-t border-tgSecondaryBg flex justify-around py-3 z-20">
+        <button onclick="switchTab('stats')" id="tab-stats" class="flex flex-col items-center text-tgLink">
+            <i class="fa-solid fa-chart-line text-xl mb-1"></i>
+            <span class="text-xs">Статистика</span>
+        </button>
+        <button onclick="switchTab('programs')" id="tab-programs" class="flex flex-col items-center text-tgHint">
+            <i class="fa-solid fa-list-check text-xl mb-1"></i>
+            <span class="text-xs">Программы</span>
+        </button>
+        <button onclick="switchTab('history')" id="tab-history" class="flex flex-col items-center text-tgHint">
+            <i class="fa-solid fa-clock-rotate-left text-xl mb-1"></i>
+            <span class="text-xs">История</span>
+        </button>
+    </nav>
 
     <script>
         // ==========================================
@@ -87,6 +118,8 @@
                 tg.showConfirm(message, ok => resolve(ok));
             });
         }
+
+        const MUSCLE_GROUPS = ['Грудь', 'Спина', 'Ноги', 'Плечи', 'Руки'];
 
         // ==========================================
         // 2. INITIALIZATION & TELEGRAM SDK
@@ -129,6 +162,47 @@
             getProgramById(id) { return this.getPrograms().find(p => p.id === id); },
             getHistoryEntryById(id) { return this.getHistory().find(h => h.id === id); },
 
+            // Извлекаем уникальные упражнения из истории с группами мышц
+            getUserExercises() {
+                const history = this.getHistory();
+                const exerciseMap = new Map();
+                
+                history.forEach(entry => {
+                    entry.exercises.forEach(ex => {
+                        if (!exerciseMap.has(ex.name)) {
+                            exerciseMap.set(ex.name, {
+                                name: ex.name,
+                                muscleGroup: ex.muscleGroup || 'Другое'
+                            });
+                        }
+                    });
+                });
+                
+                return Array.from(exerciseMap.values());
+            },
+
+            // Получаем историю подходов для конкретного упражнения
+            getExerciseHistory(exerciseName) {
+                const history = this.getHistory();
+                const results = [];
+                
+                history.forEach(entry => {
+                    entry.exercises.forEach(ex => {
+                        if (ex.name === exerciseName) {
+                            ex.sets.forEach(set => {
+                                results.push({
+                                    date: entry.date,
+                                    weight: set.weight,
+                                    reps: set.reps
+                                });
+                            });
+                        }
+                    });
+                });
+                
+                return results.sort((a, b) => new Date(a.date) - new Date(b.date));
+            },
+
             exportData() {
                 try {
                     const data = {
@@ -148,7 +222,7 @@
                     URL.revokeObjectURL(url);
                     tg.showPopup({ title: 'Экспорт', message: 'Файл успешно сформирован для скачивания' });
                 } catch (e) {
-                    tg.showPopup({ title: 'Ошибка', message: 'Не удалось скачать файл. Попробуйте открыть приложение в браузере.' });
+                    tg.showPopup({ title: 'Ошибка', message: 'Не удалось скачать файл.' });
                 }
             }
         };
@@ -179,10 +253,32 @@
         // ==========================================
         let state = {
             currentScreen: 'home',
+            currentTab: 'stats',
             activeWorkout: null,
             editingProgram: null,
-            workoutTimer: null
+            workoutTimer: null,
+            selectedMuscleGroup: 'Грудь',
+            selectedExercise: null
         };
+
+        function switchTab(tab) {
+            state.currentTab = tab;
+            haptic('light');
+            
+            // Обновляем стили вкладок
+            ['stats', 'programs', 'history'].forEach(t => {
+                const btn = document.getElementById(`tab-${t}`);
+                if (t === tab) {
+                    btn.classList.remove('text-tgHint');
+                    btn.classList.add('text-tgLink');
+                } else {
+                    btn.classList.remove('text-tgLink');
+                    btn.classList.add('text-tgHint');
+                }
+            });
+            
+            navigate(tab);
+        }
 
         function navigate(screen, data = {}) {
             haptic('light');
@@ -205,11 +301,11 @@
             void content.offsetWidth;
             content.classList.add('fade-in');
 
-            backBtn.classList.toggle('hidden', screen === 'home');
+            backBtn.classList.toggle('hidden', ['stats', 'programs', 'history'].includes(screen));
             setMainButton(null, null, false);
 
             switch(screen) {
-                case 'home': renderHome(); break;
+                case 'stats': renderStats(); break;
                 case 'programs': renderPrograms(); break;
                 case 'program_edit': renderProgramEdit(); break;
                 case 'workout': renderWorkout(); break;
@@ -219,47 +315,142 @@
         }
 
         // ==========================================
-        // 5. SCREEN RENDERERS (с XSS защитой)
+        // 5. SCREEN RENDERERS
         // ==========================================
-        function renderHome() {
-            document.getElementById('header-title').innerText = 'Fitnary';
-            const programs = DataAPI.getPrograms();
+        
+        function renderStats() {
+            document.getElementById('header-title').innerText = 'Статистика';
+            const exercises = DataAPI.getUserExercises();
             
-            let quickStartHTML = '';
-            if (programs.length > 0) {
-                quickStartHTML = `
-                    <div class="mb-6">
-                        <h2 class="text-tgHint text-sm uppercase mb-2">Быстрый старт</h2>
-                        <div class="grid grid-cols-2 gap-3">
-                            ${programs.map(p => `
-                                <button onclick="startWorkout('${p.id}')" 
-                                    class="bg-tgSecondaryBg p-4 rounded-xl text-left active:scale-95 transition-transform">
-                                    <i class="fa-solid fa-dumbbell text-tgLink mb-2"></i>
-                                    <div class="font-medium truncate">${esc(p.name)}</div>
-                                </button>
-                            `).join('')}
-                        </div>
-                    </div>
-                `;
-            }
-
+            // Группы мышц
+            const muscleGroupsHTML = MUSCLE_GROUPS.map(group => `
+                <div onclick="selectMuscleGroup('${group}')" 
+                    class="snap-center min-w-[120px] p-4 rounded-xl cursor-pointer transition-all ${
+                        state.selectedMuscleGroup === group 
+                            ? 'bg-tgLink text-white' 
+                            : 'bg-tgSecondaryBg text-tgText'
+                    }">
+                    <div class="font-semibold text-center">${group}</div>
+                </div>
+            `).join('');
+            
+            // Упражнения выбранной группы
+            const filteredExercises = exercises.filter(ex => ex.muscleGroup === state.selectedMuscleGroup);
+            const exercisesHTML = filteredExercises.length ? filteredExercises.map(ex => `
+                <div onclick="selectExercise('${esc(ex.name)}')" 
+                    class="snap-center min-w-[140px] p-4 rounded-xl cursor-pointer transition-all ${
+                        state.selectedExercise === ex.name 
+                            ? 'bg-tgLink text-white' 
+                            : 'bg-tgSecondaryBg text-tgText'
+                    }">
+                    <div class="font-medium text-center truncate">${esc(ex.name)}</div>
+                </div>
+            `).join('') : '<p class="text-tgHint text-sm px-4">Нет упражнений в этой группе</p>';
+            
             document.getElementById('app-content').innerHTML = `
-                ${quickStartHTML}
-                <div class="space-y-3">
-                    <button onclick="navigate('programs')" class="w-full bg-tgSecondaryBg p-4 rounded-xl flex items-center justify-between active:scale-95 transition-transform">
-                        <span class="flex items-center"><i class="fa-solid fa-list-check text-tgLink mr-3"></i> Мои программы</span>
-                        <i class="fa-solid fa-chevron-right text-tgHint"></i>
-                    </button>
-                    <button onclick="navigate('history')" class="w-full bg-tgSecondaryBg p-4 rounded-xl flex items-center justify-between active:scale-95 transition-transform">
-                        <span class="flex items-center"><i class="fa-solid fa-clock-rotate-left text-tgLink mr-3"></i> История тренировок</span>
-                        <i class="fa-solid fa-chevron-right text-tgHint"></i>
-                    </button>
-                    <button onclick="DataAPI.exportData()" class="w-full bg-tgSecondaryBg p-4 rounded-xl flex items-center justify-between active:scale-95 transition-transform">
-                        <span class="flex items-center"><i class="fa-solid fa-file-export text-tgLink mr-3"></i> Экспорт данных (JSON)</span>
-                        <i class="fa-solid fa-chevron-right text-tgHint"></i>
-                    </button>
+                <!-- График -->
+                <div class="bg-tgSecondaryBg p-4 rounded-xl mb-6">
+                    <h3 class="text-sm font-semibold mb-3 text-tgHint">Прогресс</h3>
+                    <canvas id="progressChart" height="200"></canvas>
+                </div>
+                
+                <!-- Группы мышц -->
+                <div class="mb-4">
+                    <h3 class="text-sm font-semibold mb-2 text-tgHint">Группа мышц</h3>
+                    <div class="flex overflow-x-auto gap-3 pb-2 snap-x scroll-container">
+                        ${muscleGroupsHTML}
+                    </div>
+                </div>
+                
+                <!-- Упражнения -->
+                <div class="mb-4">
+                    <h3 class="text-sm font-semibold mb-2 text-tgHint">Упражнения</h3>
+                    <div class="flex overflow-x-auto gap-3 pb-2 snap-x scroll-container">
+                        ${exercisesHTML}
+                    </div>
                 </div>
             `;
+            
+            // Рисуем график
+            renderChart();
+        }
+
+        function renderChart() {
+            const ctx = document.getElementById('progressChart');
+            if (!ctx) return;
+            
+            if (!state.selectedExercise) {
+                ctx.getContext('2d').clearRect(0, 0, ctx.width, ctx.height);
+                ctx.getContext('2d').font = '14px sans-serif';
+                ctx.getContext('2d').fillStyle = getComputedStyle(document.documentElement).getPropertyValue('--tg-theme-hint-color') || '#8e8e93';
+                ctx.getContext('2d').textAlign = 'center';
+                ctx.getContext('2d').fillText('Выберите упражнение', ctx.width / 2, ctx.height / 2);
+                return;
+            }
+            
+            const history = DataAPI.getExerciseHistory(state.selectedExercise);
+            if (history.length === 0) {
+                ctx.getContext('2d').clearRect(0, 0, ctx.width, ctx.height);
+                ctx.getContext('2d').font = '14px sans-serif';
+                ctx.getContext('2d').fillStyle = getComputedStyle(document.documentElement).getPropertyValue('--tg-theme-hint-color') || '#8e8e93';
+                ctx.getContext('2d').textAlign = 'center';
+                ctx.getContext('2d').fillText('Нет данных', ctx.width / 2, ctx.height / 2);
+                return;
+            }
+            
+            // Берем максимальный вес из каждого подхода за дату
+            const dataByDate = {};
+            history.forEach(h => {
+                const date = new Date(h.date).toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit' });
+                if (!dataByDate[date] || h.weight > dataByDate[date]) {
+                    dataByDate[date] = h.weight;
+                }
+            });
+            
+            const labels = Object.keys(dataByDate);
+            const data = Object.values(dataByDate);
+            
+            new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Вес (кг)',
+                        data: data,
+                        borderColor: getComputedStyle(document.documentElement).getPropertyValue('--tg-theme-link-color') || '#3b82f6',
+                        backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                        tension: 0.3,
+                        fill: true
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: false,
+                            ticks: { color: getComputedStyle(document.documentElement).getPropertyValue('--tg-theme-hint-color') || '#8e8e93' }
+                        },
+                        x: {
+                            ticks: { color: getComputedStyle(document.documentElement).getPropertyValue('--tg-theme-hint-color') || '#8e8e93' }
+                        }
+                    }
+                }
+            });
+        }
+
+        function selectMuscleGroup(group) {
+            state.selectedMuscleGroup = group;
+            state.selectedExercise = null;
+            renderStats();
+        }
+
+        function selectExercise(name) {
+            state.selectedExercise = name;
+            renderStats();
         }
 
         function renderPrograms() {
@@ -298,6 +489,11 @@
                     <input type="text" placeholder="Название (напр. Жим лежа)" value="${esc(ex.name)}" 
                         onchange="updateExercise(${idx}, 'name', this.value)"
                         class="w-full p-2 rounded-lg mb-2 text-sm">
+                    <select onchange="updateExercise(${idx}, 'muscleGroup', this.value)" 
+                        class="w-full p-2 rounded-lg mb-2 text-sm">
+                        <option value="">Выберите группу мышц</option>
+                        ${MUSCLE_GROUPS.map(g => `<option value="${g}" ${ex.muscleGroup === g ? 'selected' : ''}>${g}</option>`).join('')}
+                    </select>
                     <div class="flex gap-2">
                         <div class="flex-1">
                             <label class="text-xs text-tgHint">Подходы</label>
@@ -441,7 +637,7 @@
         // ==========================================
         function addExercise() {
             if (!state.editingProgram) state.editingProgram = { name: '', exercises: [] };
-            state.editingProgram.exercises.push({ id: createId(), name: '', targetSets: 3, targetReps: 10 });
+            state.editingProgram.exercises.push({ id: createId(), name: '', muscleGroup: '', targetSets: 3, targetReps: 10 });
             renderProgramEdit();
         }
 
@@ -494,6 +690,7 @@
                 startTime: Date.now(),
                 exercises: program.exercises.map(ex => ({
                     name: ex.name,
+                    muscleGroup: ex.muscleGroup,
                     targetSets: ex.targetSets,
                     targetReps: ex.targetReps,
                     sets: []
@@ -572,9 +769,9 @@
             DataAPI.saveHistory(history);
             
             state.activeWorkout = null;
-            saveActiveWorkout(); // Очищаем active_workout из localStorage
+            saveActiveWorkout();
             haptic('success');
-            navigate('home');
+            navigate('stats');
         }
 
         // ==========================================
@@ -582,15 +779,14 @@
         // ==========================================
         document.addEventListener('visibilitychange', () => {
             if (state.currentScreen === 'workout' && state.activeWorkout) {
-                startTimer(); // Перезапускаем таймер при возврате в приложение
+                startTimer();
             }
         });
 
-        // Восстановление сессии или старт с нуля
         if (restoreActiveWorkout()) {
             navigate('workout');
         } else {
-            navigate('home');
+            switchTab('stats');
         }
     </script>
 </body>
