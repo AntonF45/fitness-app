@@ -4,14 +4,12 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>Fitnary</title>
-
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/hammerjs@2.0.8"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom@2.0.1/dist/chartjs-plugin-zoom.min.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-
     <script>
         tailwind.config = {
             darkMode: 'class',
@@ -27,15 +25,13 @@
                     }
                 }
             }
-        };
+        }
     </script>
-
     <style>
         :root {
             --bottom-nav-height: 72px;
             --safe-bottom: env(safe-area-inset-bottom, 0px);
         }
-
         body {
             background-color: var(--tg-theme-bg-color, #1c1c1e);
             color: var(--tg-theme-text-color, #ffffff);
@@ -43,23 +39,14 @@
             -webkit-tap-highlight-color: transparent;
             padding-bottom: calc(var(--bottom-nav-height) + var(--safe-bottom) + 16px);
         }
-
-        input,
-        select {
+        input, select {
             background-color: var(--tg-theme-secondary-bg-color, #2c2c2e);
             color: var(--tg-theme-text-color, #ffffff);
             border: 1px solid var(--tg-theme-hint-color, #8e8e93);
         }
-
         input[type=number]::-webkit-inner-spin-button,
-        input[type=number]::-webkit-outer-spin-button {
-            -webkit-appearance: none;
-            margin: 0;
-        }
-
-        input[type=number] {
-            -moz-appearance: textfield;
-        }
+        input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+        input[type=number] { -moz-appearance: textfield; }
 
         .scroll-container {
             scrollbar-width: none;
@@ -67,41 +54,21 @@
             scroll-padding-left: 16px;
             scroll-padding-right: 16px;
         }
-
-        .scroll-container::-webkit-scrollbar {
-            display: none;
-        }
-
-        .snap-x {
-            scroll-snap-type: x mandatory;
-        }
-
-        .snap-center {
-            scroll-snap-align: center;
-        }
+        .scroll-container::-webkit-scrollbar { display: none; }
+        .snap-x { scroll-snap-type: x mandatory; }
+        .snap-center { scroll-snap-align: center; }
 
         .chip {
             transition: background-color 0.18s ease, color 0.18s ease, transform 0.12s ease, box-shadow 0.18s ease;
         }
-
-        .chip:active {
-            transform: scale(0.96);
-        }
+        .chip:active { transform: scale(0.96); }
 
         .card-enter {
             animation: cardIn 0.2s ease-out both;
         }
-
         @keyframes cardIn {
-            from {
-                opacity: 0;
-                transform: translateY(8px);
-            }
-
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
+            from { opacity: 0; transform: translateY(8px); }
+            to { opacity: 1; transform: translateY(0); }
         }
 
         .chart-wrapper {
@@ -109,34 +76,25 @@
             height: 220px;
             touch-action: pan-y pinch-zoom;
         }
-
-        .chart-wrapper canvas {
-            touch-action: none;
-        }
+        .chart-wrapper canvas { touch-action: none; }
     </style>
 </head>
-
 <body class="min-h-screen">
+
     <main id="app-content" class="px-4 pt-4"></main>
 
     <nav id="bottom-nav"
-        class="fixed bottom-0 left-0 right-0 bg-tgBg border-t border-tgSecondaryBg flex justify-around z-20"
-        style="padding-bottom: max(12px, var(--safe-bottom));">
-
-        <button onclick="switchTab('stats')" id="tab-stats" role="tab" aria-selected="true"
-            class="flex flex-col items-center justify-center min-h-[56px] min-w-[64px] text-tgLink">
+         class="fixed bottom-0 left-0 right-0 bg-tgBg border-t border-tgSecondaryBg flex justify-around z-20"
+         style="padding-bottom: max(12px, var(--safe-bottom));">
+        <button onclick="switchTab('stats')" id="tab-stats" role="tab" aria-selected="true" class="flex flex-col items-center justify-center min-h-[56px] min-w-[64px] text-tgLink">
             <i class="fa-solid fa-chart-line text-xl mb-1"></i>
             <span class="text-xs font-medium">Статистика</span>
         </button>
-
-        <button onclick="switchTab('programs')" id="tab-programs" role="tab" aria-selected="false"
-            class="flex flex-col items-center justify-center min-h-[56px] min-w-[64px] text-tgHint">
+        <button onclick="switchTab('programs')" id="tab-programs" role="tab" aria-selected="false" class="flex flex-col items-center justify-center min-h-[56px] min-w-[64px] text-tgHint">
             <i class="fa-solid fa-list-check text-xl mb-1"></i>
             <span class="text-xs font-medium">Программы</span>
         </button>
-
-        <button onclick="switchTab('history')" id="tab-history" role="tab" aria-selected="false"
-            class="flex flex-col items-center justify-center min-h-[56px] min-w-[64px] text-tgHint">
+        <button onclick="switchTab('history')" id="tab-history" role="tab" aria-selected="false" class="flex flex-col items-center justify-center min-h-[56px] min-w-[64px] text-tgHint">
             <i class="fa-solid fa-clock-rotate-left text-xl mb-1"></i>
             <span class="text-xs font-medium">История</span>
         </button>
@@ -144,183 +102,90 @@
 
     <script>
         function esc(str = '') {
-            return String(str)
-                .replaceAll('&', '&amp;')
-                .replaceAll('<', '&lt;')
-                .replaceAll('>', '&gt;')
-                .replaceAll('"', '&quot;')
-                .replaceAll("'", '&#39;');
+            return String(str).replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;').replaceAll('"', '&quot;').replaceAll("'", '&#39;');
         }
 
         function createId() {
-            return typeof crypto !== 'undefined' && crypto.randomUUID
-                ? crypto.randomUUID()
-                : Date.now().toString(36) + Math.random().toString(36).slice(2);
+            return typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : Date.now().toString(36) + Math.random().toString(36).slice(2);
         }
 
         function appConfirm(message) {
-            return new Promise(resolve => {
-                tg.showConfirm(message, ok => resolve(ok));
-            });
+            return new Promise(resolve => { tg.showConfirm(message, ok => resolve(ok)); });
         }
 
         const MUSCLE_GROUPS = ['Грудь', 'Спина', 'Ноги', 'Плечи', 'Руки'];
-
         const tg = window.Telegram.WebApp;
         tg.ready();
         tg.expand();
 
-        const USER_ID = tg.initDataUnsafe?.user?.id ||
-            'local_test_user_' + Math.random().toString(36).substr(2, 9);
-
-        const haptic = (type = 'light') => {
-            try {
-                if (type === 'success' || type === 'error' || type === 'warning') {
-                    tg.HapticFeedback?.notificationOccurred(type);
-                } else {
-                    tg.HapticFeedback?.impactOccurred(type);
-                }
-            } catch (e) {
-                console.warn('Haptic feedback error:', e);
-            }
-        };
+        const USER_ID = tg.initDataUnsafe?.user?.id || 'local_test_user_' + Math.random().toString(36).substr(2, 9);
+        const haptic = (type = 'light') => tg.HapticFeedback?.impactOccurred(type);
 
         tg.BackButton.onClick(() => navigateBack());
-
         function updateBackButton(isSubScreen) {
-            if (isSubScreen) {
-                tg.BackButton.show();
-            } else {
-                tg.BackButton.hide();
-            }
+            if (isSubScreen) tg.BackButton.show();
+            else tg.BackButton.hide();
         }
 
         let currentMainButtonHandler = null;
-
         function setMainButton(text, handler) {
             if (currentMainButtonHandler) {
                 tg.MainButton.offClick(currentMainButtonHandler);
                 currentMainButtonHandler = null;
             }
-
             if (!text || !handler) {
                 tg.MainButton.hide();
                 return;
             }
-
             tg.MainButton.setText(text);
             tg.MainButton.show();
             tg.MainButton.onClick(handler);
-
             currentMainButtonHandler = handler;
         }
 
         function clearMainButton() {
-            if (currentMainButtonHandler) {
-                tg.MainButton.offClick(currentMainButtonHandler);
-                currentMainButtonHandler = null;
-            }
-
-            tg.MainButton.hide();
+            setMainButton(null, null);
         }
 
         const DataAPI = {
-            _key(type) {
-                return `twa_fitness_${type}_${USER_ID}`;
-            },
-
-            getPrograms() {
-                return JSON.parse(localStorage.getItem(this._key('programs')) || '[]');
-            },
-
-            savePrograms(data) {
-                localStorage.setItem(this._key('programs'), JSON.stringify(data));
-            },
-
-            getHistory() {
-                return JSON.parse(localStorage.getItem(this._key('history')) || '[]');
-            },
-
-            saveHistory(data) {
-                localStorage.setItem(this._key('history'), JSON.stringify(data));
-            },
-
-            getProgramById(id) {
-                return this.getPrograms().find(p => p.id === id);
-            },
-
-            getHistoryEntryById(id) {
-                return this.getHistory().find(h => h.id === id);
-            },
+            _key(type) { return `twa_fitness_${type}_${USER_ID}`; },
+            getPrograms() { return JSON.parse(localStorage.getItem(this._key('programs')) || '[]'); },
+            savePrograms(data) { localStorage.setItem(this._key('programs'), JSON.stringify(data)); },
+            getHistory() { return JSON.parse(localStorage.getItem(this._key('history')) || '[]'); },
+            saveHistory(data) { localStorage.setItem(this._key('history'), JSON.stringify(data)); },
+            getProgramById(id) { return this.getPrograms().find(p => p.id === id); },
+            getHistoryEntryById(id) { return this.getHistory().find(h => h.id === id); },
 
             getUserExercises() {
                 const exerciseMap = new Map();
-
-                const addExercise = (ex) => {
-                    if (!ex.name) return;
-
-                    if (!exerciseMap.has(ex.name)) {
-                        exerciseMap.set(ex.name, {
-                            name: ex.name,
-                            muscleGroup: ex.muscleGroup || 'Другое'
-                        });
-                    }
-                };
-
-                this.getPrograms().forEach(program => {
-                    program.exercises.forEach(addExercise);
-                });
-
-                this.getHistory().forEach(entry => {
-                    entry.exercises.forEach(addExercise);
-                });
-
+                const addEx = (ex) => { if (ex.name && !exerciseMap.has(ex.name)) exerciseMap.set(ex.name, { name: ex.name, muscleGroup: ex.muscleGroup || 'Другое' }); };
+                this.getPrograms().forEach(p => p.exercises.forEach(addEx));
+                this.getHistory().forEach(e => e.exercises.forEach(addEx));
                 return Array.from(exerciseMap.values());
             },
 
             getExerciseHistory(exerciseName) {
                 const results = [];
-
                 this.getHistory().forEach(entry => {
-                    entry.exercises.forEach(exercise => {
-                        if (exercise.name === exerciseName) {
-                            exercise.sets.forEach(set => {
-                                results.push({
-                                    date: entry.date,
-                                    weight: set.weight,
-                                    reps: set.reps
-                                });
-                            });
+                    entry.exercises.forEach(ex => {
+                        if (ex.name === exerciseName) {
+                            ex.sets.forEach(set => results.push({ date: entry.date, weight: set.weight, reps: set.reps }));
                         }
                     });
                 });
-
                 return results.sort((a, b) => new Date(a.date) - new Date(b.date));
             }
         };
 
         const ACTIVE_KEY = `twa_fitness_active_workout_${USER_ID}`;
-
         function saveActiveWorkout() {
-            if (state.activeWorkout) {
-                localStorage.setItem(ACTIVE_KEY, JSON.stringify(state.activeWorkout));
-            } else {
-                localStorage.removeItem(ACTIVE_KEY);
-            }
+            state.activeWorkout ? localStorage.setItem(ACTIVE_KEY, JSON.stringify(state.activeWorkout)) : localStorage.removeItem(ACTIVE_KEY);
         }
-
         function restoreActiveWorkout() {
             const saved = localStorage.getItem(ACTIVE_KEY);
-
             if (!saved) return false;
-
-            try {
-                state.activeWorkout = JSON.parse(saved);
-                return true;
-            } catch (e) {
-                localStorage.removeItem(ACTIVE_KEY);
-                return false;
-            }
+            try { state.activeWorkout = JSON.parse(saved); return true; }
+            catch (e) { localStorage.removeItem(ACTIVE_KEY); return false; }
         }
 
         let state = {
@@ -333,63 +198,110 @@
             selectedExercise: null
         };
 
-        function switchTab(tab) {
-            state.currentTab = tab;
-            haptic('light');
-
-            ['stats', 'programs', 'history'].forEach(name => {
-                const button = document.getElementById(`tab-${name}`);
-
-                if (name === tab) {
-                    button.classList.remove('text-tgHint');
-                    button.classList.add('text-tgLink');
-                    button.setAttribute('aria-selected', 'true');
+        // ⭐ 1. ОБРАБОТКА ВЫХОДА ИЗ ТРЕНИРОВКИ С ДИАЛОГАМИ
+        function handleWorkoutExit(callback) {
+            tg.showConfirm('Сохранить результаты тренировки перед выходом?', (ok) => {
+                if (ok) {
+                    if (state.workoutTimer) { clearInterval(state.workoutTimer); state.workoutTimer = null; }
+                    const workout = state.activeWorkout;
+                    if (workout) {
+                        DataAPI.saveHistory([...DataAPI.getHistory(), {
+                            id: createId(),
+                            date: new Date(workout.startTime).toISOString(),
+                            duration: Math.round((Date.now() - workout.startTime) / 1000),
+                            programName: workout.programName,
+                            exercises: workout.exercises
+                        }]);
+                    }
+                    state.activeWorkout = null;
+                    saveActiveWorkout();
+                    clearMainButton();
+                    haptic('success');
+                    callback();
                 } else {
-                    button.classList.remove('text-tgLink');
-                    button.classList.add('text-tgHint');
-                    button.setAttribute('aria-selected', 'false');
+                    tg.showConfirm('Выйти без сохранения? Все введенные данные будут потеряны.', (discard) => {
+                        if (discard) {
+                            state.activeWorkout = null;
+                            saveActiveWorkout();
+                            clearMainButton();
+                            if (state.workoutTimer) { clearInterval(state.workoutTimer); state.workoutTimer = null; }
+                            callback();
+                        }
+                    });
                 }
             });
+        }
 
+        function switchTab(tab) {
+            // Перехват переключения вкладок во время активной тренировки
+            if (state.currentScreen === 'workout' && state.activeWorkout && tab !== 'workout') {
+                handleWorkoutExit(() => {
+                    state.currentTab = tab;
+                    haptic('light');
+                    ['stats', 'programs', 'history'].forEach(t => {
+                        const btn = document.getElementById(`tab-${t}`);
+                        if (t === tab) {
+                            btn.classList.remove('text-tgHint');
+                            btn.classList.add('text-tgLink');
+                            btn.setAttribute('aria-selected', 'true');
+                        } else {
+                            btn.classList.remove('text-tgLink');
+                            btn.classList.add('text-tgHint');
+                            btn.setAttribute('aria-selected', 'false');
+                        }
+                    });
+                    navigate(tab);
+                });
+                return;
+            }
+
+            state.currentTab = tab;
+            haptic('light');
+            ['stats', 'programs', 'history'].forEach(t => {
+                const btn = document.getElementById(`tab-${t}`);
+                if (t === tab) {
+                    btn.classList.remove('text-tgHint');
+                    btn.classList.add('text-tgLink');
+                    btn.setAttribute('aria-selected', 'true');
+                } else {
+                    btn.classList.remove('text-tgLink');
+                    btn.classList.add('text-tgHint');
+                    btn.setAttribute('aria-selected', 'false');
+                }
+            });
             navigate(tab);
         }
 
         function navigateBack() {
+            // Перехват кнопки "Назад" во время активной тренировки
+            if (state.currentScreen === 'workout' && state.activeWorkout) {
+                handleWorkoutExit(() => {
+                    haptic('light');
+                    switchTab('programs');
+                });
+                return;
+            }
+
             haptic('light');
-
-            const tabMap = {
-                'program_edit': 'programs',
-                'history_detail': 'history',
-                'workout': 'programs'
-            };
-
+            const tabMap = { 'program_edit': 'programs', 'history_detail': 'history', 'workout': 'programs' };
             const target = tabMap[state.currentScreen] || state.currentTab || 'stats';
-
             switchTab(target);
         }
 
         function navigate(screen, data = {}) {
             haptic('light');
-
-            if (state.workoutTimer) {
-                clearInterval(state.workoutTimer);
-                state.workoutTimer = null;
-            }
+            if (state.workoutTimer) { clearInterval(state.workoutTimer); state.workoutTimer = null; }
 
             state.currentScreen = screen;
-
             if (data.programId !== undefined) {
-                state.editingProgram = data.programId
-                    ? DataAPI.getProgramById(data.programId)
-                    : { name: '', exercises: [] };
+                state.editingProgram = data.programId ? DataAPI.getProgramById(data.programId) : { name: '', exercises: [] };
             }
 
             const isSubScreen = ['program_edit', 'history_detail', 'workout'].includes(screen);
-
             updateBackButton(isSubScreen);
             clearMainButton();
 
-            switch (screen) {
+            switch(screen) {
                 case 'stats': renderStats(); break;
                 case 'programs': renderPrograms(); break;
                 case 'program_edit': renderProgramEdit(); break;
@@ -401,12 +313,8 @@
 
         function renderStats() {
             const exercises = DataAPI.getUserExercises();
-
             const muscleGroupsHTML = MUSCLE_GROUPS.map(group => `
-                <button
-                    onclick="selectMuscleGroup('${group}')"
-                    role="tab"
-                    aria-selected="${state.selectedMuscleGroup === group}"
+                <button onclick="selectMuscleGroup('${group}')" role="tab" aria-selected="${state.selectedMuscleGroup === group}"
                     class="chip snap-center min-w-[100px] px-4 py-3 rounded-xl text-sm font-medium whitespace-nowrap ${
                         state.selectedMuscleGroup === group
                             ? 'bg-tgLink text-white ring-2 ring-tgLink ring-offset-2 ring-offset-tgBg'
@@ -416,25 +324,17 @@
                 </button>
             `).join('');
 
-            const filteredExercises = exercises.filter(
-                exercise => exercise.muscleGroup === state.selectedMuscleGroup
-            );
-
-            const exercisesHTML = filteredExercises.length
-                ? filteredExercises.map(exercise => `
-                    <button
-                        onclick="selectExercise('${esc(exercise.name)}')"
-                        role="tab"
-                        aria-selected="${state.selectedExercise === exercise.name}"
-                        class="chip snap-center min-w-[130px] px-4 py-3 rounded-xl text-sm font-medium text-center ${
-                            state.selectedExercise === exercise.name
-                                ? 'bg-tgLink text-white ring-2 ring-tgLink ring-offset-2 ring-offset-tgBg'
-                                : 'bg-tgSecondaryBg text-tgText'
-                        }">
-                        ${esc(exercise.name)}
-                    </button>
-                `).join('')
-                : '<p class="text-tgHint text-sm px-4 py-3">Нет упражнений в этой группе</p>';
+            const filteredExercises = exercises.filter(ex => ex.muscleGroup === state.selectedMuscleGroup);
+            const exercisesHTML = filteredExercises.length ? filteredExercises.map(ex => `
+                <button onclick="selectExercise('${esc(ex.name)}')" role="tab" aria-selected="${state.selectedExercise === ex.name}"
+                    class="chip snap-center min-w-[130px] px-4 py-3 rounded-xl text-sm font-medium text-center ${
+                        state.selectedExercise === ex.name
+                            ? 'bg-tgLink text-white ring-2 ring-tgLink ring-offset-2 ring-offset-tgBg'
+                            : 'bg-tgSecondaryBg text-tgText'
+                    }">
+                    ${esc(ex.name)}
+                </button>
+            `).join('') : '<p class="text-tgHint text-sm px-4 py-3">Нет упражнений в этой группе</p>';
 
             document.getElementById('app-content').innerHTML = `
                 <div class="bg-tgSecondaryBg p-4 rounded-2xl mb-6 card-enter" style="animation-delay: 0.05s">
@@ -442,24 +342,20 @@
                         <canvas id="progressChart"></canvas>
                     </div>
                 </div>
-
                 <div class="mb-4 card-enter" style="animation-delay: 0.1s">
                     <h3 class="text-sm font-semibold mb-2 text-tgHint px-1">Группа мышц</h3>
                     <div class="flex overflow-x-auto gap-3 pb-2 pt-2 snap-x scroll-container px-4">
                         ${muscleGroupsHTML}
                     </div>
                 </div>
-
                 <div class="mb-4 card-enter" style="animation-delay: 0.15s">
                     <h3 class="text-sm font-semibold mb-2 text-tgHint px-1">Упражнения</h3>
                     <div class="flex overflow-x-auto gap-3 pb-2 pt-2 snap-x scroll-container px-4">
                         ${exercisesHTML}
                     </div>
                 </div>
-
                 <div class="mt-8 pt-6 border-t border-tgSecondaryBg card-enter" style="animation-delay: 0.2s">
-                    <button
-                        onclick="resetAllData()"
+                    <button onclick="resetAllData()"
                         class="w-full py-3 rounded-xl border border-red-500/30 text-red-500 font-medium text-sm active:bg-red-500/10 transition-colors flex items-center justify-center gap-2">
                         <i class="fa-solid fa-trash-can"></i>
                         Сбросить все данные приложения
@@ -470,14 +366,7 @@
             setTimeout(() => {
                 document.querySelectorAll('.scroll-container').forEach(container => {
                     const activeChip = container.querySelector('[aria-selected="true"]');
-
-                    if (activeChip) {
-                        activeChip.scrollIntoView({
-                            behavior: 'auto',
-                            inline: 'center',
-                            block: 'nearest'
-                        });
-                    }
+                    if (activeChip) activeChip.scrollIntoView({ behavior: 'auto', inline: 'center', block: 'nearest' });
                 });
             }, 50);
 
@@ -485,77 +374,49 @@
         }
 
         function resetAllData() {
-            tg.showConfirm(
-                'Вы уверены? Это БЕЗВОЗВРАТНО удалит все программы, историю тренировок и текущий процесс. Продолжить?',
-                ok => {
-                    if (!ok) return;
-
+            tg.showConfirm('Вы уверены? Это БЕЗВОЗВРАТНО удалит все программы, историю тренировок и текущий процесс. Продолжить?', (ok) => {
+                if (ok) {
                     localStorage.removeItem(DataAPI._key('programs'));
                     localStorage.removeItem(DataAPI._key('history'));
                     localStorage.removeItem(ACTIVE_KEY);
-
                     state.activeWorkout = null;
                     state.selectedExercise = null;
                     state.selectedMuscleGroup = 'Грудь';
-
-                    haptic('warning');
-                    tg.showPopup({
-                        title: 'Готово',
-                        message: 'Все данные приложения очищены'
-                    });
-
+                    haptic('heavy');
+                    tg.showPopup({ title: 'Готово', message: 'Все данные приложения очищены' });
                     switchTab('stats');
                 }
-            );
+            });
         }
 
         function renderChart() {
             const ctx = document.getElementById('progressChart');
-
             if (!ctx) return;
-
             const existingChart = Chart.getChart(ctx);
-
-            if (existingChart) {
-                existingChart.destroy();
-            }
-
+            if (existingChart) existingChart.destroy();
             if (!state.selectedExercise) return;
 
             const history = DataAPI.getExerciseHistory(state.selectedExercise);
-
             if (history.length === 0) return;
 
             const dataByDate = {};
-
-            history.forEach(item => {
-                const key = new Date(item.date).toISOString().slice(0, 10);
-                const label = new Date(item.date).toLocaleDateString('ru-RU', {
-                    day: '2-digit',
-                    month: '2-digit'
-                });
-
-                if (!dataByDate[key] || item.weight > dataByDate[key].weight) {
-                    dataByDate[key] = {
-                        weight: item.weight,
-                        label: label
-                    };
+            history.forEach(h => {
+                const key = new Date(h.date).toISOString().slice(0, 10);
+                const label = new Date(h.date).toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit' });
+                if (!dataByDate[key] || h.weight > dataByDate[key].weight) {
+                    dataByDate[key] = { weight: h.weight, label: label };
                 }
             });
 
             const sortedKeys = Object.keys(dataByDate).sort();
-            const labels = sortedKeys.map(key => dataByDate[key].label);
-            const data = sortedKeys.map(key => dataByDate[key].weight);
-
             new Chart(ctx, {
                 type: 'line',
                 data: {
-                    labels: labels,
+                    labels: sortedKeys.map(k => dataByDate[k].label),
                     datasets: [{
                         label: 'Вес (кг)',
-                        data: data,
-                        borderColor: getComputedStyle(document.documentElement)
-                            .getPropertyValue('--tg-theme-link-color') || '#3b82f6',
+                        data: sortedKeys.map(k => dataByDate[k].weight),
+                        borderColor: getComputedStyle(document.documentElement).getPropertyValue('--tg-theme-link-color') || '#3b82f6',
                         backgroundColor: 'rgba(59, 130, 246, 0.1)',
                         tension: 0.3,
                         fill: true,
@@ -567,42 +428,15 @@
                     responsive: true,
                     maintainAspectRatio: false,
                     plugins: {
-                        legend: {
-                            display: false
-                        },
+                        legend: { display: false },
                         zoom: {
-                            pan: {
-                                enabled: true,
-                                mode: 'x'
-                            },
-                            zoom: {
-                                pinch: {
-                                    enabled: true
-                                },
-                                mode: 'x',
-                                limits: {
-                                    x: {
-                                        min: 'original',
-                                        max: 'original'
-                                    }
-                                }
-                            }
+                            pan: { enabled: true, mode: 'x' },
+                            zoom: { pinch: { enabled: true }, mode: 'x', limits: { x: { min: 'original', max: 'original' } } }
                         }
                     },
                     scales: {
-                        y: {
-                            beginAtZero: false,
-                            ticks: {
-                                color: getComputedStyle(document.documentElement)
-                                    .getPropertyValue('--tg-theme-hint-color') || '#8e8e93'
-                            }
-                        },
-                        x: {
-                            ticks: {
-                                color: getComputedStyle(document.documentElement)
-                                    .getPropertyValue('--tg-theme-hint-color') || '#8e8e93'
-                            }
-                        }
+                        y: { beginAtZero: false, ticks: { color: getComputedStyle(document.documentElement).getPropertyValue('--tg-theme-hint-color') || '#8e8e93' } },
+                        x: { ticks: { color: getComputedStyle(document.documentElement).getPropertyValue('--tg-theme-hint-color') || '#8e8e93' } }
                     }
                 }
             });
@@ -611,251 +445,142 @@
         function selectMuscleGroup(group) {
             state.selectedMuscleGroup = group;
             state.selectedExercise = null;
-
             renderStats();
         }
 
         function selectExercise(name) {
             state.selectedExercise = state.selectedExercise === name ? null : name;
-
             renderStats();
         }
 
         function renderPrograms() {
             const programs = DataAPI.getPrograms();
+            let listHTML = programs.length ? programs.map((p, index) => {
+                const exercisesList = p.exercises.map(ex =>
+                    `<div class="text-tgHint text-xs">${esc(ex.name)} — ${ex.targetSets ?? 3}×${ex.targetReps ?? 10}</div>`
+                ).join('');
 
-            let listHTML = programs.length
-                ? programs.map((program, index) => {
-                    const exercisesList = program.exercises.map(exercise => `
-                        <div class="text-tgHint text-xs">
-                            ${esc(exercise.name)} — ${exercise.targetSets ?? 3}×${exercise.targetReps ?? 10}
-                        </div>
-                    `).join('');
-
-                    return `
-                        <div class="bg-tgSecondaryBg p-4 rounded-2xl mb-3 card-enter" style="animation-delay: ${index * 0.05}s">
-                            <div class="flex justify-between items-start">
-                                <div
-                                    onclick="startWorkout('${program.id}')"
-                                    class="flex-1 active:opacity-70 pr-2 cursor-pointer">
-                                    <div class="font-semibold text-base mb-2">${esc(program.name)}</div>
-                                    ${exercisesList || '<div class="text-tgHint text-xs italic">Нет упражнений</div>'}
-                                </div>
-
-                                <div class="flex flex-col gap-2">
-                                    <button
-                                        onclick="navigate('program_edit', {programId: '${program.id}'})"
-                                        aria-label="Редактировать программу"
-                                        class="w-11 h-11 flex items-center justify-center rounded-full bg-tgBg text-tgLink active:opacity-70 transition-opacity">
-                                        <i class="fa-solid fa-pen text-lg"></i>
-                                    </button>
-
-                                    <button
-                                        onclick="deleteProgram('${program.id}')"
-                                        aria-label="Удалить программу"
-                                        class="w-11 h-11 flex items-center justify-center rounded-full bg-tgBg text-red-500 active:opacity-70 transition-opacity">
-                                        <i class="fa-solid fa-trash text-lg"></i>
-                                    </button>
-                                </div>
+                return `
+                    <div class="bg-tgSecondaryBg p-4 rounded-2xl mb-3 card-enter" style="animation-delay: ${index * 0.05}s">
+                        <div class="flex justify-between items-start">
+                            <div onclick="startWorkout('${p.id}')" class="flex-1 active:opacity-70 pr-2 cursor-pointer">
+                                <div class="font-semibold text-base mb-2">${esc(p.name)}</div>
+                                ${exercisesList || '<div class="text-tgHint text-xs italic">Нет упражнений</div>'}
+                            </div>
+                            <div class="flex flex-col gap-2">
+                                <button onclick="navigate('program_edit', {programId: '${p.id}'})" aria-label="Редактировать программу"
+                                    class="w-11 h-11 flex items-center justify-center rounded-full bg-tgBg text-tgLink active:opacity-70 transition-opacity">
+                                    <i class="fa-solid fa-pen text-lg"></i>
+                                </button>
+                                <button onclick="deleteProgram('${p.id}')" aria-label="Удалить программу"
+                                    class="w-11 h-11 flex items-center justify-center rounded-full bg-tgBg text-red-500 active:opacity-70 transition-opacity">
+                                    <i class="fa-solid fa-trash text-lg"></i>
+                                </button>
                             </div>
                         </div>
-                    `;
-                }).join('')
-                : '<div class="text-center text-tgHint mt-10 card-enter">Нет созданных программ</div>';
+                    </div>
+                `;
+            }).join('') : '<div class="text-center text-tgHint mt-10 card-enter">Нет созданных программ</div>';
 
             document.getElementById('app-content').innerHTML = `
                 ${listHTML}
-
-                <button
-                    onclick="navigate('program_edit', {programId: null})"
-                    class="w-full mt-6 bg-tgButton text-white font-semibold py-4 rounded-2xl active:opacity-80 transition-opacity card-enter"
-                    style="animation-delay: 0.1s">
+                <button onclick="navigate('program_edit', {programId: null})"
+                    class="w-full mt-6 bg-tgButton text-white font-semibold py-4 rounded-2xl active:opacity-80 transition-opacity card-enter" style="animation-delay: 0.1s">
                     <i class="fa-solid fa-plus mr-2"></i> Создать программу
                 </button>
             `;
         }
 
         function renderProgramEdit() {
-            const program = state.editingProgram || { name: '', exercises: [] };
-
-            let exercisesHTML = program.exercises.map((exercise, index) => `
-                <div class="bg-tgSecondaryBg p-4 rounded-2xl mb-3 card-enter" style="animation-delay: ${index * 0.05}s">
+            const prog = state.editingProgram || { name: '', exercises: [] };
+            let exercisesHTML = prog.exercises.map((ex, idx) => `
+                <div class="bg-tgSecondaryBg p-4 rounded-2xl mb-3 card-enter" style="animation-delay: ${idx * 0.05}s">
                     <div class="flex justify-between items-center mb-3">
-                        <span class="font-medium text-sm text-tgHint">Упражнение ${index + 1}</span>
-
-                        <button
-                            onclick="removeExercise(${index})"
-                            aria-label="Удалить упражнение"
-                            class="w-8 h-8 flex items-center justify-center rounded-full text-red-500 active:opacity-70">
+                        <span class="font-medium text-sm text-tgHint">Упражнение ${idx + 1}</span>
+                        <button onclick="removeExercise(${idx})" aria-label="Удалить упражнение" class="w-8 h-8 flex items-center justify-center rounded-full text-red-500 active:opacity-70">
                             <i class="fa-solid fa-times"></i>
                         </button>
                     </div>
-
-                    <input
-                        type="text"
-                        placeholder="Название (напр. Жим лежа)"
-                        value="${esc(exercise.name)}"
-                        oninput="updateExercise(${index}, 'name', this.value)"
+                    <input type="text" placeholder="Название (напр. Жим лежа)" value="${esc(ex.name)}"
+                        oninput="updateExercise(${idx}, 'name', this.value)"
                         class="w-full p-3 rounded-xl mb-3 text-sm font-medium">
-
-                    <select
-                        onchange="updateExercise(${index}, 'muscleGroup', this.value)"
-                        class="w-full p-3 rounded-xl mb-3 text-sm">
+                    <select onchange="updateExercise(${idx}, 'muscleGroup', this.value)" class="w-full p-3 rounded-xl mb-3 text-sm">
                         <option value="">Выберите группу мышц</option>
-                        ${MUSCLE_GROUPS.map(group => `
-                            <option value="${group}" ${exercise.muscleGroup === group ? 'selected' : ''}>
-                                ${group}
-                            </option>
-                        `).join('')}
+                        ${MUSCLE_GROUPS.map(g => `<option value="${g}" ${ex.muscleGroup === g ? 'selected' : ''}>${g}</option>`).join('')}
                     </select>
-
                     <div class="flex gap-3">
                         <div class="flex-1">
                             <label class="text-xs text-tgHint mb-1 block">Подходы</label>
-                            <input
-                                type="number"
-                                inputmode="numeric"
-                                value="${exercise.targetSets ?? 3}"
-                                onchange="updateExercise(${index}, 'targetSets', parseInt(this.value) || 3)"
-                                class="w-full p-3 rounded-xl text-sm text-center">
+                            <input type="number" inputmode="numeric" value="${ex.targetSets ?? 3}" onchange="updateExercise(${idx}, 'targetSets', parseInt(this.value)||3)" class="w-full p-3 rounded-xl text-sm text-center">
                         </div>
-
                         <div class="flex-1">
                             <label class="text-xs text-tgHint mb-1 block">Повторения</label>
-                            <input
-                                type="number"
-                                inputmode="numeric"
-                                value="${exercise.targetReps ?? 10}"
-                                onchange="updateExercise(${index}, 'targetReps', parseInt(this.value) || 10)"
-                                class="w-full p-3 rounded-xl text-sm text-center">
+                            <input type="number" inputmode="numeric" value="${ex.targetReps ?? 10}" onchange="updateExercise(${idx}, 'targetReps', parseInt(this.value)||10)" class="w-full p-3 rounded-xl text-sm text-center">
                         </div>
                     </div>
                 </div>
             `).join('');
 
             document.getElementById('app-content').innerHTML = `
-                <input
-                    type="text"
-                    id="prog-name"
-                    placeholder="Название программы"
-                    value="${esc(program.name)}"
+                <input type="text" id="prog-name" placeholder="Название программы" value="${esc(prog.name)}"
                     oninput="updateProgramName(this.value)"
                     class="w-full p-4 rounded-2xl mb-4 text-lg font-semibold card-enter">
-
                 <div id="exercises-list">${exercisesHTML}</div>
-
-                <button
-                    onclick="addExercise()"
-                    class="w-full py-4 border-2 border-dashed border-tgHint rounded-2xl text-tgHint mt-2 active:bg-tgSecondaryBg transition-colors card-enter"
-                    style="animation-delay: 0.1s">
+                <button onclick="addExercise()" class="w-full py-4 border-2 border-dashed border-tgHint rounded-2xl text-tgHint mt-2 active:bg-tgSecondaryBg transition-colors card-enter" style="animation-delay: 0.1s">
                     <i class="fa-solid fa-plus mr-2"></i> Добавить упражнение
                 </button>
             `;
-
             setMainButton('Сохранить программу', saveProgram);
         }
 
         function updateProgramName(value) {
-            if (!state.editingProgram) {
-                state.editingProgram = { name: '', exercises: [] };
-            }
-
+            if (!state.editingProgram) state.editingProgram = { name: '', exercises: [] };
             state.editingProgram.name = value;
         }
 
         function renderWorkout() {
-            const workout = state.activeWorkout;
+            const w = state.activeWorkout;
 
-            if (!workout) return;
-
-            let exercisesHTML = workout.exercises.map((exercise, exerciseIndex) => {
-                const completedSets = exercise.sets.filter(
-                    set => set.weight > 0 && set.reps > 0
-                ).length;
-
-                const targetSets = exercise.targetSets ?? 3;
+            let exercisesHTML = w.exercises.map((ex, exIdx) => {
+                const completedSets = ex.sets.filter(s => s.weight > 0 && s.reps > 0).length;
+                const targetSets = ex.targetSets ?? 3;
                 const isComplete = completedSets >= targetSets;
 
-                let setsHTML = exercise.sets.map((set, setIndex) => `
-                    <div class="bg-tgBg rounded-xl p-3 mb-2 card-enter" style="animation-delay: ${setIndex * 0.03}s">
+                let setsHTML = ex.sets.map((s, sIdx) => `
+                    <div class="bg-tgBg rounded-xl p-3 mb-2 card-enter" style="animation-delay: ${sIdx * 0.03}s">
                         <div class="flex items-center justify-between mb-2">
-                            <span class="text-tgHint text-sm font-medium">Подход ${setIndex + 1}</span>
-
-                            <button
-                                onclick="removeSet(${exerciseIndex}, ${setIndex})"
-                                aria-label="Удалить подход"
-                                class="w-8 h-8 flex items-center justify-center rounded-full text-red-500 active:opacity-70">
+                            <span class="text-tgHint text-sm font-medium">Подход ${sIdx + 1}</span>
+                            <button onclick="removeSet(${exIdx}, ${sIdx})" aria-label="Удалить подход" class="w-8 h-8 flex items-center justify-center rounded-full text-red-500 active:opacity-70">
                                 <i class="fa-solid fa-trash-can text-sm"></i>
                             </button>
                         </div>
-
+                        
+                        <!-- ⭐ 2. РАЗМЕР ПОЛЕЙ: Вес (w-20) шире, чем Повторения (w-14) -->
                         <div class="flex items-center gap-2 mb-2">
-                            <button
-                                onclick="adjustSet(${exerciseIndex}, ${setIndex}, 'weight', -2.5)"
-                                class="w-10 h-10 rounded-lg bg-tgSecondaryBg text-lg flex items-center justify-center active:opacity-70 font-bold shrink-0">
-                                −
-                            </button>
-
-                            <input
-                                type="number"
-                                inputmode="decimal"
-                                value="${set.weight}"
-                                onchange="updateSet(${exerciseIndex}, ${setIndex}, 'weight', parseFloat(this.value) || 0)"
-                                class="flex-1 h-10 text-center bg-transparent text-xl font-semibold min-w-0">
-
-                            <button
-                                onclick="adjustSet(${exerciseIndex}, ${setIndex}, 'weight', 2.5)"
-                                class="w-10 h-10 rounded-lg bg-tgSecondaryBg text-lg flex items-center justify-center active:opacity-70 font-bold shrink-0">
-                                +
-                            </button>
-
+                            <button onclick="adjustSet(${exIdx}, ${sIdx}, 'weight', -2.5)" class="w-10 h-10 rounded-lg bg-tgSecondaryBg text-lg flex items-center justify-center active:opacity-70 font-bold shrink-0">−</button>
+                            <input type="number" inputmode="decimal" value="${s.weight}" onchange="updateSet(${exIdx}, ${sIdx}, 'weight', parseFloat(this.value)||0)" class="w-20 h-10 text-center bg-transparent text-xl font-semibold shrink-0">
+                            <button onclick="adjustSet(${exIdx}, ${sIdx}, 'weight', 2.5)" class="w-10 h-10 rounded-lg bg-tgSecondaryBg text-lg flex items-center justify-center active:opacity-70 font-bold shrink-0">+</button>
                             <span class="text-tgHint text-sm w-8 text-center shrink-0">кг</span>
                         </div>
-
                         <div class="flex items-center gap-2">
-                            <button
-                                onclick="adjustSet(${exerciseIndex}, ${setIndex}, 'reps', -1)"
-                                class="w-10 h-10 rounded-lg bg-tgSecondaryBg text-lg flex items-center justify-center active:opacity-70 font-bold shrink-0">
-                                −
-                            </button>
-
-                            <input
-                                type="number"
-                                inputmode="numeric"
-                                value="${set.reps}"
-                                onchange="updateSet(${exerciseIndex}, ${setIndex}, 'reps', parseInt(this.value) || 0)"
-                                class="flex-1 h-10 text-center bg-transparent text-xl font-semibold min-w-0">
-
-                            <button
-                                onclick="adjustSet(${exerciseIndex}, ${setIndex}, 'reps', 1)"
-                                class="w-10 h-10 rounded-lg bg-tgSecondaryBg text-lg flex items-center justify-center active:opacity-70 font-bold shrink-0">
-                                +
-                            </button>
-
+                            <button onclick="adjustSet(${exIdx}, ${sIdx}, 'reps', -1)" class="w-10 h-10 rounded-lg bg-tgSecondaryBg text-lg flex items-center justify-center active:opacity-70 font-bold shrink-0">−</button>
+                            <input type="number" inputmode="numeric" value="${s.reps}" onchange="updateSet(${exIdx}, ${sIdx}, 'reps', parseInt(this.value)||0)" class="w-14 h-10 text-center bg-transparent text-xl font-semibold shrink-0">
+                            <button onclick="adjustSet(${exIdx}, ${sIdx}, 'reps', 1)" class="w-10 h-10 rounded-lg bg-tgSecondaryBg text-lg flex items-center justify-center active:opacity-70 font-bold shrink-0">+</button>
                             <span class="text-tgHint text-sm w-12 text-center shrink-0">повт</span>
                         </div>
                     </div>
                 `).join('');
 
                 return `
-                    <div class="bg-tgSecondaryBg p-4 rounded-2xl mb-4 card-enter" style="animation-delay: ${exerciseIndex * 0.1}s">
+                    <div class="bg-tgSecondaryBg p-4 rounded-2xl mb-4 card-enter" style="animation-delay: ${exIdx * 0.1}s">
                         <div class="flex justify-between items-center mb-3">
-                            <h3 class="font-bold text-base">${esc(exercise.name)}</h3>
-
-                            <span class="text-xs font-medium px-2 py-1 rounded-md ${
-                                isComplete
-                                    ? 'bg-green-500/20 text-green-500'
-                                    : 'bg-tgBg text-tgHint'
-                            }">
+                            <h3 class="font-bold text-base">${esc(ex.name)}</h3>
+                            <span class="text-xs font-medium px-2 py-1 rounded-md ${isComplete ? 'bg-green-500/20 text-green-500' : 'bg-tgBg text-tgHint'}">
                                 ${isComplete ? '✓ Готово' : `${completedSets}/${targetSets}`}
                             </span>
                         </div>
-
                         ${setsHTML}
-
-                        <button
-                            onclick="addSet(${exerciseIndex})"
-                            class="w-full py-3 mt-1 bg-tgBg rounded-xl text-tgLink text-sm font-semibold active:opacity-70 transition-opacity">
+                        <button onclick="addSet(${exIdx})" class="w-full py-3 mt-1 bg-tgBg rounded-xl text-tgLink text-sm font-semibold active:opacity-70 transition-opacity">
                             + Добавить подход
                         </button>
                     </div>
@@ -863,15 +588,11 @@
             }).join('');
 
             document.getElementById('app-content').innerHTML = `
-                <div class="text-center mb-6 card-enter">
-                    <div class="text-4xl font-mono font-bold text-tgLink tracking-wider" id="workout-timer">
-                        00:00:00
-                    </div>
-                    <div class="text-tgHint text-xs mt-1 uppercase tracking-wide">
-                        Время тренировки
-                    </div>
+                <!-- ⭐ 3. ЗАКРЕПЛЕННЫЙ ТАЙМЕР СВЕРХУ -->
+                <div class="sticky top-0 z-10 bg-tgBg/95 backdrop-blur-md py-4 mb-4 border-b border-tgSecondaryBg card-enter">
+                    <div class="text-4xl font-mono font-bold text-tgLink tracking-wider text-center" id="workout-timer">00:00:00</div>
+                    <div class="text-tgHint text-xs mt-1 uppercase tracking-wide text-center">Время тренировки</div>
                 </div>
-
                 ${exercisesHTML}
             `;
 
@@ -879,91 +600,59 @@
             setMainButton('Завершить тренировку', finishWorkout);
         }
 
-        function adjustSet(exerciseIndex, setIndex, field, delta) {
-            const current = state.activeWorkout
-                .exercises[exerciseIndex]
-                .sets[setIndex][field] || 0;
-
-            const newValue = field === 'weight'
-                ? Math.max(0, parseFloat((current + delta).toFixed(1)))
-                : Math.max(0, current + delta);
-
-            updateSet(exerciseIndex, setIndex, field, newValue);
-
+        function adjustSet(exIdx, sIdx, field, delta) {
+            const current = state.activeWorkout.exercises[exIdx].sets[sIdx][field] || 0;
+            const newVal = field === 'weight' ? Math.max(0, parseFloat((current + delta).toFixed(1))) : Math.max(0, current + delta);
+            updateSet(exIdx, sIdx, field, newVal);
             haptic('light');
             renderWorkout();
         }
 
         function renderHistory() {
-            const history = DataAPI.getHistory()
-                .sort((a, b) => new Date(b.date) - new Date(a.date));
+            const history = DataAPI.getHistory().sort((a, b) => new Date(b.date) - new Date(a.date));
+            let listHTML = history.length ? history.map((h, index) => {
+                const date = new Date(h.date);
+                const dateStr = date.toLocaleDateString('ru-RU', { day: 'numeric', month: 'long' });
+                const timeStr = date.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
+                const durationMin = Math.round(h.duration / 60);
+                const totalSets = h.exercises.reduce((acc, ex) => acc + ex.sets.length, 0);
 
-            let listHTML = history.length
-                ? history.map((entry, index) => {
-                    const date = new Date(entry.date);
-                    const dateStr = date.toLocaleDateString('ru-RU', {
-                        day: 'numeric',
-                        month: 'long'
-                    });
-                    const timeStr = date.toLocaleTimeString('ru-RU', {
-                        hour: '2-digit',
-                        minute: '2-digit'
-                    });
-                    const durationMin = Math.round(entry.duration / 60);
-                    const totalSets = entry.exercises.reduce(
-                        (sum, exercise) => sum + exercise.sets.length,
-                        0
-                    );
-
-                    return `
-                        <div
-                            onclick='navigate("history_detail", {entryId: "${entry.id}"})'
-                            class="bg-tgSecondaryBg p-4 rounded-2xl mb-3 active:scale-[0.98] transition-transform cursor-pointer card-enter"
-                            style="animation-delay: ${index * 0.05}s">
-                            <div class="flex justify-between items-start mb-2">
-                                <div class="font-semibold text-base">${esc(entry.programName)}</div>
-                                <div class="text-tgHint text-sm">${dateStr}</div>
-                            </div>
-
-                            <div class="flex gap-4 text-sm text-tgHint">
-                                <span>
-                                    <i class="fa-regular fa-clock mr-1"></i> ${durationMin} мин
-                                </span>
-                                <span>
-                                    <i class="fa-solid fa-layer-group mr-1"></i> ${totalSets} подх.
-                                </span>
-                                <span>${timeStr}</span>
-                            </div>
+                return `
+                    <div onclick='navigate("history_detail", {entryId: "${h.id}"})'
+                        class="bg-tgSecondaryBg p-4 rounded-2xl mb-3 active:scale-[0.98] transition-transform cursor-pointer card-enter" style="animation-delay: ${index * 0.05}s">
+                        <div class="flex justify-between items-start mb-2">
+                            <div class="font-semibold text-base">${esc(h.programName)}</div>
+                            <div class="text-tgHint text-sm">${dateStr}</div>
                         </div>
-                    `;
-                }).join('')
-                : '<div class="text-center text-tgHint mt-10 card-enter">История пуста</div>';
+                        <div class="flex gap-4 text-sm text-tgHint">
+                            <span><i class="fa-regular fa-clock mr-1"></i> ${durationMin} мин</span>
+                            <span><i class="fa-solid fa-layer-group mr-1"></i> ${totalSets} подх.</span>
+                            <span>${timeStr}</span>
+                        </div>
+                    </div>
+                `;
+            }).join('') : '<div class="text-center text-tgHint mt-10 card-enter">История пуста</div>';
 
             document.getElementById('app-content').innerHTML = listHTML;
         }
 
         function renderHistoryDetail(entryId) {
             const entry = DataAPI.getHistoryEntryById(entryId);
-
             if (!entry) {
-                document.getElementById('app-content').innerHTML =
-                    '<p class="text-center text-tgHint mt-10">Запись не найдена</p>';
+                document.getElementById('app-content').innerHTML = '<p class="text-center text-tgHint mt-10">Запись не найдена</p>';
                 return;
             }
-
             const date = new Date(entry.date).toLocaleString('ru-RU');
-
-            let exercisesHTML = entry.exercises.map((exercise, index) => {
-                let setsHTML = exercise.sets.map((set, setIndex) => `
+            let exHTML = entry.exercises.map((ex, idx) => {
+                let setsHTML = ex.sets.map((s, i) => `
                     <div class="flex justify-between py-2 border-b border-tgBg last:border-0">
-                        <span class="text-tgHint text-sm">${setIndex + 1}.</span>
-                        <span class="font-medium">${set.weight} кг × ${set.reps} повт</span>
+                        <span class="text-tgHint text-sm">${i + 1}.</span>
+                        <span class="font-medium">${s.weight} кг × ${s.reps} повт</span>
                     </div>
                 `).join('');
-
                 return `
-                    <div class="mb-4 card-enter" style="animation-delay: ${index * 0.05}s">
-                        <h3 class="font-bold mb-2 text-base">${esc(exercise.name)}</h3>
+                    <div class="mb-4 card-enter" style="animation-delay: ${idx * 0.05}s">
+                        <h3 class="font-bold mb-2 text-base">${esc(ex.name)}</h3>
                         <div class="bg-tgSecondaryBg p-4 rounded-2xl text-sm">
                             ${setsHTML}
                         </div>
@@ -976,249 +665,149 @@
                     <h2 class="text-xl font-bold">${esc(entry.programName)}</h2>
                     <p class="text-tgHint text-sm mt-1">${date}</p>
                 </div>
-
-                ${exercisesHTML}
+                ${exHTML}
             `;
         }
 
         function addExercise() {
-            if (!state.editingProgram) {
-                state.editingProgram = { name: '', exercises: [] };
-            }
-
-            state.editingProgram.exercises.push({
-                id: createId(),
-                name: '',
-                muscleGroup: '',
-                targetSets: 3,
-                targetReps: 10
-            });
-
+            if (!state.editingProgram) state.editingProgram = { name: '', exercises: [] };
+            state.editingProgram.exercises.push({ id: createId(), name: '', muscleGroup: '', targetSets: 3, targetReps: 10 });
             renderProgramEdit();
         }
 
-        function removeExercise(index) {
-            state.editingProgram.exercises.splice(index, 1);
+        function removeExercise(idx) {
+            state.editingProgram.exercises.splice(idx, 1);
             renderProgramEdit();
         }
 
-        function updateExercise(index, field, value) {
-            if (!state.editingProgram) {
-                state.editingProgram = { name: '', exercises: [] };
-            }
-
-            state.editingProgram.exercises[index][field] = value;
+        function updateExercise(idx, field, value) {
+            if (!state.editingProgram) state.editingProgram = { name: '', exercises: [] };
+            state.editingProgram.exercises[idx][field] = value;
         }
 
         function saveProgram() {
             const nameInput = document.getElementById('prog-name');
             const name = nameInput ? nameInput.value.trim() : '';
-
-            if (!name) {
-                tg.showAlert('Введите название программы');
-                return;
-            }
-
-            if (!state.editingProgram || state.editingProgram.exercises.length === 0) {
-                tg.showAlert('Добавьте хотя бы одно упражнение');
-                return;
-            }
-
-            for (const exercise of state.editingProgram.exercises) {
-                if (!exercise.name || !exercise.name.trim()) {
-                    tg.showAlert('Заполните названия всех упражнений');
-                    return;
-                }
-            }
+            if (!name) { tg.showPopup({ message: 'Введите название программы' }); return; }
+            if (!state.editingProgram || state.editingProgram.exercises.length === 0) { tg.showPopup({ message: 'Добавьте хотя бы одно упражнение' }); return; }
 
             state.editingProgram.name = name;
-
             const programs = DataAPI.getPrograms();
-            const existingIndex = programs.findIndex(
-                program => program.id === state.editingProgram.id
-            );
+            const existIdx = programs.findIndex(p => p.id === state.editingProgram.id);
 
-            if (existingIndex > -1) {
-                programs[existingIndex] = state.editingProgram;
-            } else {
-                state.editingProgram.id = createId();
-                programs.push(state.editingProgram);
-            }
+            if (existIdx > -1) programs[existIdx] = state.editingProgram;
+            else { state.editingProgram.id = createId(); programs.push(state.editingProgram); }
 
             DataAPI.savePrograms(programs);
-
             haptic('success');
             state.editingProgram = null;
-
             clearMainButton();
             switchTab('programs');
         }
 
         async function deleteProgram(id) {
             const ok = await appConfirm('Удалить программу?');
-
             if (!ok) return;
-
-            DataAPI.savePrograms(
-                DataAPI.getPrograms().filter(program => program.id !== id)
-            );
-
+            DataAPI.savePrograms(DataAPI.getPrograms().filter(p => p.id !== id));
             renderPrograms();
         }
 
         function startWorkout(programId) {
             const program = DataAPI.getProgramById(programId);
-
             if (!program || program.exercises.length === 0) {
-                tg.showAlert('В программе нет упражнений');
+                tg.showPopup({message: 'В программе нет упражнений'});
                 return;
             }
-
             state.activeWorkout = {
                 programId: program.id,
                 programName: program.name,
                 startTime: Date.now(),
-                exercises: program.exercises.map(exercise => ({
-                    name: exercise.name,
-                    muscleGroup: exercise.muscleGroup,
-                    targetSets: exercise.targetSets,
-                    targetReps: exercise.targetReps,
-                    sets: [{
-                        weight: 0,
-                        reps: exercise.targetReps || 10
-                    }]
+                exercises: program.exercises.map(ex => ({
+                    name: ex.name,
+                    muscleGroup: ex.muscleGroup,
+                    targetSets: ex.targetSets,
+                    targetReps: ex.targetReps,
+                    sets: [{ weight: 0, reps: ex.targetReps || 10 }]
                 }))
             };
-
             saveActiveWorkout();
             navigate('workout');
         }
 
-        function addSet(exerciseIndex) {
-            const exercise = state.activeWorkout.exercises[exerciseIndex];
+        function addSet(exIdx) {
+            const exercise = state.activeWorkout.exercises[exIdx];
             const sets = exercise.sets;
-
-            let defaultWeight = 0;
-            let defaultReps = exercise.targetReps ?? 10;
-
+            let defaultWeight = 0, defaultReps = exercise.targetReps ?? 10;
             if (sets.length > 0) {
-                const lastSet = sets[sets.length - 1];
-                defaultWeight = lastSet.weight;
-                defaultReps = lastSet.reps;
+                defaultWeight = sets[sets.length - 1].weight;
+                defaultReps = sets[sets.length - 1].reps;
             }
-
-            sets.push({
-                weight: defaultWeight,
-                reps: defaultReps
-            });
-
+            sets.push({ weight: defaultWeight, reps: defaultReps });
             saveActiveWorkout();
             renderWorkout();
         }
 
-        function removeSet(exerciseIndex, setIndex) {
-            const sets = state.activeWorkout.exercises[exerciseIndex].sets;
-
-            if (sets.length <= 1) {
-                sets[0] = {
-                    weight: 0,
-                    reps: 10
-                };
-            } else {
-                sets.splice(setIndex, 1);
-            }
-
+        function removeSet(exIdx, sIdx) {
+            state.activeWorkout.exercises[exIdx].sets.splice(sIdx, 1);
             saveActiveWorkout();
             renderWorkout();
         }
 
-        function updateSet(exerciseIndex, setIndex, field, value) {
-            state.activeWorkout
-                .exercises[exerciseIndex]
-                .sets[setIndex][field] = value;
-
+        function updateSet(exIdx, sIdx, field, value) {
+            state.activeWorkout.exercises[exIdx].sets[sIdx][field] = value;
             saveActiveWorkout();
         }
 
         function startTimer() {
-            if (state.workoutTimer) {
-                clearInterval(state.workoutTimer);
-                state.workoutTimer = null;
-            }
-
+            if (state.workoutTimer) clearInterval(state.workoutTimer);
             const update = () => {
                 if (!state.activeWorkout) return;
-
                 const elapsed = Date.now() - state.activeWorkout.startTime;
-                const hours = Math.floor(elapsed / 3600000).toString().padStart(2, '0');
-                const minutes = Math.floor((elapsed % 3600000) / 60000).toString().padStart(2, '0');
-                const seconds = Math.floor((elapsed % 60000) / 1000).toString().padStart(2, '0');
-
-                const timerElement = document.getElementById('workout-timer');
-
-                if (timerElement) {
-                    timerElement.innerText = `${hours}:${minutes}:${seconds}`;
-                }
+                const h = Math.floor(elapsed / 3600000).toString().padStart(2, '0');
+                const m = Math.floor((elapsed % 3600000) / 60000).toString().padStart(2, '0');
+                const s = Math.floor((elapsed % 60000) / 1000).toString().padStart(2, '0');
+                const el = document.getElementById('workout-timer');
+                if(el) el.innerText = `${h}:${m}:${s}`;
             };
-
             update();
             state.workoutTimer = setInterval(update, 1000);
         }
 
         async function finishWorkout() {
             const ok = await appConfirm('Завершить и сохранить тренировку?');
-
             if (!ok) return;
 
             const workout = state.activeWorkout;
-
             if (!workout) {
+                tg.showPopup({ message: 'Активная тренировка не найдена' });
                 clearMainButton();
                 switchTab('programs');
                 return;
             }
 
-            if (state.workoutTimer) {
-                clearInterval(state.workoutTimer);
-                state.workoutTimer = null;
-            }
+            if (state.workoutTimer) { clearInterval(state.workoutTimer); state.workoutTimer = null; }
 
-            const history = DataAPI.getHistory();
-
-            history.push({
+            DataAPI.saveHistory([...DataAPI.getHistory(), {
                 id: createId(),
                 date: new Date(workout.startTime).toISOString(),
                 duration: Math.round((Date.now() - workout.startTime) / 1000),
                 programName: workout.programName,
                 exercises: workout.exercises
-            });
-
-            DataAPI.saveHistory(history);
+            }]);
 
             state.activeWorkout = null;
             saveActiveWorkout();
-
             haptic('success');
-
             clearMainButton();
             switchTab('programs');
         }
 
         document.addEventListener('visibilitychange', () => {
-            if (
-                document.visibilityState === 'visible' &&
-                state.currentScreen === 'workout' &&
-                state.activeWorkout
-            ) {
-                startTimer();
-            }
+            if (state.currentScreen === 'workout' && state.activeWorkout) startTimer();
         });
 
-        if (restoreActiveWorkout()) {
-            navigate('workout');
-        } else {
-            switchTab('stats');
-        }
+        if (restoreActiveWorkout()) navigate('workout');
+        else switchTab('stats');
     </script>
 </body>
 </html>
