@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Фитнес Дневник</title>
+    <title>Fitnary</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -40,7 +40,10 @@
         @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
         input[type=number]::-webkit-inner-spin-button, 
         input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
-        input[type=number] { -moz-appearance: textfield; }
+        input[type=number] { 
+    -moz-appearance: textfield;
+    appearance: textfield;  /* ← добавили стандартное свойство */
+}
     </style>
 </head>
 <body class="min-h-screen pb-24">
@@ -49,7 +52,7 @@
         <button id="btn-back" class="text-tgLink text-xl hidden" onclick="navigate('home')">
             <i class="fa-solid fa-arrow-left"></i>
         </button>
-        <h1 id="header-title" class="text-lg font-semibold flex-1 text-center">Фитнес Дневник</h1>
+        <h1 id="header-title" class="text-lg font-semibold flex-1 text-center">Fitnary</h1>
         <div class="w-6"></div>
     </header>
 
@@ -219,7 +222,7 @@
         // 5. SCREEN RENDERERS (с XSS защитой)
         // ==========================================
         function renderHome() {
-            document.getElementById('header-title').innerText = 'Фитнес Дневник';
+            document.getElementById('header-title').innerText = 'Fitnary';
             const programs = DataAPI.getPrograms();
             
             let quickStartHTML = '';
