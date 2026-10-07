@@ -3,10 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Фитнес Дневник</title>
+    <title>Fitnary</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/hammerjs@2.0.8"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom@2.0.1/dist/chartjs-plugin-zoom.min.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script>
         tailwind.config = {
@@ -57,15 +59,25 @@
         .snap-center {
             scroll-snap-align: center;
         }
+
+        /* Фиксированная область графика */
+        .chart-wrapper {
+            position: relative;
+            height: 220px;
+            touch-action: pan-y pinch-zoom;
+        }
+        .chart-wrapper canvas {
+            touch-action: none;
+        }
     </style>
 </head>
 <body class="min-h-screen pb-20">
 
     <header id="app-header" class="sticky top-0 z-10 bg-tgBg/90 backdrop-blur-md px-4 py-3 flex items-center justify-between border-b border-tgSecondaryBg">
-        <button id="btn-back" class="text-tgLink text-xl hidden" onclick="navigate('home')">
+        <button id="btn-back" class="text-tgLink text-xl hidden" onclick="navigateBack()">
             <i class="fa-solid fa-arrow-left"></i>
         </button>
-        <h1 id="header-title" class="text-lg font-semibold flex-1 text-center">Фитнес Дневник</h1>
+        <h1 id="header-title" class="text-lg font-semibold flex-1 text-center">Fitnary</h1>
         <div class="w-6"></div>
     </header>
 
@@ -122,7 +134,6 @@
         const USER_ID = tg.initDataUnsafe?.user?.id || 'local_test_user_' + Math.random().toString(36).substr(2, 9);
         const haptic = (type = 'light') => tg.HapticFeedback?.impactOccurred(type);
 
-        // Отключаем нативную кнопку Telegram, будем использовать HTML
         tg.MainButton.hide();
 
         const DataAPI = {
@@ -137,31 +148,26 @@
             getProgramById(id) { return this.getPrograms().find(p => p.id === id); },
             getHistoryEntryById(id) { return this.getHistory().find(h => h.id === id); },
 
+            // ИСПРАВЛЕНИЕ #4: Гарантированная уникальность по имени
             getUserExercises() {
                 const exerciseMap = new Map();
                 
-                // Извлекаем из программ
+                const addExercise = (ex) => {
+                    if (!ex.name) return;
+                    if (!exerciseMap.has(ex.name)) {
+                        exerciseMap.set(ex.name, {
+                            name: ex.name,
+                            muscleGroup: ex.muscleGroup || 'Другое'
+                        });
+                    }
+                };
+                
                 this.getPrograms().forEach(program => {
-                    program.exercises.forEach(ex => {
-                        if (!exerciseMap.has(ex.name) && ex.name) {
-                            exerciseMap.set(ex.name, {
-                                name: ex.name,
-                                muscleGroup: ex.muscleGroup || 'Другое'
-                            });
-                        }
-                    });
+                    program.exercises.forEach(addExercise);
                 });
                 
-                // Извлекаем из истории
                 this.getHistory().forEach(entry => {
-                    entry.exercises.forEach(ex => {
-                        if (!exerciseMap.has(ex.name) && ex.name) {
-                            exerciseMap.set(ex.name, {
-                                name: ex.name,
-                                muscleGroup: ex.muscleGroup || 'Другое'
-                            });
-                        }
-                    });
+                    entry.exercises.forEach(addExercise);
                 });
                 
                 return Array.from(exerciseMap.values());
@@ -200,7 +206,7 @@
                     const url = URL.createObjectURL(blob);
                     const a = document.createElement('a');
                     a.href = url;
-                    a.download = `fitness_backup_${USER_ID}.json`;
+                    a.download = `fitnary_backup_${USER_ID}.json`;
                     document.body.appendChild(a);
                     a.click();
                     a.remove();
@@ -234,7 +240,7 @@
         }
 
         let state = {
-            currentScreen: 'home',
+            currentScreen: 'stats',
             currentTab: 'stats',
             activeWorkout: null,
             editingProgram: null,
@@ -261,6 +267,18 @@
             navigate(tab);
         }
 
+        // ИСПРАВЛЕНИЕ #1: Умная кнопка "Назад"
+        function navigateBack() {
+            haptic('light');
+            const tabMap = {
+                'program_edit': 'programs',
+                'history_detail': 'history',
+                'workout': state.currentTab || 'stats'
+            };
+            const target = tabMap[state.currentScreen] || state.currentTab || 'stats';
+            navigate(target);
+        }
+
         function navigate(screen, data = {}) {
             haptic('light');
             
@@ -282,7 +300,9 @@
             void content.offsetWidth;
             content.classList.add('fade-in');
 
-            backBtn.classList.toggle('hidden', ['stats', 'programs', 'history'].includes(screen));
+            // Кнопка назад видна только на вложенных экранах
+            const isSubScreen = ['program_edit', 'history_detail', 'workout'].includes(screen);
+            backBtn.classList.toggle('hidden', !isSubScreen);
 
             switch(screen) {
                 case 'stats': renderStats(); break;
@@ -295,7 +315,7 @@
         }
 
         function renderStats() {
-            document.getElementById('header-title').innerText = 'Статистика';
+            document.getElementById('header-title').innerText = 'Fitnary';
             const exercises = DataAPI.getUserExercises();
             
             const muscleGroupsHTML = MUSCLE_GROUPS.map(group => `
@@ -323,8 +343,13 @@
             
             document.getElementById('app-content').innerHTML = `
                 <div class="bg-tgSecondaryBg p-4 rounded-xl mb-6">
-                    <h3 class="text-sm font-semibold mb-3 text-tgHint">Прогресс</h3>
-                    <canvas id="progressChart" height="200"></canvas>
+                    <div class="flex justify-between items-center mb-3">
+                        <h3 class="text-sm font-semibold text-tgHint">Прогресс</h3>
+                        <span class="text-xs text-tgHint">щипок для зума</span>
+                    </div>
+                    <div class="chart-wrapper">
+                        <canvas id="progressChart"></canvas>
+                    </div>
                 </div>
                 
                 <div class="mb-4">
@@ -345,26 +370,33 @@
             renderChart();
         }
 
+        // ИСПРАВЛЕНИЕ #5: График с фиксированной высотой и зумом
         function renderChart() {
             const ctx = document.getElementById('progressChart');
             if (!ctx) return;
             
+            // Уничтожаем предыдущий график чтобы не рос
+            const existingChart = Chart.getChart(ctx);
+            if (existingChart) existingChart.destroy();
+            
             if (!state.selectedExercise) {
-                ctx.getContext('2d').clearRect(0, 0, ctx.width, ctx.height);
-                ctx.getContext('2d').font = '14px sans-serif';
-                ctx.getContext('2d').fillStyle = getComputedStyle(document.documentElement).getPropertyValue('--tg-theme-hint-color') || '#8e8e93';
-                ctx.getContext('2d').textAlign = 'center';
-                ctx.getContext('2d').fillText('Выберите упражнение', ctx.width / 2, ctx.height / 2);
+                const context = ctx.getContext('2d');
+                context.clearRect(0, 0, ctx.width, ctx.height);
+                context.font = '14px sans-serif';
+                context.fillStyle = getComputedStyle(document.documentElement).getPropertyValue('--tg-theme-hint-color') || '#8e8e93';
+                context.textAlign = 'center';
+                context.fillText('Выберите упражнение', ctx.width / 2, ctx.height / 2);
                 return;
             }
             
             const history = DataAPI.getExerciseHistory(state.selectedExercise);
             if (history.length === 0) {
-                ctx.getContext('2d').clearRect(0, 0, ctx.width, ctx.height);
-                ctx.getContext('2d').font = '14px sans-serif';
-                ctx.getContext('2d').fillStyle = getComputedStyle(document.documentElement).getPropertyValue('--tg-theme-hint-color') || '#8e8e93';
-                ctx.getContext('2d').textAlign = 'center';
-                ctx.getContext('2d').fillText('Нет данных', ctx.width / 2, ctx.height / 2);
+                const context = ctx.getContext('2d');
+                context.clearRect(0, 0, ctx.width, ctx.height);
+                context.font = '14px sans-serif';
+                context.fillStyle = getComputedStyle(document.documentElement).getPropertyValue('--tg-theme-hint-color') || '#8e8e93';
+                context.textAlign = 'center';
+                context.fillText('Нет данных', ctx.width / 2, ctx.height / 2);
                 return;
             }
             
@@ -389,14 +421,27 @@
                         borderColor: getComputedStyle(document.documentElement).getPropertyValue('--tg-theme-link-color') || '#3b82f6',
                         backgroundColor: 'rgba(59, 130, 246, 0.1)',
                         tension: 0.3,
-                        fill: true
+                        fill: true,
+                        pointRadius: 4,
+                        pointHoverRadius: 6
                     }]
                 },
                 options: {
                     responsive: true,
                     maintainAspectRatio: false,
                     plugins: {
-                        legend: { display: false }
+                        legend: { display: false },
+                        zoom: {
+                            pan: {
+                                enabled: true,
+                                mode: 'x'
+                            },
+                            zoom: {
+                                pinch: { enabled: true },
+                                mode: 'x',
+                                limits: { x: { min: 'original', max: 'original' } }
+                            }
+                        }
                     },
                     scales: {
                         y: {
@@ -422,22 +467,34 @@
             renderStats();
         }
 
+        // ИСПРАВЛЕНИЕ #3: Показываем упражнения в списке программ
         function renderPrograms() {
             document.getElementById('header-title').innerText = 'Программы';
             const programs = DataAPI.getPrograms();
             
-            let listHTML = programs.length ? programs.map(p => `
-                <div class="bg-tgSecondaryBg p-4 rounded-xl mb-3 flex justify-between items-center">
-                    <div onclick="navigate('program_edit', {programId: '${p.id}'})" class="flex-1 active:opacity-70">
-                        <div class="font-semibold">${esc(p.name)}</div>
-                        <div class="text-tgHint text-sm">${p.exercises.length} упр.</div>
+            let listHTML = programs.length ? programs.map(p => {
+                const exercisesPreview = p.exercises.slice(0, 3).map(ex => 
+                    `${esc(ex.name)} ${ex.targetSets ?? 3}×${ex.targetReps ?? 10}`
+                ).join(' • ');
+                const moreCount = p.exercises.length > 3 ? ` +${p.exercises.length - 3}` : '';
+                
+                return `
+                    <div class="bg-tgSecondaryBg p-4 rounded-xl mb-3">
+                        <div class="flex justify-between items-start mb-2">
+                            <div onclick="navigate('program_edit', {programId: '${p.id}'})" class="flex-1 active:opacity-70">
+                                <div class="font-semibold">${esc(p.name)}</div>
+                                <div class="text-tgHint text-xs mt-1 leading-tight">
+                                    ${exercisesPreview || '<span class="italic">Нет упражнений</span>'}${moreCount}
+                                </div>
+                            </div>
+                            <div class="flex gap-3 text-tgHint ml-2">
+                                <button onclick="startWorkout('${p.id}')" class="text-tgLink text-xl"><i class="fa-solid fa-play"></i></button>
+                                <button onclick="deleteProgram('${p.id}')" class="text-red-500 text-xl"><i class="fa-solid fa-trash"></i></button>
+                            </div>
+                        </div>
                     </div>
-                    <div class="flex gap-3 text-tgHint">
-                        <button onclick="startWorkout('${p.id}')" class="text-tgLink text-xl"><i class="fa-solid fa-play"></i></button>
-                        <button onclick="deleteProgram('${p.id}')" class="text-red-500 text-xl"><i class="fa-solid fa-trash"></i></button>
-                    </div>
-                </div>
-            `).join('') : '<p class="text-center text-tgHint mt-10">Нет созданных программ</p>';
+                `;
+            }).join('') : '<p class="text-center text-tgHint mt-10">Нет созданных программ</p>';
 
             document.getElementById('app-content').innerHTML = `
                 ${listHTML}
@@ -634,10 +691,17 @@
             state.editingProgram.exercises[idx][field] = value;
         }
 
+        // ИСПРАВЛЕНИЕ #2: Отклик при сохранении + гарантированный переход
         function saveProgram() {
             const name = document.getElementById('prog-name').value.trim();
-            if (!name) { tg.showPopup({message: 'Введите название программы'}); return; }
-            if (state.editingProgram.exercises.length === 0) { tg.showPopup({message: 'Добавьте хотя бы одно упражнение'}); return; }
+            if (!name) { 
+                tg.showPopup({message: 'Введите название программы'}); 
+                return; 
+            }
+            if (state.editingProgram.exercises.length === 0) { 
+                tg.showPopup({message: 'Добавьте хотя бы одно упражнение'}); 
+                return; 
+            }
 
             state.editingProgram.name = name;
             let programs = DataAPI.getPrograms();
@@ -652,8 +716,19 @@
 
             DataAPI.savePrograms(programs);
             haptic('success');
+            
+            // Показываем уведомление об успехе
+            tg.showPopup({ 
+                title: 'Сохранено ✓', 
+                message: `Программа "${name}" успешно сохранена` 
+            });
+            
             state.editingProgram = null;
-            navigate('programs');
+            
+            // Небольшая задержка чтобы пользователь увидел уведомление
+            setTimeout(() => {
+                navigate('programs');
+            }, 300);
         }
 
         async function deleteProgram(id) {
