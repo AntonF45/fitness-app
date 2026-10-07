@@ -43,7 +43,6 @@
         input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
         input[type=number] { -moz-appearance: textfield; }
         
-        /* Горизонтальный скролл без полосы прокрутки */
         .scroll-container {
             scrollbar-width: none;
             -ms-overflow-style: none;
@@ -52,7 +51,6 @@
             display: none;
         }
         
-        /* Привязка к карточкам */
         .snap-x {
             scroll-snap-type: x mandatory;
         }
@@ -73,7 +71,6 @@
 
     <main id="app-content" class="p-4 fade-in"></main>
 
-    <!-- Нижняя навигация -->
     <nav id="bottom-nav" class="fixed bottom-0 left-0 right-0 bg-tgBg border-t border-tgSecondaryBg flex justify-around py-3 z-20">
         <button onclick="switchTab('stats')" id="tab-stats" class="flex flex-col items-center text-tgLink">
             <i class="fa-solid fa-chart-line text-xl mb-1"></i>
@@ -90,9 +87,6 @@
     </nav>
 
     <script>
-        // ==========================================
-        // 1. UTILS & HELPERS
-        // ==========================================
         function esc(str = '') {
             return String(str)
                 .replaceAll('&', '&amp;')
@@ -121,9 +115,6 @@
 
         const MUSCLE_GROUPS = ['Грудь', 'Спина', 'Ноги', 'Плечи', 'Руки'];
 
-        // ==========================================
-        // 2. INITIALIZATION & TELEGRAM SDK
-        // ==========================================
         const tg = window.Telegram.WebApp;
         tg.ready();
         tg.expand();
@@ -131,25 +122,9 @@
         const USER_ID = tg.initDataUnsafe?.user?.id || 'local_test_user_' + Math.random().toString(36).substr(2, 9);
         const haptic = (type = 'light') => tg.HapticFeedback?.impactOccurred(type);
 
-        let mainButtonHandler = null;
-        function setMainButton(text, onClick, show = true) {
-            if (mainButtonHandler) {
-                tg.MainButton.offClick(mainButtonHandler);
-                mainButtonHandler = null;
-            }
-            if (show && text && onClick) {
-                tg.MainButton.setText(text);
-                tg.MainButton.show();
-                mainButtonHandler = onClick;
-                tg.MainButton.onClick(mainButtonHandler);
-            } else {
-                tg.MainButton.hide();
-            }
-        }
+        // Отключаем нативную кнопку Telegram, будем использовать HTML
+        tg.MainButton.hide();
 
-        // ==========================================
-        // 3. DATA ACCESS LAYER (API)
-        // ==========================================
         const DataAPI = {
             _key(type) { return `twa_fitness_${type}_${USER_ID}`; },
             
@@ -162,14 +137,25 @@
             getProgramById(id) { return this.getPrograms().find(p => p.id === id); },
             getHistoryEntryById(id) { return this.getHistory().find(h => h.id === id); },
 
-            // Извлекаем уникальные упражнения из истории с группами мышц
             getUserExercises() {
-                const history = this.getHistory();
                 const exerciseMap = new Map();
                 
-                history.forEach(entry => {
+                // Извлекаем из программ
+                this.getPrograms().forEach(program => {
+                    program.exercises.forEach(ex => {
+                        if (!exerciseMap.has(ex.name) && ex.name) {
+                            exerciseMap.set(ex.name, {
+                                name: ex.name,
+                                muscleGroup: ex.muscleGroup || 'Другое'
+                            });
+                        }
+                    });
+                });
+                
+                // Извлекаем из истории
+                this.getHistory().forEach(entry => {
                     entry.exercises.forEach(ex => {
-                        if (!exerciseMap.has(ex.name)) {
+                        if (!exerciseMap.has(ex.name) && ex.name) {
                             exerciseMap.set(ex.name, {
                                 name: ex.name,
                                 muscleGroup: ex.muscleGroup || 'Другое'
@@ -181,7 +167,6 @@
                 return Array.from(exerciseMap.values());
             },
 
-            // Получаем историю подходов для конкретного упражнения
             getExerciseHistory(exerciseName) {
                 const history = this.getHistory();
                 const results = [];
@@ -248,9 +233,6 @@
             }
         }
 
-        // ==========================================
-        // 4. STATE & ROUTING
-        // ==========================================
         let state = {
             currentScreen: 'home',
             currentTab: 'stats',
@@ -265,7 +247,6 @@
             state.currentTab = tab;
             haptic('light');
             
-            // Обновляем стили вкладок
             ['stats', 'programs', 'history'].forEach(t => {
                 const btn = document.getElementById(`tab-${t}`);
                 if (t === tab) {
@@ -302,7 +283,6 @@
             content.classList.add('fade-in');
 
             backBtn.classList.toggle('hidden', ['stats', 'programs', 'history'].includes(screen));
-            setMainButton(null, null, false);
 
             switch(screen) {
                 case 'stats': renderStats(); break;
@@ -314,15 +294,10 @@
             }
         }
 
-        // ==========================================
-        // 5. SCREEN RENDERERS
-        // ==========================================
-        
         function renderStats() {
             document.getElementById('header-title').innerText = 'Статистика';
             const exercises = DataAPI.getUserExercises();
             
-            // Группы мышц
             const muscleGroupsHTML = MUSCLE_GROUPS.map(group => `
                 <div onclick="selectMuscleGroup('${group}')" 
                     class="snap-center min-w-[120px] p-4 rounded-xl cursor-pointer transition-all ${
@@ -334,7 +309,6 @@
                 </div>
             `).join('');
             
-            // Упражнения выбранной группы
             const filteredExercises = exercises.filter(ex => ex.muscleGroup === state.selectedMuscleGroup);
             const exercisesHTML = filteredExercises.length ? filteredExercises.map(ex => `
                 <div onclick="selectExercise('${esc(ex.name)}')" 
@@ -348,13 +322,11 @@
             `).join('') : '<p class="text-tgHint text-sm px-4">Нет упражнений в этой группе</p>';
             
             document.getElementById('app-content').innerHTML = `
-                <!-- График -->
                 <div class="bg-tgSecondaryBg p-4 rounded-xl mb-6">
                     <h3 class="text-sm font-semibold mb-3 text-tgHint">Прогресс</h3>
                     <canvas id="progressChart" height="200"></canvas>
                 </div>
                 
-                <!-- Группы мышц -->
                 <div class="mb-4">
                     <h3 class="text-sm font-semibold mb-2 text-tgHint">Группа мышц</h3>
                     <div class="flex overflow-x-auto gap-3 pb-2 snap-x scroll-container">
@@ -362,7 +334,6 @@
                     </div>
                 </div>
                 
-                <!-- Упражнения -->
                 <div class="mb-4">
                     <h3 class="text-sm font-semibold mb-2 text-tgHint">Упражнения</h3>
                     <div class="flex overflow-x-auto gap-3 pb-2 snap-x scroll-container">
@@ -371,7 +342,6 @@
                 </div>
             `;
             
-            // Рисуем график
             renderChart();
         }
 
@@ -398,7 +368,6 @@
                 return;
             }
             
-            // Берем максимальный вес из каждого подхода за дату
             const dataByDate = {};
             history.forEach(h => {
                 const date = new Date(h.date).toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit' });
@@ -470,8 +439,13 @@
                 </div>
             `).join('') : '<p class="text-center text-tgHint mt-10">Нет созданных программ</p>';
 
-            document.getElementById('app-content').innerHTML = listHTML;
-            setMainButton('Создать программу', () => navigate('program_edit', { programId: null }));
+            document.getElementById('app-content').innerHTML = `
+                ${listHTML}
+                <button onclick="navigate('program_edit', {programId: null})" 
+                    class="w-full mt-4 bg-tgButton text-white font-semibold py-3 rounded-xl active:opacity-70 transition-opacity">
+                    <i class="fa-solid fa-plus mr-2"></i> Создать программу
+                </button>
+            `;
         }
 
         function renderProgramEdit() {
@@ -487,7 +461,7 @@
                         <button onclick="removeExercise(${idx})" class="text-red-500"><i class="fa-solid fa-times"></i></button>
                     </div>
                     <input type="text" placeholder="Название (напр. Жим лежа)" value="${esc(ex.name)}" 
-                        onchange="updateExercise(${idx}, 'name', this.value)"
+                        oninput="updateExercise(${idx}, 'name', this.value)"
                         class="w-full p-2 rounded-lg mb-2 text-sm">
                     <select onchange="updateExercise(${idx}, 'muscleGroup', this.value)" 
                         class="w-full p-2 rounded-lg mb-2 text-sm">
@@ -511,6 +485,7 @@
 
             document.getElementById('app-content').innerHTML = `
                 <input type="text" id="prog-name" placeholder="Название программы" value="${esc(prog.name)}" 
+                    oninput="updateProgramName(this.value)"
                     class="w-full p-3 rounded-xl mb-4 text-lg font-semibold">
                 <div id="exercises-list">
                     ${exercisesHTML}
@@ -518,8 +493,16 @@
                 <button onclick="addExercise()" class="w-full py-3 border-2 border-dashed border-tgHint rounded-xl text-tgHint mt-2 active:bg-tgSecondaryBg">
                     <i class="fa-solid fa-plus mr-2"></i> Добавить упражнение
                 </button>
+                <button onclick="saveProgram()" 
+                    class="w-full mt-4 bg-tgButton text-white font-semibold py-3 rounded-xl active:opacity-70 transition-opacity">
+                    <i class="fa-solid fa-save mr-2"></i> Сохранить программу
+                </button>
             `;
-            setMainButton('Сохранить', saveProgram);
+        }
+
+        function updateProgramName(value) {
+            if (!state.editingProgram) state.editingProgram = { name: '', exercises: [] };
+            state.editingProgram.name = value;
         }
 
         function renderWorkout() {
@@ -561,9 +544,12 @@
                     <div class="text-tgHint text-sm">Время тренировки</div>
                 </div>
                 ${exercisesHTML}
+                <button onclick="finishWorkout()" 
+                    class="w-full mt-4 bg-red-600 text-white font-semibold py-3 rounded-xl active:opacity-70 transition-opacity">
+                    <i class="fa-solid fa-stop mr-2"></i> Завершить тренировку
+                </button>
             `;
             startTimer();
-            setMainButton('Завершить тренировку', finishWorkout);
         }
 
         function renderHistory() {
@@ -632,9 +618,6 @@
             `;
         }
 
-        // ==========================================
-        // 6. LOGIC & ACTIONS
-        // ==========================================
         function addExercise() {
             if (!state.editingProgram) state.editingProgram = { name: '', exercises: [] };
             state.editingProgram.exercises.push({ id: createId(), name: '', muscleGroup: '', targetSets: 3, targetReps: 10 });
@@ -647,6 +630,7 @@
         }
 
         function updateExercise(idx, field, value) {
+            if (!state.editingProgram) state.editingProgram = { name: '', exercises: [] };
             state.editingProgram.exercises[idx][field] = value;
         }
 
@@ -682,7 +666,14 @@
 
         function startWorkout(programId) {
             const program = DataAPI.getProgramById(programId);
-            if (!program) return;
+            if (!program) {
+                tg.showPopup({message: 'Программа не найдена'});
+                return;
+            }
+            if (program.exercises.length === 0) {
+                tg.showPopup({message: 'В программе нет упражнений'});
+                return;
+            }
 
             state.activeWorkout = {
                 programId: program.id,
@@ -774,9 +765,6 @@
             navigate('stats');
         }
 
-        // ==========================================
-        // 7. INIT & EVENT LISTENERS
-        // ==========================================
         document.addEventListener('visibilitychange', () => {
             if (state.currentScreen === 'workout' && state.activeWorkout) {
                 startTimer();
