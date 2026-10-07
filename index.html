@@ -133,13 +133,11 @@
             to { opacity: 1; transform: translateY(0); }
         }
 
-        /* Визуальные стили для дроп-сетов */
         .set-drop {
             border-left: 3px solid #f97316;
             background: linear-gradient(90deg, rgba(249, 115, 22, 0.08), transparent);
         }
 
-        /* Визуальные стили для суперсетов */
         .superset-group {
             border-left: 4px solid #a855f7;
             background: linear-gradient(90deg, rgba(168, 85, 247, 0.05), transparent);
@@ -161,6 +159,17 @@
             letter-spacing: 0.5px;
         }
 
+        .bodyweight-badge {
+            display: inline-flex;
+            align-items: center;
+            background: rgba(34, 197, 94, 0.15);
+            color: #4ade80;
+            padding: 4px 10px;
+            border-radius: 8px;
+            font-size: 11px;
+            font-weight: 600;
+        }
+
         .drop-badge {
             display: inline-flex;
             align-items: center;
@@ -174,16 +183,19 @@
             letter-spacing: 0.5px;
         }
 
-        .bodyweight-badge {
-            display: inline-flex;
+        .checkbox-label {
+            display: flex;
             align-items: center;
-            gap: 4px;
-            background: rgba(34, 197, 94, 0.15);
-            color: #4ade80;
-            padding: 2px 8px;
-            border-radius: 6px;
-            font-size: 10px;
-            font-weight: 600;
+            gap: 8px;
+            cursor: pointer;
+            user-select: none;
+        }
+
+        .checkbox-label input[type="checkbox"] {
+            width: 20px;
+            height: 20px;
+            cursor: pointer;
+            accent-color: #4ade80;
         }
     </style>
 </head>
@@ -215,9 +227,6 @@
     </nav>
 
     <script>
-        // ==========================================
-        // УТИЛИТЫ
-        // ==========================================
         function esc(str = '') {
             return String(str)
                 .replaceAll('&', '&amp;')
@@ -233,7 +242,6 @@
                 : Date.now().toString(36) + Math.random().toString(36).slice(2);
         }
 
-        // Миграция данных для обратной совместимости
         function migrateExercise(ex) {
             if (!ex) return ex;
             return {
@@ -306,9 +314,6 @@
 
         function clearMainButton() { setMainButton(null, null); }
 
-        // ==========================================
-        // DATA API
-        // ==========================================
         const DataAPI = {
             _key(type) { return `twa_fitness_${type}_${USER_ID}`; },
             getPrograms() {
@@ -392,9 +397,6 @@
             selectedExercise: null
         };
 
-        // ==========================================
-        // НАВИГАЦИЯ
-        // ==========================================
         function updateTabUI(activeTab) {
             ['stats', 'programs', 'history'].forEach(tab => {
                 const button = document.getElementById(`tab-${tab}`);
@@ -467,9 +469,6 @@
             }
         }
 
-        // ==========================================
-        // СТАТИСТИКА
-        // ==========================================
         function renderStats() {
             const exercises = DataAPI.getUserExercises();
             const muscleGroupsHTML = MUSCLE_GROUPS.map(group => `
@@ -595,16 +594,11 @@
             renderStats();
         }
 
-        // ==========================================
-        // ПРОГРАММЫ
-        // ==========================================
         function renderPrograms() {
             const programs = DataAPI.getPrograms();
             let listHTML = programs.length
                 ? programs.map((program, index) => {
                     const exercises = program.exercises || [];
-                    
-                    // Группируем упражнения по суперсетам для отображения
                     const exerciseBlocks = [];
                     const processed = new Set();
                     
@@ -670,6 +664,7 @@
 
             let exercisesHTML = exercises.map((exercise, index) => {
                 const isInSuperset = !!exercise.supersetId;
+                const isBodyweight = exercise.exerciseType === 'bodyweight';
                 
                 return `
                     <div class="bg-tgSecondaryBg p-4 rounded-2xl mb-3 card-enter ${isInSuperset ? 'border-l-4 border-purple-500' : ''}" style="animation-delay: ${index * 0.05}s">
@@ -689,10 +684,10 @@
                         </div>
                         <input type="text" placeholder="Название (напр. Жим лежа)" value="${esc(exercise.name)}" oninput="updateExercise(${index}, 'name', this.value)" class="w-full p-3 rounded-xl mb-3 text-sm font-medium">
                         
-                        <select onchange="updateExercise(${index}, 'exerciseType', this.value)" class="w-full p-3 rounded-xl mb-3 text-sm">
-                            <option value="weighted" ${exercise.exerciseType === 'weighted' ? 'selected' : ''}>🏋️ Со свободным весом (штанга/гантели)</option>
-                            <option value="bodyweight" ${exercise.exerciseType === 'bodyweight' ? 'selected' : ''}>🤸 Собственный вес (подтягивания, брусья)</option>
-                        </select>
+                        <label class="checkbox-label mb-3 p-3 rounded-xl bg-tgBg">
+                            <input type="checkbox" ${isBodyweight ? 'checked' : ''} onchange="updateExercise(${index}, 'exerciseType', this.checked ? 'bodyweight' : 'weighted')">
+                            <span class="text-sm font-medium">Собственный вес</span>
+                        </label>
                         
                         <select onchange="updateExercise(${index}, 'muscleGroup', this.value)" class="w-full p-3 rounded-xl mb-3 text-sm">
                             <option value="">Выберите группу мышц</option>
@@ -746,7 +741,6 @@
             const exercises = state.editingProgram.exercises;
             const removed = exercises[index];
             
-            // Если удаляемое упражнение было в суперсете, разрываем связи
             if (removed.supersetId) {
                 exercises.forEach(ex => {
                     if (ex.supersetId === removed.supersetId) {
@@ -764,31 +758,34 @@
             state.editingProgram.exercises[index][field] = value;
         }
 
-        // ==========================================
-        // СУПЕРСЕТЫ
-        // ==========================================
         function toggleSuperset(exerciseIndex) {
             const exercises = state.editingProgram.exercises;
             const current = exercises[exerciseIndex];
             
             if (current.supersetId) {
-                // Разрываем все связи этого суперсета
                 const ssId = current.supersetId;
                 exercises.forEach(ex => {
                     if (ex.supersetId === ssId) ex.supersetId = null;
                 });
                 haptic('light');
             } else {
-                // Ищем предыдущее упражнение
                 if (exerciseIndex === 0) {
                     showAlert('Это первое упражнение. Сначала добавьте ещё одно, затем свяжите их.');
                     return;
                 }
                 
                 const prev = exercises[exerciseIndex - 1];
-                const ssId = prev.supersetId || createId();
-                prev.supersetId = ssId;
-                current.supersetId = ssId;
+                
+                if (prev.supersetId) {
+                    const oldSsId = prev.supersetId;
+                    exercises.forEach(ex => {
+                        if (ex.supersetId === oldSsId) ex.supersetId = null;
+                    });
+                }
+                
+                const newSsId = createId();
+                prev.supersetId = newSsId;
+                current.supersetId = newSsId;
                 haptic('medium');
             }
             
@@ -825,9 +822,6 @@
             });
         }
 
-        // ==========================================
-        // ТРЕНИРОВКА (С ПОДДЕРЖКОЙ BODYWEIGHT, DROP-SETS, SUPERSETS)
-        // ==========================================
         function generateSetHTML(exerciseIndex, setIndex, set, exerciseType) {
             const isBodyweight = exerciseType === 'bodyweight';
             const weightLabel = isBodyweight ? 'Доп. вес' : 'Вес';
@@ -836,10 +830,10 @@
             return `
                 <div id="set-row-${exerciseIndex}-${setIndex}" class="bg-tgBg rounded-xl p-3 mb-2 card-enter ${isDropSet ? 'set-drop' : ''}" style="animation-delay: 0.03s">
                     <div class="flex items-center justify-between mb-2">
-                        <div class="flex items-center gap-2">
+                        <div class="flex items-center gap-2 flex-wrap">
                             <span class="text-tgHint text-sm font-medium">Подход ${setIndex + 1}</span>
-                            ${isDropSet ? '<span class="drop-badge"><i class="fa-solid fa-fire"></i> DROP</span>' : ''}
-                            ${isBodyweight ? '<span class="bodyweight-badge"><i class="fa-solid fa-person"></i> BW</span>' : ''}
+                            ${isDropSet ? '<span class="drop-badge"><i class="fa-solid fa-fire"></i> ДРОП-СЕТ</span>' : ''}
+                            ${isBodyweight ? '<span class="bodyweight-badge">Собственный вес</span>' : ''}
                         </div>
                         <button onclick="removeSet(${exerciseIndex}, ${setIndex})" aria-label="Удалить подход" class="w-8 h-8 flex items-center justify-center rounded-full text-red-500 active:opacity-70">
                             <i class="fa-solid fa-trash-can text-sm"></i>
@@ -872,12 +866,12 @@
 
             const setsHTML = sets.map((set, setIndex) => generateSetHTML(exerciseIndex, setIndex, set, exerciseType)).join('');
 
-            return `
+            const cardHTML = `
                 <div id="exercise-card-${exerciseIndex}" class="bg-tgSecondaryBg p-4 rounded-2xl mb-4 card-enter" style="animation-delay: ${exerciseIndex * 0.1}s">
-                    <div class="flex justify-between items-center mb-3">
+                    <div class="flex justify-between items-center mb-3 gap-2">
                         <div class="flex items-center gap-2 flex-1 min-w-0">
                             <h3 class="font-bold text-base truncate">${esc(exercise.name)}</h3>
-                            ${exerciseType === 'bodyweight' ? '<span class="bodyweight-badge shrink-0"><i class="fa-solid fa-person"></i> BW</span>' : ''}
+                            ${exerciseType === 'bodyweight' ? '<span class="bodyweight-badge shrink-0">Собственный вес</span>' : ''}
                         </div>
                         <span id="badge-${exerciseIndex}" class="text-xs font-medium px-2 py-1 rounded-md shrink-0 ${isComplete ? 'bg-green-500/20 text-green-500' : 'bg-tgBg text-tgHint'}">
                             ${isComplete ? '✓ Готово' : `${completedSets}/${targetSets}`}
@@ -889,11 +883,16 @@
                             + Подход
                         </button>
                         <button onclick="addDropSet(${exerciseIndex})" class="flex-1 py-3 bg-orange-500/15 rounded-xl text-orange-400 text-sm font-semibold active:opacity-70 transition-opacity">
-                            <i class="fa-solid fa-fire mr-1"></i> Дроп
+                            <i class="fa-solid fa-fire mr-1"></i> Дроп-сет
                         </button>
                     </div>
                 </div>
             `;
+
+            const existingCard = document.getElementById(`exercise-card-${exerciseIndex}`);
+            if (existingCard) {
+                existingCard.outerHTML = cardHTML;
+            }
         }
 
         function renderWorkout() {
@@ -904,8 +903,6 @@
             }
 
             const exercises = workout.exercises || [];
-            
-            // Группируем упражнения по суперсетам
             const groups = [];
             const processed = new Set();
             
@@ -993,9 +990,6 @@
             renderExerciseCard(exerciseIndex, exercise);
         }
 
-        // ==========================================
-        // ДРОП-СЕТЫ
-        // ==========================================
         function addDropSet(exerciseIndex) {
             const exercise = state.activeWorkout.exercises[exerciseIndex];
             const sets = exercise.sets;
@@ -1006,8 +1000,6 @@
             }
             
             const lastSet = sets[sets.length - 1];
-            
-            // Автоматически снижаем вес на 25% (округляем до 2.5)
             const dropWeight = Math.max(0, Math.round((lastSet.weight * 0.75) / 2.5) * 2.5);
             
             sets.push({
@@ -1062,9 +1054,6 @@
             navigate('workout');
         }
 
-        // ==========================================
-        // ТАЙМЕР
-        // ==========================================
         function startTimer() {
             stopWorkoutTimer();
             const update = () => {
@@ -1094,9 +1083,6 @@
             clearMainButton();
         }
 
-        // ==========================================
-        // ИСТОРИЯ
-        // ==========================================
         function renderHistory() {
             const history = DataAPI.getHistory().sort((a, b) => new Date(b.date) - new Date(a.date));
             let listHTML = history.length
@@ -1135,7 +1121,6 @@
             const date = new Date(entry.date).toLocaleString('ru-RU');
             let exercisesHTML = (entry.exercises || []).map((exercise, index) => {
                 const isBodyweight = exercise.exerciseType === 'bodyweight';
-                const weightLabel = isBodyweight ? 'Доп. вес' : 'Вес';
                 
                 let setsHTML = (exercise.sets || []).map((set, setIndex) => {
                     const isDrop = set.setType === 'drop';
@@ -1143,7 +1128,7 @@
                         <div class="flex justify-between py-2 border-b border-tgBg last:border-0 ${isDrop ? 'text-orange-400' : ''}">
                             <span class="text-tgHint text-sm flex items-center gap-2">
                                 ${setIndex + 1}.
-                                ${isDrop ? '<span class="drop-badge"><i class="fa-solid fa-fire"></i> DROP</span>' : ''}
+                                ${isDrop ? '<span class="drop-badge"><i class="fa-solid fa-fire"></i> ДРОП-СЕТ</span>' : ''}
                             </span>
                             <span class="font-medium">${set.weight} кг × ${set.reps} повт</span>
                         </div>
@@ -1152,9 +1137,9 @@
 
                 return `
                     <div class="mb-4 card-enter" style="animation-delay: ${index * 0.05}s">
-                        <div class="flex items-center gap-2 mb-2">
+                        <div class="flex items-center gap-2 mb-2 flex-wrap">
                             <h3 class="font-bold text-base">${esc(exercise.name)}</h3>
-                            ${isBodyweight ? '<span class="bodyweight-badge"><i class="fa-solid fa-person"></i> BW</span>' : ''}
+                            ${isBodyweight ? '<span class="bodyweight-badge">Собственный вес</span>' : ''}
                         </div>
                         <div class="bg-tgSecondaryBg p-4 rounded-2xl text-sm">${setsHTML}</div>
                     </div>
@@ -1170,9 +1155,6 @@
             `;
         }
 
-        // ==========================================
-        // ДИАЛОГ ЗАВЕРШЕНИЯ ТРЕНИРОВКИ
-        // ==========================================
         let workoutDialogOpen = false;
 
         function promptWorkoutExit(targetTab = 'programs') {
