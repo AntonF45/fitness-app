@@ -721,7 +721,7 @@
             const muscleGroups = getMuscleGroups();
             const allSsIds = exercises.map(e => e.supersetId);
             const activeSsId = state.supersetActiveId;
-            const uniqueSavedExercises = DataAPI.getUserExercises();
+            const allSavedExercises = DataAPI.getUserExercises();
 
             let exercisesHTML = exercises.map((exercise, index) => {
                 const isInThisSuperset = activeSsId && exercise.supersetId === activeSsId;
@@ -744,9 +744,15 @@
                 } else if (exercise.supersetId) {
                     btnStyle = `background: ${style.badgeStyle}; color: ${style.text}; border: 1px solid ${style.border};`;
                 }
+
+                // Фильтруем сохраненные упражнения по выбранной группе мышц
+                const currentMuscle = exercise.muscleGroup;
+                const filteredExercises = currentMuscle 
+                    ? allSavedExercises.filter(e => e.muscleGroup === currentMuscle)
+                    : allSavedExercises;
                 
                 const datalistId = `saved-exercises-${index}`;
-
+                
                 return `
                     <div class="bg-tgSecondaryBg p-4 rounded-2xl mb-3 card-enter" style="animation-delay: ${index * 0.05}s; ${exercise.supersetId ? style.styleAttr : ''}">
                         <div class="flex justify-between items-center mb-3">
@@ -764,17 +770,19 @@
                             </div>
                         </div>
 
-                        <!-- ⭐ 1. Выбор группы мышц (выше) -->
-                        <select onchange="updateExercise(${index}, 'muscleGroup', this.value)" class="w-full p-3 rounded-xl mb-3 text-sm">
+                        <!-- ⭐ 1. Выбор группы мышц (теперь первым) -->
+                        <select onchange="onExerciseMuscleChange(${index}, this.value)" class="w-full p-3 rounded-xl mb-3 text-sm">
                             <option value="">Выберите группу мышц</option>
                             ${muscleGroups.map(group => `<option value="${group}" ${exercise.muscleGroup === group ? 'selected' : ''}>${group}</option>`).join('')}
                         </select>
 
-                        <!-- ⭐ 2. Название упражнения с поддержкой автозаполнения (datalist) -->
-                        <input type="text" list="${datalistId}" placeholder="Название (напр. Жим лежа)" value="${esc(exercise.name)}" oninput="onExerciseNameInput(${index}, this.value)" class="w-full p-3 rounded-xl mb-3 text-sm font-medium">
-                        <datalist id="${datalistId}">
-                            ${uniqueSavedExercises.map(ex => `<option value="${esc(ex.name)}">`).join('')}
-                        </datalist>
+                        <!-- ⭐ 2. Комбинированное поле выбора из сохраненных / ввода нового упражнения -->
+                        <div class="mb-3">
+                            <input type="text" list="${datalistId}" placeholder="Название упражнения (выберите или введите)" value="${esc(exercise.name)}" oninput="updateExercise(${index}, 'name', this.value)" class="w-full p-3 rounded-xl text-sm font-medium">
+                            <datalist id="${datalistId}">
+                                ${filteredExercises.map(ex => `<option value="${esc(ex.name)}">`).join('')}
+                            </datalist>
+                        </div>
                         
                         <!-- ⭐ 3. Галочка собственного веса -->
                         <label class="checkbox-label mb-3 p-3 rounded-xl bg-tgBg">
@@ -805,7 +813,6 @@
                 `;
             }).join('');
 
-            // ⭐ Контекстная плавная панель суперсета с вертикальным списком
             let supersetBar = '';
             if (activeSsId) {
                 const groupExs = exercises.filter(e => e.supersetId === activeSsId);
@@ -847,16 +854,9 @@
             state.editingProgram.name = value;
         }
 
-        // ⭐ Умный ввод с автоподтяжкой группы мышц при выборе из автозаполнения
-        function onExerciseNameInput(index, value) {
-            updateExercise(index, 'name', value);
-            const savedExercises = DataAPI.getUserExercises();
-            const matched = savedExercises.find(ex => ex.name.toLowerCase() === value.trim().toLowerCase());
-            if (matched && matched.muscleGroup) {
-                state.editingProgram.exercises[index].muscleGroup = matched.muscleGroup;
-                const selectEl = document.querySelector(`#app-content .bg-tgSecondaryBg:nth-child(${index + 1}) select`);
-                if (selectEl) selectEl.value = matched.muscleGroup;
-            }
+        function onExerciseMuscleChange(index, value) {
+            updateExercise(index, 'muscleGroup', value);
+            // При смене группы очищаем имя, если оно не подходит, либо оставляем
         }
 
         function adjustProgramParam(index, field, delta) {
