@@ -1114,7 +1114,7 @@
         }
 
         // ==========================================
-        // МЕНЮ ТРЕНИРОВКИ — С ВОЗМОЖНОСТЬЮ УДАЛЕНИЯ И ДОБАВЛЕНИЯ УПРАЖНЕНИЙ НА ЛЕТУ
+        // МЕНЮ ТРЕНИРОВКИ — С УЛУЧШЕННЫМ МОДАЛЬНЫМ ОКНОМ ДОБАВЛЕНИЯ УПРАЖНЕНИЯ
         // ==========================================
         function generateSetHTML(exerciseIndex, setIndex, set, exerciseType) {
             const isBodyweight = exerciseType === 'bodyweight';
@@ -1176,7 +1176,6 @@
                             <span id="badge-${exerciseIndex}" class="text-xs font-medium px-2 py-1 rounded-md ${isComplete ? 'bg-green-500/20 text-green-500' : 'bg-tgBg text-tgHint'}">
                                 ${isComplete ? '✓ Готово' : `${completedSets}/${targetSets}`}
                             </span>
-                            <!-- Кнопка удаления упражнения на лету -->
                             <button onclick="removeWorkoutExercise(${exerciseIndex})" title="Убрать упражнение из тренировки" class="w-8 h-8 flex items-center justify-center rounded-full text-red-500 bg-tgBg active:opacity-70">
                                 <i class="fa-solid fa-times text-sm"></i>
                             </button>
@@ -1205,7 +1204,6 @@
             }
         }
 
-        // Удаление упражнения в текущей тренировке (разово)
         function removeWorkoutExercise(exerciseIndex) {
             showConfirm('Убрать это упражнение из текущей тренировки?', ok => {
                 if (!ok) return;
@@ -1216,7 +1214,7 @@
             });
         }
 
-        // Добавление нового упражнения на лету в текущую тренировку
+        // ⭐ Современное модальное окно добавления упражнения с автозаполнением как при создании программ
         function addWorkoutExerciseModal() {
             const modal = document.createElement('div');
             modal.id = 'add-workout-exercise-modal';
@@ -1243,7 +1241,7 @@
                         </select>
                     </div>
 
-                    <div class="mb-4 relative">
+                    <div class="mb-4">
                         <label class="text-xs text-tgHint mb-1 block">Название упражнения</label>
                         <input type="text" id="modal-exercise-input" list="${datalistId}" placeholder="Название упражнения" value="${esc(exerciseName)}" class="w-full p-3 rounded-xl text-sm font-medium">
                         <datalist id="${datalistId}">
@@ -1261,9 +1259,18 @@
                     selectedMuscle = e.target.value;
                     updateSheetContent();
                 };
-                sheet.querySelector('#modal-exercise-input').oninput = (e) => {
+                
+                const inputEl = sheet.querySelector('#modal-exercise-input');
+                inputEl.oninput = (e) => {
                     exerciseName = e.target.value;
+                    // Умная подтяжка группы мышц при выборе из автозаполнения
+                    const matched = allSavedExercises.find(ex => ex.name.toLowerCase() === exerciseName.trim().toLowerCase());
+                    if (matched && matched.muscleGroup && matched.muscleGroup !== selectedMuscle) {
+                        selectedMuscle = matched.muscleGroup;
+                        updateSheetContent();
+                    }
                 };
+
                 sheet.querySelector('#modal-cancel-btn').onclick = () => modal.remove();
                 sheet.querySelector('#modal-add-btn').onclick = () => {
                     const name = exerciseName.trim();
@@ -1378,7 +1385,6 @@
                 </div>
                 ${groupsHTML}
                 
-                <!-- ⭐ Кнопка добавления упражнения прямо во время тренировки -->
                 <button onclick="addWorkoutExerciseModal()" class="w-full py-4 border-2 border-dashed border-tgHint rounded-2xl text-tgHint mt-2 mb-4 active:bg-tgSecondaryBg transition-colors card-enter flex items-center justify-center gap-2">
                     <i class="fa-solid fa-plus"></i> Добавить упражнение
                 </button>
