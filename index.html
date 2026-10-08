@@ -106,7 +106,6 @@
             touch-action: none;
         }
 
-        /* ⭐ Фиксированное центрирование модального окна */
         .modal-backdrop {
             position: fixed;
             inset: 0;
@@ -355,7 +354,8 @@
             editingProgram: null,
             workoutTimer: null,
             selectedMuscleGroup: 'Грудь',
-            selectedExercise: null
+            selectedExercise: null,
+            supersetActiveId: null // ID активного суперсета в режиме создания
         };
 
         function updateTabUI(activeTab) {
@@ -377,6 +377,7 @@
         function openProgramsScreen() {
             state.currentTab = 'programs';
             state.currentScreen = 'programs';
+            state.supersetActiveId = null;
             updateTabUI('programs');
             updateBackButton(false);
             clearMainButton();
@@ -413,6 +414,7 @@
             haptic('light');
             stopWorkoutTimer();
             state.currentScreen = screen;
+            state.supersetActiveId = null;
             if (data.programId !== undefined) {
                 state.editingProgram = data.programId ? DataAPI.getProgramById(data.programId) : { name: '', exercises: [] };
             }
@@ -644,7 +646,6 @@
             `;
         }
 
-        // ⭐ Модальное окно управления группами мышц (исправлено центрирование и обновление)
         function openMuscleGroupsManager() {
             const modal = document.createElement('div');
             modal.id = 'muscle-groups-modal';
@@ -667,7 +668,6 @@
                         `).join('')}
                     </div>
 
-                    <!-- Поле добавления и кнопка под списком над кнопкой готово -->
                     <div class="flex gap-2 mb-4">
                         <input type="text" id="new-muscle-input" placeholder="Новая группа мышц" class="flex-1 p-3 rounded-xl text-sm">
                         <button onclick="addNewMuscleGroup()" class="px-4 py-3 bg-tgButton text-white font-semibold rounded-xl text-sm active:scale-95">Добавить</button>
@@ -720,22 +720,37 @@
             const exercises = program.exercises || [];
             const muscleGroups = getMuscleGroups();
             const allSsIds = exercises.map(e => e.supersetId);
+            const activeSsId = state.supersetActiveId;
 
             let exercisesHTML = exercises.map((exercise, index) => {
-                const isInSuperset = !!exercise.supersetId;
+                const isInThisSuperset = activeSsId && exercise.supersetId === activeSsId;
+                const isOtherSuperset = exercise.supersetId && exercise.supersetId !== activeSsId;
                 const isBodyweight = exercise.exerciseType === 'bodyweight';
                 const style = getSupersetStyle(exercise.supersetId, allSsIds);
+
+                let btnClass = 'text-tgHint';
+                let btnTitle = 'Объединить в суперсет';
+                if (activeSsId) {
+                    if (isInThisSuperset) {
+                        btnClass = 'bg-purple-500 text-white shadow-lg scale-105';
+                        btnTitle = 'В суперсете (нажмите, чтобы убрать)';
+                    } else {
+                        btnClass = 'bg-tgBg text-tgLink animate-pulse ring-2 ring-purple-400';
+                        btnTitle = 'Нажмите, чтобы добавить в этот суперсет';
+                    }
+                } else if (exercise.supersetId) {
+                    btnClass = 'bg-purple-500/30 text-purple-300';
+                }
                 
                 return `
-                    <div class="bg-tgSecondaryBg p-4 rounded-2xl mb-3 card-enter" style="animation-delay: ${index * 0.05}s; ${isInSuperset ? style.styleAttr : ''}">
+                    <div class="bg-tgSecondaryBg p-4 rounded-2xl mb-3 card-enter" style="animation-delay: ${index * 0.05}s; ${exercise.supersetId ? style.styleAttr : ''}">
                         <div class="flex justify-between items-center mb-3">
                             <div class="flex items-center gap-2 flex-wrap">
                                 <span class="font-medium text-sm text-tgHint">Упражнение ${index + 1}</span>
-                                ${isInSuperset ? `<span class="px-2 py-0.5 rounded-md text-[10px] font-bold uppercase" style="${style.badgeStyle}"><i class="fa-solid fa-bolt"></i> СУПЕРСЕТ</span>` : ''}
+                                ${exercise.supersetId ? `<span class="px-2 py-0.5 rounded-md text-[10px] font-bold uppercase" style="${style.badgeStyle}"><i class="fa-solid fa-bolt"></i> СУПЕРСЕТ</span>` : ''}
                             </div>
                             <div class="flex gap-1">
-                                <!-- ⭐ Кнопка цепочки суперсета прямо на карточке -->
-                                <button onclick="toggleSupersetDirect(${index})" title="Суперсет" class="w-8 h-8 flex items-center justify-center rounded-full ${isInSuperset ? 'bg-purple-500/30 text-purple-300' : 'text-tgHint'} active:opacity-70">
+                                <button onclick="toggleSupersetClick(${index})" title="${btnTitle}" class="w-8 h-8 flex items-center justify-center rounded-full ${btnClass} active:opacity-70 transition-all">
                                     <i class="fa-solid fa-link"></i>
                                 </button>
                                 <button onclick="removeExercise(${index})" aria-label="Удалить упражнение" class="w-8 h-8 flex items-center justify-center rounded-full text-red-500 active:opacity-70">
@@ -744,16 +759,13 @@
                             </div>
                         </div>
 
-                        <!-- ⭐ 1. Выбор группы мышц (выше) -->
                         <select onchange="updateExercise(${index}, 'muscleGroup', this.value)" class="w-full p-3 rounded-xl mb-3 text-sm">
                             <option value="">Выберите группу мышц</option>
                             ${muscleGroups.map(group => `<option value="${group}" ${exercise.muscleGroup === group ? 'selected' : ''}>${group}</option>`).join('')}
                         </select>
 
-                        <!-- ⭐ 2. Название упражнения (ниже) -->
                         <input type="text" placeholder="Название (напр. Жим лежа)" value="${esc(exercise.name)}" oninput="updateExercise(${index}, 'name', this.value)" class="w-full p-3 rounded-xl mb-3 text-sm font-medium">
                         
-                        <!-- ⭐ 3. Галочка собственного веса между названием и суперсетом (здесь в потоке) -->
                         <label class="checkbox-label mb-3 p-3 rounded-xl bg-tgBg">
                             <input type="checkbox" ${isBodyweight ? 'checked' : ''} onchange="updateExercise(${index}, 'exerciseType', this.checked ? 'bodyweight' : 'weighted')">
                             <span class="text-sm font-medium">Собственный вес</span>
@@ -773,11 +785,31 @@
                 `;
             }).join('');
 
+            // ⭐ Контекстная плавающая панель суперсета вверху или внизу экрана
+            let supersetBar = '';
+            if (activeSsId) {
+                const groupExs = exercises.filter(e => e.supersetId === activeSsId);
+                const names = groupExs.map(e => e.name || 'Упр').join(' + ');
+                const style = getSupersetStyle(activeSsId, allSsIds);
+                supersetBar = `
+                    <div class="sticky top-0 z-30 mb-4 p-4 rounded-2xl shadow-xl card-enter flex items-center justify-between gap-3" style="${style.styleAttr} border: 2px solid ${style.text}">
+                        <div class="min-w-0 flex-1">
+                            <div class="text-[10px] font-bold uppercase tracking-wide" style="color: ${style.text}">Режим суперсета</div>
+                            <div class="text-sm font-bold truncate">${esc(names)}</div>
+                        </div>
+                        <button onclick="finishSupersetCreation()" class="px-4 py-2 bg-white text-black font-bold rounded-xl text-sm shrink-0 active:scale-95 shadow">
+                            Готово ✓
+                        </button>
+                    </div>
+                `;
+            }
+
             document.getElementById('app-content').innerHTML = `
                 <div class="flex justify-between items-center mb-4">
                     <input type="text" id="prog-name" placeholder="Название программы" value="${esc(program.name)}" oninput="updateProgramName(this.value)" class="flex-1 p-4 rounded-2xl text-lg font-semibold card-enter mr-2">
                     <button onclick="openMuscleGroupsManager()" title="Управление группами" class="w-14 h-14 bg-tgSecondaryBg rounded-2xl flex items-center justify-center text-tgLink active:opacity-70"><i class="fa-solid fa-tags text-lg"></i></button>
                 </div>
+                ${supersetBar}
                 <div id="exercises-list">${exercisesHTML}</div>
                 <button onclick="addExercise()" class="w-full py-4 border-2 border-dashed border-tgHint rounded-2xl text-tgHint mt-2 active:bg-tgSecondaryBg transition-colors card-enter" style="animation-delay: 0.1s">
                     <i class="fa-solid fa-plus mr-2"></i> Добавить упражнение
@@ -815,10 +847,10 @@
             
             if (removed.supersetId) {
                 const ssId = removed.supersetId;
-                const remainingInGroup = exercises.filter((ex, i) => i !== index && ex.supersetId === ssId);
-                // Если в группе остался только 1 элемент, снимаем суперсет и с него
-                if (remainingInGroup.length === 1) {
-                    remainingInGroup[0].supersetId = null;
+                exercises[index].supersetId = null;
+                const remaining = exercises.filter(ex => ex.supersetId === ssId);
+                if (remaining.length === 1) {
+                    remaining[0].supersetId = null;
                 }
             }
             
@@ -831,63 +863,43 @@
             state.editingProgram.exercises[index][field] = value;
         }
 
-        // ⭐ Улучшенная механика суперсетов по нажатию на иконку цепочки
-        function toggleSupersetDirect(index) {
+        // ⭐ Новая интуитивная логика суперсета по кнопке-цепочке
+        function toggleSupersetClick(index) {
             const exercises = state.editingProgram.exercises;
-            if (exercises.length < 2) {
-                showAlert('Для суперсета нужно как минимум 2 упражнения');
-                return;
-            }
-
             const current = exercises[index];
 
-            if (current.supersetId) {
-                showConfirm('Убрать упражнение из суперсета?', ok => {
-                    if (!ok) return;
-                    const ssId = current.supersetId;
-                    current.supersetId = null;
-                    const remaining = exercises.filter(ex => ex.supersetId === ssId);
-                    if (remaining.length === 1) {
-                        remaining[0].supersetId = null;
-                    }
-                    renderProgramEdit();
-                });
-                return;
-            }
-
-            // Предлагаем объединить с предыдущим или следующим
-            const options = [];
-            if (index > 0) options.push({ idx: index - 1, label: `С предыдущим (${exercises[index - 1].name || 'Упр ' + index})` });
-            if (index < exercises.length - 1) options.push({ idx: index + 1, label: `Со следующим (${exercises[index + 1].name || 'Упр ' + (index + 2)})` });
-
-            if (options.length === 0) return;
-
-            // Если доступен только один сосед, сразу спрашиваем подтверждение
-            if (options.length === 1) {
-                const targetIdx = options[0].idx;
-                const targetEx = exercises[targetIdx];
-                showConfirm(`Объединить в суперсет с «${targetEx.name || 'Упр'}»?`, ok => {
-                    if (!ok) return;
-                    let ssId = targetEx.supersetId || current.supersetId;
-                    if (!ssId) ssId = createId();
-                    current.supersetId = ssId;
-                    targetEx.supersetId = ssId;
-                    haptic('success');
-                    renderProgramEdit();
-                });
+            if (!state.supersetActiveId) {
+                // Если режим неактивен, запускаем его для этого упражнения
+                if (!current.supersetId) {
+                    current.supersetId = createId();
+                }
+                state.supersetActiveId = current.supersetId;
+                haptic('medium');
+                renderProgramEdit();
             } else {
-                // Если есть оба соседа, выбираем ближайший или делаем простейший сплит
-                const targetIdx = options[0].idx; // по умолчанию с предыдущим
-                showConfirm(`Объединить в суперсет?`, ok => {
-                    if (!ok) return;
-                    let ssId = exercises[targetIdx].supersetId || current.supersetId;
-                    if (!ssId) ssId = createId();
-                    current.supersetId = ssId;
-                    exercises[targetIdx].supersetId = ssId;
+                // Если режим активен
+                if (current.supersetId === state.supersetActiveId) {
+                    // Клик по уже входящему в этот суперсет — убираем его
+                    current.supersetId = null;
+                    const remaining = exercises.filter(ex => ex.supersetId === state.supersetActiveId);
+                    if (remaining.length < 2) {
+                        remaining.forEach(ex => ex.supersetId = null);
+                        state.supersetActiveId = null;
+                    }
+                    haptic('light');
+                } else {
+                    // Клик по другому упражнению — добавляем в текущий суперсет
+                    current.supersetId = state.supersetActiveId;
                     haptic('success');
-                    renderProgramEdit();
-                });
+                }
+                renderProgramEdit();
             }
+        }
+
+        function finishSupersetCreation() {
+            state.supersetActiveId = null;
+            haptic('success');
+            renderProgramEdit();
         }
 
         function saveProgram() {
@@ -898,7 +910,6 @@
             
             for (const exercise of state.editingProgram.exercises) {
                 if (!exercise.name || !exercise.name.trim()) { showAlert('Заполните названия всех упражнений'); return; }
-                // ⭐ Обязательная проверка выбора группы мышц
                 if (!exercise.muscleGroup) { showAlert(`Выберите группу мышц для упражнения «${exercise.name}»`); return; }
             }
 
@@ -912,6 +923,7 @@
             DataAPI.savePrograms(programs);
             haptic('success');
             state.editingProgram = null;
+            state.supersetActiveId = null;
             openProgramsScreen();
         }
 
