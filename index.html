@@ -1096,44 +1096,44 @@
         // МЕНЮ ТРЕНИРОВКИ — БЕЗ ОБВОДОК, ШИРОКИЕ ПОЛЯ
         // ==========================================
         function generateSetHTML(exerciseIndex, setIndex, set, exerciseType) {
-            const isBodyweight = exerciseType === 'bodyweight';
-            const weightHeader = isBodyweight ? 'Доп. вес (кг)' : 'Вес (кг)';
-            const isDropSet = set.setType === 'drop';
-            
-            return `
-                <div id="set-row-${exerciseIndex}-${setIndex}" class="bg-tgBg rounded-xl p-3 mb-2 card-enter ${isDropSet ? 'set-drop' : ''}" style="animation-delay: 0.03s">
-                    <div class="flex items-center justify-between mb-2">
-                        <div class="flex items-center gap-2 flex-wrap">
-                            <span class="text-tgHint text-sm font-medium">Подход ${setIndex + 1}</span>
-                            ${isDropSet ? '<span class="drop-badge"><i class="fa-solid fa-fire"></i> ДРОП-СЕТ</span>' : ''}
-                        </div>
-                        <button onclick="removeSet(${exerciseIndex}, ${setIndex})" aria-label="Удалить подход" class="w-8 h-8 flex items-center justify-center rounded-full text-red-500 active:opacity-70">
-                            <i class="fa-solid fa-trash-can text-sm"></i>
-                        </button>
-                    </div>
+    const isBodyweight = exerciseType === 'bodyweight';
+    const weightHeader = isBodyweight ? 'Доп. вес (кг)' : 'Вес (кг)';
+    const isDropSet = set.setType === 'drop';
+    
+    return `
+        <div id="set-row-${exerciseIndex}-${setIndex}" class="bg-tgBg rounded-xl p-3 mb-2 card-enter ${isDropSet ? 'set-drop' : ''}" style="animation-delay: 0.03s">
+            <div class="flex items-center justify-between mb-2">
+                <div class="flex items-center gap-2 flex-wrap">
+                    <span class="text-tgHint text-sm font-medium">Подход ${setIndex + 1}</span>
+                    ${isDropSet ? '<span class="drop-badge"><i class="fa-solid fa-fire"></i> ДРОП-СЕТ</span>' : ''}
+                </div>
+                <button onclick="removeSet(${exerciseIndex}, ${setIndex})" aria-label="Удалить подход" class="w-8 h-8 flex items-center justify-center rounded-full text-red-500 active:opacity-70">
+                    <i class="fa-solid fa-trash-can text-sm"></i>
+                </button>
+            </div>
 
-                    <div class="flex items-center gap-2">
-                        <div class="flex-1">
-                            <div class="text-[11px] text-tgHint mb-1 font-medium">${weightHeader}</div>
-                            <div class="flex items-center bg-tgSecondaryBg rounded-xl p-1" style="border: none !important;">
-                                <button onclick="adjustSet(${exerciseIndex}, ${setIndex}, 'weight', -2.5)" class="w-7 h-9 rounded-lg bg-tgBg text-lg flex items-center justify-center active:opacity-70 font-bold shrink-0">−</button>
-                                <input type="number" id="set-${exerciseIndex}-${setIndex}-weight" inputmode="decimal" value="${set.weight}" onchange="updateSet(${exerciseIndex}, ${setIndex}, 'weight', parseFloat(this.value) || 0)" class="w-full h-9 text-center bg-transparent text-lg font-semibold min-w-0" style="border: none !important; outline: none !important; box-shadow: none !important;">
-                                <button onclick="adjustSet(${exerciseIndex}, ${setIndex}, 'weight', 2.5)" class="w-7 h-9 rounded-lg bg-tgBg text-lg flex items-center justify-center active:opacity-70 font-bold shrink-0">+</button>
-                            </div>
-                        </div>
-
-                        <div class="flex-1">
-                            <div class="text-[11px] text-tgHint mb-1 font-medium">Повторения</div>
-                            <div class="flex items-center bg-tgSecondaryBg rounded-xl p-1" style="border: none !important;">
-                                <button onclick="adjustSet(${exerciseIndex}, ${setIndex}, 'reps', -1)" class="w-7 h-9 rounded-lg bg-tgBg text-lg flex items-center justify-center active:opacity-70 font-bold shrink-0">−</button>
-                                <input type="number" id="set-${exerciseIndex}-${setIndex}-reps" inputmode="numeric" value="${set.reps}" onchange="updateSet(${exerciseIndex}, ${setIndex}, 'reps', parseInt(this.value) || 0)" class="w-full h-9 text-center bg-transparent text-lg font-semibold min-w-0" style="border: none !important; outline: none !important; box-shadow: none !important;">
-                                <button onclick="adjustSet(${exerciseIndex}, ${setIndex}, 'reps', 1)" class="w-7 h-9 rounded-lg bg-tgBg text-lg flex items-center justify-center active:opacity-70 font-bold shrink-0">+</button>
-                            </div>
-                        </div>
+            <div class="flex items-center gap-2">
+                <div class="flex-1">
+                    <div class="text-[11px] text-tgHint mb-1 font-medium">${weightHeader}</div>
+                    <div class="flex items-center gap-1 bg-tgSecondaryBg rounded-xl p-1" style="border: none !important;">
+                        <button onclick="adjustSet(${exerciseIndex}, ${setIndex}, 'weight', -2.5)" class="w-7 h-9 rounded-lg bg-tgBg text-lg flex items-center justify-center active:opacity-70 font-bold shrink-0">−</button>
+                        <input type="number" id="set-${exerciseIndex}-${setIndex}-weight" inputmode="decimal" value="${set.weight}" onchange="updateSet(${exerciseIndex}, ${setIndex}, 'weight', parseFloat(this.value) || 0)" class="w-full h-9 text-center bg-transparent text-lg font-semibold min-w-0" style="border: none !important; outline: none !important; box-shadow: none !important;">
+                        <button onclick="adjustSet(${exerciseIndex}, ${setIndex}, 'weight', 2.5)" class="w-7 h-9 rounded-lg bg-tgBg text-lg flex items-center justify-center active:opacity-70 font-bold shrink-0">+</button>
                     </div>
                 </div>
-            `;
-        }
+
+                <div class="flex-1">
+                    <div class="text-[11px] text-tgHint mb-1 font-medium">Повторения</div>
+                    <div class="flex items-center gap-1 bg-tgSecondaryBg rounded-xl p-1" style="border: none !important;">
+                        <button onclick="adjustSet(${exerciseIndex}, ${setIndex}, 'reps', -1)" class="w-7 h-9 rounded-lg bg-tgBg text-lg flex items-center justify-center active:opacity-70 font-bold shrink-0">−</button>
+                        <input type="number" id="set-${exerciseIndex}-${setIndex}-reps" inputmode="numeric" value="${set.reps}" onchange="updateSet(${exerciseIndex}, ${setIndex}, 'reps', parseInt(this.value) || 0)" class="w-full h-9 text-center bg-transparent text-lg font-semibold min-w-0" style="border: none !important; outline: none !important; box-shadow: none !important;">
+                        <button onclick="adjustSet(${exerciseIndex}, ${setIndex}, 'reps', 1)" class="w-7 h-9 rounded-lg bg-tgBg text-lg flex items-center justify-center active:opacity-70 font-bold shrink-0">+</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+}
 
         function generateExerciseCardHTML(exerciseIndex, exercise, allSsIds) {
             const sets = exercise.sets || [];
