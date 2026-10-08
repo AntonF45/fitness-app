@@ -721,13 +721,13 @@
             const muscleGroups = getMuscleGroups();
             const allSsIds = exercises.map(e => e.supersetId);
             const activeSsId = state.supersetActiveId;
+            const uniqueSavedExercises = DataAPI.getUserExercises();
 
             let exercisesHTML = exercises.map((exercise, index) => {
                 const isInThisSuperset = activeSsId && exercise.supersetId === activeSsId;
                 const isBodyweight = exercise.exerciseType === 'bodyweight';
                 const style = getSupersetStyle(exercise.supersetId, allSsIds);
 
-                // ⭐ Динамический цвет кнопки-цепочки в цвет суперсета
                 let btnStyle = '';
                 let btnClass = 'text-tgHint bg-tgBg';
                 let btnTitle = 'Объединить в суперсет';
@@ -745,6 +745,8 @@
                     btnStyle = `background: ${style.badgeStyle}; color: ${style.text}; border: 1px solid ${style.border};`;
                 }
                 
+                const datalistId = `saved-exercises-${index}`;
+
                 return `
                     <div class="bg-tgSecondaryBg p-4 rounded-2xl mb-3 card-enter" style="animation-delay: ${index * 0.05}s; ${exercise.supersetId ? style.styleAttr : ''}">
                         <div class="flex justify-between items-center mb-3">
@@ -762,33 +764,48 @@
                             </div>
                         </div>
 
+                        <!-- ⭐ 1. Выбор группы мышц (выше) -->
                         <select onchange="updateExercise(${index}, 'muscleGroup', this.value)" class="w-full p-3 rounded-xl mb-3 text-sm">
                             <option value="">Выберите группу мышц</option>
                             ${muscleGroups.map(group => `<option value="${group}" ${exercise.muscleGroup === group ? 'selected' : ''}>${group}</option>`).join('')}
                         </select>
 
-                        <input type="text" placeholder="Название (напр. Жим лежа)" value="${esc(exercise.name)}" oninput="updateExercise(${index}, 'name', this.value)" class="w-full p-3 rounded-xl mb-3 text-sm font-medium">
+                        <!-- ⭐ 2. Название упражнения с поддержкой автозаполнения (datalist) -->
+                        <input type="text" list="${datalistId}" placeholder="Название (напр. Жим лежа)" value="${esc(exercise.name)}" oninput="onExerciseNameInput(${index}, this.value)" class="w-full p-3 rounded-xl mb-3 text-sm font-medium">
+                        <datalist id="${datalistId}">
+                            ${uniqueSavedExercises.map(ex => `<option value="${esc(ex.name)}">`).join('')}
+                        </datalist>
                         
+                        <!-- ⭐ 3. Галочка собственного веса -->
                         <label class="checkbox-label mb-3 p-3 rounded-xl bg-tgBg">
                             <input type="checkbox" ${isBodyweight ? 'checked' : ''} onchange="updateExercise(${index}, 'exerciseType', this.checked ? 'bodyweight' : 'weighted')">
                             <span class="text-sm font-medium">Собственный вес</span>
                         </label>
                         
+                        <!-- ⭐ 4. Подходы и повторения с кнопками быстрых шагов (+ / -) -->
                         <div class="flex gap-3">
                             <div class="flex-1">
                                 <label class="text-xs text-tgHint mb-1 block">Подходы</label>
-                                <input type="number" inputmode="numeric" value="${exercise.targetSets ?? 3}" onchange="updateExercise(${index}, 'targetSets', parseInt(this.value) || 3)" class="w-full p-3 rounded-xl text-sm text-center">
+                                <div class="flex items-center gap-1">
+                                    <button onclick="adjustProgramParam(${index}, 'targetSets', -1)" class="w-10 h-10 rounded-xl bg-tgBg font-bold active:opacity-70 shrink-0">−</button>
+                                    <input type="number" id="sets-${index}" inputmode="numeric" value="${exercise.targetSets ?? 3}" onchange="updateExercise(${index}, 'targetSets', parseInt(this.value) || 3)" class="w-full h-10 rounded-xl text-sm text-center font-semibold">
+                                    <button onclick="adjustProgramParam(${index}, 'targetSets', 1)" class="w-10 h-10 rounded-xl bg-tgBg font-bold active:opacity-70 shrink-0">+</button>
+                                </div>
                             </div>
                             <div class="flex-1">
                                 <label class="text-xs text-tgHint mb-1 block">Повторения</label>
-                                <input type="number" inputmode="numeric" value="${exercise.targetReps ?? 10}" onchange="updateExercise(${index}, 'targetReps', parseInt(this.value) || 10)" class="w-full p-3 rounded-xl text-sm text-center">
+                                <div class="flex items-center gap-1">
+                                    <button onclick="adjustProgramParam(${index}, 'targetReps', -1)" class="w-10 h-10 rounded-xl bg-tgBg font-bold active:opacity-70 shrink-0">−</button>
+                                    <input type="number" id="reps-${index}" inputmode="numeric" value="${exercise.targetReps ?? 10}" onchange="updateExercise(${index}, 'targetReps', parseInt(this.value) || 10)" class="w-full h-10 rounded-xl text-sm text-center font-semibold">
+                                    <button onclick="adjustProgramParam(${index}, 'targetReps', 1)" class="w-10 h-10 rounded-xl bg-tgBg font-bold active:opacity-70 shrink-0">+</button>
+                                </div>
                             </div>
                         </div>
                     </div>
                 `;
             }).join('');
 
-            // ⭐ Контекстная плавающая панель с вертикальным списком упражнений без знаков "+"
+            // ⭐ Контекстная плавная панель суперсета с вертикальным списком
             let supersetBar = '';
             if (activeSsId) {
                 const groupExs = exercises.filter(e => e.supersetId === activeSsId);
@@ -828,6 +845,28 @@
         function updateProgramName(value) {
             if (!state.editingProgram) state.editingProgram = { name: '', exercises: [] };
             state.editingProgram.name = value;
+        }
+
+        // ⭐ Умный ввод с автоподтяжкой группы мышц при выборе из автозаполнения
+        function onExerciseNameInput(index, value) {
+            updateExercise(index, 'name', value);
+            const savedExercises = DataAPI.getUserExercises();
+            const matched = savedExercises.find(ex => ex.name.toLowerCase() === value.trim().toLowerCase());
+            if (matched && matched.muscleGroup) {
+                state.editingProgram.exercises[index].muscleGroup = matched.muscleGroup;
+                const selectEl = document.querySelector(`#app-content .bg-tgSecondaryBg:nth-child(${index + 1}) select`);
+                if (selectEl) selectEl.value = matched.muscleGroup;
+            }
+        }
+
+        function adjustProgramParam(index, field, delta) {
+            const exercise = state.editingProgram.exercises[index];
+            const current = exercise[field] ?? (field === 'targetSets' ? 3 : 10);
+            const newVal = Math.max(1, current + delta);
+            exercise[field] = newVal;
+            haptic('light');
+            const input = document.getElementById(`${field === 'targetSets' ? 'sets' : 'reps'}-${index}`);
+            if (input) input.value = newVal;
         }
 
         function addExercise() {
