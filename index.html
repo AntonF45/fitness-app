@@ -181,7 +181,7 @@
             display: none !important;
         }
 
-        /* ⭐ Стили для выпадающего Google-поиска упражнений */
+        /* Выпадающий Google-подобный список */
         .autocomplete-dropdown {
             position: absolute;
             top: 100%;
@@ -774,13 +774,13 @@
                     btnStyle = `background: ${style.badgeStyle}; color: ${style.text}; border: 1px solid ${style.border};`;
                 }
 
-                // Фильтруем ранее сохраненные упражнения по выбранной группе мышц
                 const currentMuscle = exercise.muscleGroup;
                 const filteredExercises = currentMuscle 
                     ? allSavedExercises.filter(e => e.muscleGroup === currentMuscle)
                     : allSavedExercises;
                 
-                const dropdownId = `autocomplete-list-${index}`;
+                const exerciseDropdownId = `autocomplete-exercise-${index}`;
+                const muscleDropdownId = `autocomplete-muscle-${index}`;
                 
                 return `
                     <div class="bg-tgSecondaryBg p-4 rounded-2xl mb-3 card-enter" style="animation-delay: ${index * 0.05}s; ${exercise.supersetId ? style.styleAttr : ''}">
@@ -799,16 +799,16 @@
                             </div>
                         </div>
 
-                        <!-- ⭐ 1. Выбор группы мышц (выше) -->
-                        <select onchange="onExerciseMuscleChange(${index}, this.value)" class="w-full p-3 rounded-xl mb-3 text-sm">
-                            <option value="">Выберите группу мышц</option>
-                            ${muscleGroups.map(group => `<option value="${group}" ${exercise.muscleGroup === group ? 'selected' : ''}>${group}</option>`).join('')}
-                        </select>
-
-                        <!-- ⭐ 2. Google-подобное поле ввода с выпадающим списком подсказок -->
+                        <!-- ⭐ 1. Google-подобное поле для Группы мышц -->
                         <div class="relative mb-3">
-                            <input type="text" id="exercise-input-${index}" placeholder="Название упражнения (выберите или введите)" value="${esc(exercise.name)}" onfocus="showAutocomplete(${index})" oninput="onExerciseNameInput(${index}, this.value)" class="w-full p-3 rounded-xl text-sm font-medium">
-                            <div id="${dropdownId}" class="autocomplete-dropdown hidden"></div>
+                            <input type="text" id="muscle-input-${index}" placeholder="Группа мышц (выберите или введите)" value="${esc(exercise.muscleGroup)}" onfocus="showMuscleAutocomplete(${index})" oninput="onMuscleInput(${index}, this.value)" class="w-full p-3 rounded-xl text-sm font-medium">
+                            <div id="${muscleDropdownId}" class="autocomplete-dropdown hidden"></div>
+                        </div>
+
+                        <!-- ⭐ 2. Google-подобное поле для Названия упражнения (чистый плейсхолдер) -->
+                        <div class="relative mb-3">
+                            <input type="text" id="exercise-input-${index}" placeholder="Название упражнения" value="${esc(exercise.name)}" onfocus="showExerciseAutocomplete(${index})" oninput="onExerciseNameInput(${index}, this.value)" class="w-full p-3 rounded-xl text-sm font-medium">
+                            <div id="${exerciseDropdownId}" class="autocomplete-dropdown hidden"></div>
                         </div>
                         
                         <!-- ⭐ 3. Галочка собственного веса -->
@@ -876,15 +876,51 @@
             clearMainButton();
         }
 
-        // ⭐ Логика выпадающего Google-поиска упражнений
-        function showAutocomplete(index) {
+        // ⭐ Автокомплит для групп мышц
+        function showMuscleAutocomplete(index) {
+            const dropdown = document.getElementById(`autocomplete-muscle-${index}`);
+            if (!dropdown) return;
+            const groups = getMuscleGroups();
+            
+            dropdown.innerHTML = groups.map(g => `
+                <div class="autocomplete-item" onclick="selectMuscleItem(${index}, '${esc(g)}')">${esc(g)}</div>
+            `).join('');
+            dropdown.classList.remove('hidden');
+        }
+
+        function onMuscleInput(index, value) {
+            updateExercise(index, 'muscleGroup', value);
+            const dropdown = document.getElementById(`autocomplete-muscle-${index}`);
+            if (!dropdown) return;
+            const groups = getMuscleGroups().filter(g => g.toLowerCase().includes(value.toLowerCase()));
+
+            if (groups.length === 0) {
+                dropdown.classList.add('hidden');
+                return;
+            }
+
+            dropdown.innerHTML = groups.map(g => `
+                <div class="autocomplete-item" onclick="selectMuscleItem(${index}, '${esc(g)}')">${esc(g)}</div>
+            `).join('');
+            dropdown.classList.remove('hidden');
+        }
+
+        function selectMuscleItem(index, groupName) {
+            updateExercise(index, 'muscleGroup', groupName);
+            const inputEl = document.getElementById(`muscle-input-${index}`);
+            if (inputEl) inputEl.value = groupName;
+            const dropdown = document.getElementById(`autocomplete-muscle-${index}`);
+            if (dropdown) dropdown.classList.add('hidden');
+        }
+
+        // ⭐ Автокомплит для названия упражнений
+        function showExerciseAutocomplete(index) {
             const exercise = state.editingProgram.exercises[index];
-            const dropdown = document.getElementById(`autocomplete-list-${index}`);
+            const dropdown = document.getElementById(`autocomplete-exercise-${index}`);
             if (!dropdown) return;
 
             const allSaved = DataAPI.getUserExercises();
             const currentMuscle = exercise.muscleGroup;
-            // Фильтруем по группе мышц
             const filtered = currentMuscle ? allSaved.filter(e => e.muscleGroup === currentMuscle) : allSaved;
 
             if (filtered.length === 0) {
@@ -893,7 +929,7 @@
             }
 
             dropdown.innerHTML = filtered.map(item => `
-                <div class="autocomplete-item" onclick="selectAutocompleteItem(${index}, '${esc(item.name)}')">
+                <div class="autocomplete-item" onclick="selectExerciseItem(${index}, '${esc(item.name)}')">
                     ${esc(item.name)} <span class="text-xs text-tgHint float-right">(${esc(item.muscleGroup)})</span>
                 </div>
             `).join('');
@@ -902,7 +938,7 @@
 
         function onExerciseNameInput(index, value) {
             updateExercise(index, 'name', value);
-            const dropdown = document.getElementById(`autocomplete-list-${index}`);
+            const dropdown = document.getElementById(`autocomplete-exercise-${index}`);
             if (!dropdown) return;
 
             const allSaved = DataAPI.getUserExercises();
@@ -919,22 +955,22 @@
             }
 
             dropdown.innerHTML = filtered.map(item => `
-                <div class="autocomplete-item" onclick="selectAutocompleteItem(${index}, '${esc(item.name)}')">
+                <div class="autocomplete-item" onclick="selectExerciseItem(${index}, '${esc(item.name)}')">
                     ${esc(item.name)} <span class="text-xs text-tgHint float-right">(${esc(item.muscleGroup)})</span>
                 </div>
             `).join('');
             dropdown.classList.remove('hidden');
         }
 
-        function selectAutocompleteItem(index, name) {
+        function selectExerciseItem(index, name) {
             updateExercise(index, 'name', name);
             const inputEl = document.getElementById(`exercise-input-${index}`);
             if (inputEl) inputEl.value = name;
-            const dropdown = document.getElementById(`autocomplete-list-${index}`);
+            const dropdown = document.getElementById(`autocomplete-exercise-${index}`);
             if (dropdown) dropdown.classList.add('hidden');
         }
 
-        // Закрываем выпадающие списки при клике вне их
+        // Закрытие выпадающих списков при клике вне их
         document.addEventListener('click', (e) => {
             if (!e.target.closest('.relative')) {
                 document.querySelectorAll('.autocomplete-dropdown').forEach(el => el.classList.add('hidden'));
@@ -944,10 +980,6 @@
         function updateProgramName(value) {
             if (!state.editingProgram) state.editingProgram = { name: '', exercises: [] };
             state.editingProgram.name = value;
-        }
-
-        function onExerciseMuscleChange(index, value) {
-            updateExercise(index, 'muscleGroup', value);
         }
 
         function adjustProgramParam(index, field, delta) {
