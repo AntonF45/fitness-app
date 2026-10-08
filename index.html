@@ -321,10 +321,7 @@
                     const data = JSON.parse(localStorage.getItem(this._key('programs')) || '[]');
                     return data.map(p => ({
                         ...p,
-                        exercises: (p.exercises || []).map(migrateExercise).map(ex => ({
-                            ...ex,
-                            sets: (ex.sets || []).map(migrateSet)
-                        }))
+                        exercises: (p.exercises || []).map(migrateExercise)
                     }));
                 } catch (error) { return []; }
             },
@@ -822,6 +819,10 @@
             });
         }
 
+        // ==========================================
+        // ТРЕНИРОВКА — ИСПРАВЛЕННАЯ ЛОГИКА РЕНДЕРА
+        // ==========================================
+        
         function generateSetHTML(exerciseIndex, setIndex, set, exerciseType) {
             const isBodyweight = exerciseType === 'bodyweight';
             const weightLabel = isBodyweight ? 'Доп. вес' : 'Вес';
@@ -857,7 +858,8 @@
             `;
         }
 
-        function renderExerciseCard(exerciseIndex, exercise) {
+        // ⭐ ТЕПЕРЬ ЭТА ФУНКЦИЯ ВСЕГДА ВОЗВРАЩАЕТ HTML
+        function generateExerciseCardHTML(exerciseIndex, exercise) {
             const sets = exercise.sets || [];
             const completedSets = sets.filter(s => s.weight >= 0 && s.reps > 0).length;
             const targetSets = exercise.targetSets ?? 3;
@@ -866,7 +868,7 @@
 
             const setsHTML = sets.map((set, setIndex) => generateSetHTML(exerciseIndex, setIndex, set, exerciseType)).join('');
 
-            const cardHTML = `
+            return `
                 <div id="exercise-card-${exerciseIndex}" class="bg-tgSecondaryBg p-4 rounded-2xl mb-4 card-enter" style="animation-delay: ${exerciseIndex * 0.1}s">
                     <div class="flex justify-between items-center mb-3 gap-2">
                         <div class="flex items-center gap-2 flex-1 min-w-0">
@@ -888,7 +890,11 @@
                     </div>
                 </div>
             `;
+        }
 
+        // ⭐ ОБНОВЛЕНИЕ DOM ДЛЯ ТОЧЕЧНЫХ ИЗМЕНЕНИЙ
+        function updateExerciseCardInDOM(exerciseIndex, exercise) {
+            const cardHTML = generateExerciseCardHTML(exerciseIndex, exercise);
             const existingCard = document.getElementById(`exercise-card-${exerciseIndex}`);
             if (existingCard) {
                 existingCard.outerHTML = cardHTML;
@@ -924,7 +930,7 @@
             let groupsHTML = groups.map((group, groupIndex) => {
                 if (group.type === 'superset') {
                     const cardsHTML = group.exercises.map(ex => 
-                        renderExerciseCard(ex.originalIndex, ex)
+                        generateExerciseCardHTML(ex.originalIndex, ex)
                     ).join('');
                     
                     return `
@@ -934,7 +940,7 @@
                         </div>
                     `;
                 } else {
-                    return renderExerciseCard(group.originalIndex, group.exercise);
+                    return generateExerciseCardHTML(group.originalIndex, group.exercise);
                 }
             }).join('');
 
@@ -987,7 +993,7 @@
             sets.push({ weight: defaultWeight, reps: defaultReps, setType: 'regular' });
             saveActiveWorkout();
             haptic('light');
-            renderExerciseCard(exerciseIndex, exercise);
+            updateExerciseCardInDOM(exerciseIndex, exercise);
         }
 
         function addDropSet(exerciseIndex) {
@@ -1010,7 +1016,7 @@
             
             saveActiveWorkout();
             haptic('medium');
-            renderExerciseCard(exerciseIndex, exercise);
+            updateExerciseCardInDOM(exerciseIndex, exercise);
         }
 
         function removeSet(exerciseIndex, setIndex) {
@@ -1022,7 +1028,7 @@
             }
             saveActiveWorkout();
             haptic('light');
-            renderExerciseCard(exerciseIndex, state.activeWorkout.exercises[exerciseIndex]);
+            updateExerciseCardInDOM(exerciseIndex, state.activeWorkout.exercises[exerciseIndex]);
         }
 
         function updateSet(exerciseIndex, setIndex, field, value) {
