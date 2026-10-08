@@ -617,6 +617,7 @@
                     const allSsIds = exercises.map(e => e.supersetId);
                     const exerciseBlocks = [];
                     const processed = new Set();
+                    let globalExCounter = 1; // Сквозная нумерация упражнений в программе
                     
                     exercises.forEach((exercise, idx) => {
                         if (processed.has(idx)) return;
@@ -628,9 +629,17 @@
                             group.forEach(e => processed.add(e.originalIndex));
                             
                             const style = getSupersetStyle(exercise.supersetId, allSsIds);
-                            const groupHTML = group.map(e => 
-                                `<div class="text-tgHint text-xs">${esc(e.name)} — ${e.targetSets ?? 3}×${e.targetReps ?? 10}</div>`
-                            ).join('');
+                            
+                            // Рендер упражнений внутри суперсета с выравниванием колонок
+                            const groupHTML = group.map((e, gIdx) => `
+                                <div class="flex items-center justify-between text-xs py-1">
+                                    <div class="flex items-center gap-2 min-w-0 pr-2">
+                                        <span class="text-tgHint font-mono shrink-0">${globalExCounter++}.</span>
+                                        <span class="truncate">${esc(e.name)}</span>
+                                    </div>
+                                    <span class="font-mono text-tgHint shrink-0">${e.targetSets ?? 3} × ${e.targetReps ?? 10}</span>
+                                </div>
+                            `).join('');
                             
                             exerciseBlocks.push(`
                                 <div class="p-3 rounded-xl mb-2" style="${style.styleAttr}">
@@ -641,7 +650,13 @@
                         } else {
                             processed.add(idx);
                             exerciseBlocks.push(`
-                                <div class="text-tgHint text-xs mb-1">${esc(exercise.name)} — ${exercise.targetSets ?? 3}×${exercise.targetReps ?? 10}</div>
+                                <div class="flex items-center justify-between text-xs py-1 mb-1">
+                                    <div class="flex items-center gap-2 min-w-0 pr-2">
+                                        <span class="text-tgHint font-mono shrink-0">${globalExCounter++}.</span>
+                                        <span class="truncate">${esc(exercise.name)}</span>
+                                    </div>
+                                    <span class="font-mono text-tgHint shrink-0">${exercise.targetSets ?? 3} × ${exercise.targetReps ?? 10}</span>
+                                </div>
                             `);
                         }
                     });
@@ -650,10 +665,12 @@
                         <div class="bg-tgSecondaryBg p-4 rounded-2xl mb-3 card-enter" style="animation-delay: ${index * 0.05}s">
                             <div class="flex justify-between items-start">
                                 <div onclick="startWorkout('${program.id}')" class="flex-1 active:opacity-70 pr-2 cursor-pointer">
-                                    <div class="font-semibold text-base mb-2">${esc(program.name)}</div>
-                                    ${exerciseBlocks.join('') || '<div class="text-tgHint text-xs italic">Нет упражнений</div>'}
+                                    <div class="font-semibold text-base mb-3">${esc(program.name)}</div>
+                                    <div class="space-y-1">
+                                        ${exerciseBlocks.join('') || '<div class="text-tgHint text-xs italic">Нет упражнений</div>'}
+                                    </div>
                                 </div>
-                                <div class="flex flex-col gap-2">
+                                <div class="flex flex-col gap-2 shrink-0">
                                     <button onclick="navigate('program_edit', {programId: '${program.id}'})" aria-label="Редактировать программу" class="w-11 h-11 flex items-center justify-center rounded-full bg-tgBg text-tgLink active:opacity-70 transition-opacity">
                                         <i class="fa-solid fa-pen text-lg"></i>
                                     </button>
