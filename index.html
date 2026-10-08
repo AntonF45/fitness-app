@@ -666,7 +666,6 @@
 
                     return `
                         <div class="bg-tgSecondaryBg p-4 rounded-2xl mb-3 card-enter" style="animation-delay: ${index * 0.05}s">
-                            <!-- Шапка: Название программы слева, кнопки Редактировать / Удалить справа вверху -->
                             <div class="flex items-start justify-between gap-3 mb-3">
                                 <div class="font-semibold text-base break-words flex-1 min-w-0 pt-1">${esc(program.name)}</div>
                                 <div class="flex items-center gap-1.5 shrink-0">
@@ -678,13 +677,9 @@
                                     </button>
                                 </div>
                             </div>
-
-                            <!-- Список упражнений -->
                             <div class="space-y-0.5 mb-4">
                                 ${exerciseBlocks.join('') || '<div class="text-tgHint text-xs italic py-1">Нет упражнений</div>'}
                             </div>
-
-                            <!-- Кнопка начала тренировки на всю ширину внизу карточки -->
                             <button onclick="startWorkout('${program.id}')" class="w-full flex items-center justify-center gap-2 bg-tgButton text-white font-semibold py-3 rounded-xl active:opacity-80 transition-opacity">
                                 <i class="fa-solid fa-play text-sm"></i> Начать тренировку
                             </button>
@@ -1119,47 +1114,47 @@
         }
 
         // ==========================================
-        // МЕНЮ ТРЕНИРОВКИ — БЕЗ ОБВОДОК, ШИРОКИЕ ПОЛЯ
+        // МЕНЮ ТРЕНИРОВКИ — С ВОЗМОЖНОСТЬЮ УДАЛЕНИЯ И ДОБАВЛЕНИЯ УПРАЖНЕНИЙ НА ЛЕТУ
         // ==========================================
         function generateSetHTML(exerciseIndex, setIndex, set, exerciseType) {
-    const isBodyweight = exerciseType === 'bodyweight';
-    const weightHeader = isBodyweight ? 'Доп. вес (кг)' : 'Вес (кг)';
-    const isDropSet = set.setType === 'drop';
-    
-    return `
-        <div id="set-row-${exerciseIndex}-${setIndex}" class="bg-tgBg rounded-xl p-3 mb-2 card-enter ${isDropSet ? 'set-drop' : ''}" style="animation-delay: 0.03s">
-            <div class="flex items-center justify-between mb-2">
-                <div class="flex items-center gap-2 flex-wrap">
-                    <span class="text-tgHint text-sm font-medium">Подход ${setIndex + 1}</span>
-                    ${isDropSet ? '<span class="drop-badge"><i class="fa-solid fa-fire"></i> ДРОП-СЕТ</span>' : ''}
-                </div>
-                <button onclick="removeSet(${exerciseIndex}, ${setIndex})" aria-label="Удалить подход" class="w-8 h-8 flex items-center justify-center rounded-full text-red-500 active:opacity-70">
-                    <i class="fa-solid fa-trash-can text-sm"></i>
-                </button>
-            </div>
+            const isBodyweight = exerciseType === 'bodyweight';
+            const weightHeader = isBodyweight ? 'Доп. вес (кг)' : 'Вес (кг)';
+            const isDropSet = set.setType === 'drop';
+            
+            return `
+                <div id="set-row-${exerciseIndex}-${setIndex}" class="bg-tgBg rounded-xl p-3 mb-2 card-enter ${isDropSet ? 'set-drop' : ''}" style="animation-delay: 0.03s">
+                    <div class="flex items-center justify-between mb-2">
+                        <div class="flex items-center gap-2 flex-wrap">
+                            <span class="text-tgHint text-sm font-medium">Подход ${setIndex + 1}</span>
+                            ${isDropSet ? '<span class="drop-badge"><i class="fa-solid fa-fire"></i> ДРОП-СЕТ</span>' : ''}
+                        </div>
+                        <button onclick="removeSet(${exerciseIndex}, ${setIndex})" aria-label="Удалить подход" class="w-8 h-8 flex items-center justify-center rounded-full text-red-500 active:opacity-70">
+                            <i class="fa-solid fa-trash-can text-sm"></i>
+                        </button>
+                    </div>
 
-            <div class="flex items-center gap-2">
-                <div class="flex-1">
-                    <div class="text-[11px] text-tgHint mb-1 font-medium">${weightHeader}</div>
-                    <div class="flex items-center gap-1 bg-tgSecondaryBg rounded-xl p-1" style="border: none !important;">
-                        <button onclick="adjustSet(${exerciseIndex}, ${setIndex}, 'weight', -2.5)" class="w-7 h-9 rounded-lg bg-tgBg text-lg flex items-center justify-center active:opacity-70 font-bold shrink-0">−</button>
-                        <input type="number" id="set-${exerciseIndex}-${setIndex}-weight" inputmode="decimal" value="${set.weight}" onchange="updateSet(${exerciseIndex}, ${setIndex}, 'weight', parseFloat(this.value) || 0)" class="w-full h-9 text-center bg-transparent text-lg font-semibold min-w-0" style="border: none !important; outline: none !important; box-shadow: none !important;">
-                        <button onclick="adjustSet(${exerciseIndex}, ${setIndex}, 'weight', 2.5)" class="w-7 h-9 rounded-lg bg-tgBg text-lg flex items-center justify-center active:opacity-70 font-bold shrink-0">+</button>
+                    <div class="flex items-center gap-2">
+                        <div class="flex-1">
+                            <div class="text-[11px] text-tgHint mb-1 font-medium">${weightHeader}</div>
+                            <div class="flex items-center bg-tgSecondaryBg rounded-xl p-1" style="border: none !important;">
+                                <button onclick="adjustSet(${exerciseIndex}, ${setIndex}, 'weight', -2.5)" class="w-7 h-9 rounded-lg bg-tgBg text-lg flex items-center justify-center active:opacity-70 font-bold shrink-0">−</button>
+                                <input type="number" id="set-${exerciseIndex}-${setIndex}-weight" inputmode="decimal" value="${set.weight}" onchange="updateSet(${exerciseIndex}, ${setIndex}, 'weight', parseFloat(this.value) || 0)" class="w-full h-9 text-center bg-transparent text-lg font-semibold min-w-0" style="border: none !important; outline: none !important; box-shadow: none !important;">
+                                <button onclick="adjustSet(${exerciseIndex}, ${setIndex}, 'weight', 2.5)" class="w-7 h-9 rounded-lg bg-tgBg text-lg flex items-center justify-center active:opacity-70 font-bold shrink-0">+</button>
+                            </div>
+                        </div>
+
+                        <div class="flex-1">
+                            <div class="text-[11px] text-tgHint mb-1 font-medium">Повторения</div>
+                            <div class="flex items-center bg-tgSecondaryBg rounded-xl p-1" style="border: none !important;">
+                                <button onclick="adjustSet(${exerciseIndex}, ${setIndex}, 'reps', -1)" class="w-7 h-9 rounded-lg bg-tgBg text-lg flex items-center justify-center active:opacity-70 font-bold shrink-0">−</button>
+                                <input type="number" id="set-${exerciseIndex}-${setIndex}-reps" inputmode="numeric" value="${set.reps}" onchange="updateSet(${exerciseIndex}, ${setIndex}, 'reps', parseInt(this.value) || 0)" class="w-full h-9 text-center bg-transparent text-lg font-semibold min-w-0" style="border: none !important; outline: none !important; box-shadow: none !important;">
+                                <button onclick="adjustSet(${exerciseIndex}, ${setIndex}, 'reps', 1)" class="w-7 h-9 rounded-lg bg-tgBg text-lg flex items-center justify-center active:opacity-70 font-bold shrink-0">+</button>
+                            </div>
+                        </div>
                     </div>
                 </div>
-
-                <div class="flex-1">
-                    <div class="text-[11px] text-tgHint mb-1 font-medium">Повторения</div>
-                    <div class="flex items-center gap-1 bg-tgSecondaryBg rounded-xl p-1" style="border: none !important;">
-                        <button onclick="adjustSet(${exerciseIndex}, ${setIndex}, 'reps', -1)" class="w-7 h-9 rounded-lg bg-tgBg text-lg flex items-center justify-center active:opacity-70 font-bold shrink-0">−</button>
-                        <input type="number" id="set-${exerciseIndex}-${setIndex}-reps" inputmode="numeric" value="${set.reps}" onchange="updateSet(${exerciseIndex}, ${setIndex}, 'reps', parseInt(this.value) || 0)" class="w-full h-9 text-center bg-transparent text-lg font-semibold min-w-0" style="border: none !important; outline: none !important; box-shadow: none !important;">
-                        <button onclick="adjustSet(${exerciseIndex}, ${setIndex}, 'reps', 1)" class="w-7 h-9 rounded-lg bg-tgBg text-lg flex items-center justify-center active:opacity-70 font-bold shrink-0">+</button>
-                    </div>
-                </div>
-            </div>
-        </div>
-    `;
-}
+            `;
+        }
 
         function generateExerciseCardHTML(exerciseIndex, exercise, allSsIds) {
             const sets = exercise.sets || [];
@@ -1177,9 +1172,15 @@
                             <h3 class="font-bold text-sm leading-snug break-words flex-1">${esc(exercise.name)}</h3>
                             ${exerciseType === 'bodyweight' ? '<span class="bodyweight-badge shrink-0">Собственный вес</span>' : ''}
                         </div>
-                        <span id="badge-${exerciseIndex}" class="text-xs font-medium px-2 py-1 rounded-md shrink-0 ${isComplete ? 'bg-green-500/20 text-green-500' : 'bg-tgBg text-tgHint'}">
-                            ${isComplete ? '✓ Готово' : `${completedSets}/${targetSets}`}
-                        </span>
+                        <div class="flex items-center gap-2 shrink-0">
+                            <span id="badge-${exerciseIndex}" class="text-xs font-medium px-2 py-1 rounded-md ${isComplete ? 'bg-green-500/20 text-green-500' : 'bg-tgBg text-tgHint'}">
+                                ${isComplete ? '✓ Готово' : `${completedSets}/${targetSets}`}
+                            </span>
+                            <!-- Кнопка удаления упражнения на лету -->
+                            <button onclick="removeWorkoutExercise(${exerciseIndex})" title="Убрать упражнение из тренировки" class="w-8 h-8 flex items-center justify-center rounded-full text-red-500 bg-tgBg active:opacity-70">
+                                <i class="fa-solid fa-times text-sm"></i>
+                            </button>
+                        </div>
                     </div>
                     <div id="sets-container-${exerciseIndex}">${setsHTML}</div>
                     
@@ -1202,6 +1203,99 @@
             if (existingCard) {
                 existingCard.outerHTML = cardHTML;
             }
+        }
+
+        // Удаление упражнения в текущей тренировке (разово)
+        function removeWorkoutExercise(exerciseIndex) {
+            showConfirm('Убрать это упражнение из текущей тренировки?', ok => {
+                if (!ok) return;
+                state.activeWorkout.exercises.splice(exerciseIndex, 1);
+                saveActiveWorkout();
+                haptic('light');
+                renderWorkout();
+            });
+        }
+
+        // Добавление нового упражнения на лету в текущую тренировку
+        function addWorkoutExerciseModal() {
+            const modal = document.createElement('div');
+            modal.id = 'add-workout-exercise-modal';
+            modal.className = 'modal-backdrop';
+            
+            const muscleGroups = getMuscleGroups();
+            const allSavedExercises = DataAPI.getUserExercises();
+            let selectedMuscle = muscleGroups[0] || 'Грудь';
+            let exerciseName = '';
+
+            const updateSheetContent = () => {
+                const sheet = modal.querySelector('.modal-sheet');
+                const filtered = allSavedExercises.filter(e => e.muscleGroup === selectedMuscle);
+                const datalistId = 'workout-add-datalist';
+
+                sheet.innerHTML = `
+                    <div class="w-10 h-1 bg-tgHint/40 rounded-full mx-auto mb-5"></div>
+                    <h2 class="text-xl font-bold mb-4">Добавить упражнение</h2>
+
+                    <div class="mb-3">
+                        <label class="text-xs text-tgHint mb-1 block">Группа мышц</label>
+                        <select id="modal-muscle-select" class="w-full p-3 rounded-xl text-sm">
+                            ${muscleGroups.map(g => `<option value="${g}" ${g === selectedMuscle ? 'selected' : ''}>${g}</option>`).join('')}
+                        </select>
+                    </div>
+
+                    <div class="mb-4 relative">
+                        <label class="text-xs text-tgHint mb-1 block">Название упражнения</label>
+                        <input type="text" id="modal-exercise-input" list="${datalistId}" placeholder="Название упражнения" value="${esc(exerciseName)}" class="w-full p-3 rounded-xl text-sm font-medium">
+                        <datalist id="${datalistId}">
+                            ${filtered.map(ex => `<option value="${esc(ex.name)}">`).join('')}
+                        </datalist>
+                    </div>
+
+                    <div class="flex gap-2">
+                        <button id="modal-cancel-btn" class="flex-1 py-3 bg-tgBg rounded-2xl font-semibold active:opacity-80">Отмена</button>
+                        <button id="modal-add-btn" class="flex-1 py-3 bg-tgButton text-white rounded-2xl font-semibold active:opacity-80">Добавить</button>
+                    </div>
+                `;
+
+                sheet.querySelector('#modal-muscle-select').onchange = (e) => {
+                    selectedMuscle = e.target.value;
+                    updateSheetContent();
+                };
+                sheet.querySelector('#modal-exercise-input').oninput = (e) => {
+                    exerciseName = e.target.value;
+                };
+                sheet.querySelector('#modal-cancel-btn').onclick = () => modal.remove();
+                sheet.querySelector('#modal-add-btn').onclick = () => {
+                    const name = exerciseName.trim();
+                    if (!name) { showAlert('Введите название упражнения'); return; }
+
+                    if (!state.activeWorkout.exercises) state.activeWorkout.exercises = [];
+                    state.activeWorkout.exercises.push({
+                        name: name,
+                        muscleGroup: selectedMuscle,
+                        exerciseType: 'weighted',
+                        supersetId: null,
+                        targetSets: 3,
+                        targetReps: 10,
+                        sets: [{ weight: 0, reps: 10, setType: 'regular' }]
+                    });
+
+                    saveActiveWorkout();
+                    modal.remove();
+                    haptic('success');
+                    renderWorkout();
+                };
+            };
+
+            const sheet = document.createElement('div');
+            sheet.className = 'modal-sheet';
+            modal.appendChild(sheet);
+            document.body.appendChild(modal);
+            updateSheetContent();
+
+            modal.addEventListener('click', (e) => {
+                if (e.target === modal) modal.remove();
+            });
         }
 
         function tryAddSet(exerciseIndex) {
@@ -1283,7 +1377,13 @@
                     <div class="text-tgHint text-xs mt-1 uppercase tracking-wide text-center">Время тренировки</div>
                 </div>
                 ${groupsHTML}
-                <button onclick="promptWorkoutExit('programs')" class="w-full mt-6 mb-4 bg-red-600 text-white font-semibold py-4 rounded-2xl active:opacity-80 transition-opacity card-enter">
+                
+                <!-- ⭐ Кнопка добавления упражнения прямо во время тренировки -->
+                <button onclick="addWorkoutExerciseModal()" class="w-full py-4 border-2 border-dashed border-tgHint rounded-2xl text-tgHint mt-2 mb-4 active:bg-tgSecondaryBg transition-colors card-enter flex items-center justify-center gap-2">
+                    <i class="fa-solid fa-plus"></i> Добавить упражнение
+                </button>
+
+                <button onclick="promptWorkoutExit('programs')" class="w-full mt-2 mb-4 bg-red-600 text-white font-semibold py-4 rounded-2xl active:opacity-80 transition-opacity card-enter">
                     <i class="fa-solid fa-stop mr-2"></i> Завершить тренировку
                 </button>
             `;
