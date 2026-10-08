@@ -461,7 +461,7 @@
         }
 
         // ==========================================
-        // ВКЛАДКА СТАТИСТИКА (Только графики и аналитика)
+        // ВКЛАДКА СТАТИСТИКА
         // ==========================================
         function renderStats() {
             const exercises = DataAPI.getUserExercises();
@@ -1044,7 +1044,7 @@
         }
 
         // ==========================================
-        // ВКЛАДКА ТРЕНИРОВКА (С УПРАВЛЕНИЕМ ПОДХОДАМИ И УПРАЖНЕНИЯМИ НА ЛЕТУ)
+        // ВКЛАДКА ТРЕНИРОВКА
         // ==========================================
         function generateSetHTML(exerciseIndex, setIndex, set, exerciseType) {
             const isBodyweight = exerciseType === 'bodyweight';
@@ -1142,7 +1142,6 @@
             });
         }
 
-        // Модальное окно добавления упражнения на лету (с полным современным автокомплитом)
         function addWorkoutExerciseModal() {
             const modal = document.createElement('div');
             modal.id = 'add-workout-exercise-modal';
@@ -1534,8 +1533,67 @@
         }
 
         // ==========================================
-        // ВКЛАДКА ИСТОРИЯ (С ТОННАЖЕМ, СУПЕРСЕТАМИ, ЭКСПОРТОМ И СБРОСОМ)
+        // ВКЛАДКА ИСТОРИЯ
         // ==========================================
+        function openDataMenuModal() {
+            const modal = document.createElement('div');
+            modal.id = 'data-menu-modal';
+            modal.className = 'modal-backdrop';
+            modal.innerHTML = `
+                <div class="modal-sheet" role="dialog" aria-modal="true">
+                    <div class="w-10 h-1 bg-tgHint/40 rounded-full mx-auto mb-5"></div>
+                    <h2 class="text-xl font-bold mb-4">Управление данными</h2>
+                    <div class="space-y-3 mb-4">
+                        <button onclick="document.getElementById('data-menu-modal').remove(); exportData();" class="w-full py-3.5 px-4 rounded-xl bg-tgBg text-tgLink font-medium text-sm flex items-center justify-between active:opacity-80">
+                            <span><i class="fa-solid fa-download mr-2"></i> Экспорт данных (бэкап)</span>
+                            <i class="fa-solid fa-chevron-right text-xs text-tgHint"></i>
+                        </button>
+                        <button onclick="document.getElementById('data-menu-modal').remove(); triggerImportFile();" class="w-full py-3.5 px-4 rounded-xl bg-tgBg text-tgLink font-medium text-sm flex items-center justify-between active:opacity-80">
+                            <span><i class="fa-solid fa-upload mr-2"></i> Импорт данных (восстановление)</span>
+                            <i class="fa-solid fa-chevron-right text-xs text-tgHint"></i>
+                        </button>
+                        <button onclick="document.getElementById('data-menu-modal').remove(); resetAllData();" class="w-full py-3.5 px-4 rounded-xl bg-red-500/10 text-red-500 font-medium text-sm flex items-center justify-between active:opacity-80">
+                            <span><i class="fa-solid fa-trash-can mr-2"></i> Сбросить все данные</span>
+                            <i class="fa-solid fa-chevron-right text-xs text-red-500/50"></i>
+                        </button>
+                    </div>
+                    <button onclick="document.getElementById('data-menu-modal').remove();" class="w-full py-3 bg-tgBg rounded-2xl font-semibold active:opacity-80">Закрыть</button>
+                </div>
+            `;
+            document.body.appendChild(modal);
+            modal.addEventListener('click', (e) => { if (e.target === modal) modal.remove(); });
+        }
+
+        function triggerImportFile() {
+            const input = document.createElement('input');
+            input.type = 'file';
+            input.accept = '.json';
+            input.onchange = (e) => {
+                const file = e.target.files[0];
+                if (!file) return;
+                const reader = new FileReader();
+                reader.onload = (event) => {
+                    try {
+                        const imported = JSON.parse(event.target.result);
+                        if (imported.programs && imported.history) {
+                            DataAPI.savePrograms(imported.programs);
+                            DataAPI.saveHistory(imported.history);
+                            if (imported.muscleGroups) saveMuscleGroups(imported.muscleGroups);
+                            haptic('success');
+                            showAlert('Данные успешно восстановлены!');
+                            renderHistory();
+                        } else {
+                            showAlert('Неверный формат файла бэкапа');
+                        }
+                    } catch (err) {
+                        showAlert('Ошибка чтения файла');
+                    }
+                };
+                reader.readAsText(file);
+            };
+            input.click();
+        }
+
         function exportData() {
             try {
                 const data = {
@@ -1580,7 +1638,6 @@
                     const dateStr = date.toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', weekday: 'short' });
                     const durationMin = Math.round(entry.duration / 60);
                     
-                    // Расчет общего тоннажа тренировки
                     let totalTonnage = 0;
                     (entry.exercises || []).forEach(ex => {
                         (ex.sets || []).forEach(set => {
@@ -1607,14 +1664,9 @@
 
             document.getElementById('app-content').innerHTML = `
                 ${listHTML}
-                
-                <!-- Служебные кнопки внизу вкладки История -->
-                <div class="mt-8 pt-6 border-t border-tgSecondaryBg space-y-3 card-enter" style="animation-delay: 0.1s">
-                    <button onclick="exportData()" class="w-full py-3 rounded-xl bg-tgSecondaryBg text-tgLink font-medium text-sm active:opacity-80 transition-opacity flex items-center justify-center gap-2">
-                        <i class="fa-solid fa-download"></i> Экспорт данных (бэкап)
-                    </button>
-                    <button onclick="resetAllData()" class="w-full py-3 rounded-xl border border-red-500/30 text-red-500 font-medium text-sm active:bg-red-500/10 transition-colors flex items-center justify-center gap-2">
-                        <i class="fa-solid fa-trash-can"></i> Сбросить все данные приложения
+                <div class="mt-8 pt-6 border-t border-tgSecondaryBg card-enter" style="animation-delay: 0.1s">
+                    <button onclick="openDataMenuModal()" class="w-full py-3.5 rounded-xl bg-tgSecondaryBg text-tgText font-semibold text-sm active:opacity-80 transition-opacity flex items-center justify-center gap-2">
+                        <i class="fa-solid fa-gear"></i> Меню управления данными
                     </button>
                 </div>
             `;
