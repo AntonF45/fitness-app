@@ -242,23 +242,6 @@
                 : Date.now().toString(36) + Math.random().toString(36).slice(2);
         }
 
-        function migrateExercise(ex) {
-            if (!ex) return ex;
-            return {
-                ...ex,
-                exerciseType: ex.exerciseType || 'weighted',
-                supersetId: ex.supersetId || null
-            };
-        }
-
-        function migrateSet(set) {
-            if (!set) return set;
-            return {
-                ...set,
-                setType: set.setType || 'regular'
-            };
-        }
-
         const MUSCLE_GROUPS = ['Грудь', 'Спина', 'Ноги', 'Плечи', 'Руки'];
         const tg = window.Telegram.WebApp;
 
@@ -321,7 +304,7 @@
                     const data = JSON.parse(localStorage.getItem(this._key('programs')) || '[]');
                     return data.map(p => ({
                         ...p,
-                        exercises: (p.exercises || []).map(migrateExercise)
+                        exercises: (p.exercises || []).map(ex => ({ ...ex, exerciseType: ex.exerciseType || 'weighted', supersetId: ex.supersetId || null }))
                     }));
                 } catch (error) { return []; }
             },
@@ -808,6 +791,9 @@
             DataAPI.savePrograms(programs);
             haptic('success');
             state.editingProgram = null;
+            
+            // Сбрасываем кнопку MainButton перед переходом
+            clearMainButton();
             openProgramsScreen();
         }
 
@@ -819,10 +805,6 @@
             });
         }
 
-        // ==========================================
-        // ТРЕНИРОВКА — ИСПРАВЛЕННАЯ ЛОГИКА РЕНДЕРА
-        // ==========================================
-        
         function generateSetHTML(exerciseIndex, setIndex, set, exerciseType) {
             const isBodyweight = exerciseType === 'bodyweight';
             const weightLabel = isBodyweight ? 'Доп. вес' : 'Вес';
@@ -858,7 +840,6 @@
             `;
         }
 
-        // ⭐ ТЕПЕРЬ ЭТА ФУНКЦИЯ ВСЕГДА ВОЗВРАЩАЕТ HTML
         function generateExerciseCardHTML(exerciseIndex, exercise) {
             const sets = exercise.sets || [];
             const completedSets = sets.filter(s => s.weight >= 0 && s.reps > 0).length;
@@ -892,7 +873,6 @@
             `;
         }
 
-        // ⭐ ОБНОВЛЕНИЕ DOM ДЛЯ ТОЧЕЧНЫХ ИЗМЕНЕНИЙ
         function updateExerciseCardInDOM(exerciseIndex, exercise) {
             const cardHTML = generateExerciseCardHTML(exerciseIndex, exercise);
             const existingCard = document.getElementById(`exercise-card-${exerciseIndex}`);
@@ -1166,6 +1146,10 @@
         function promptWorkoutExit(targetTab = 'programs') {
             if (workoutDialogOpen) return;
             workoutDialogOpen = true;
+            
+            // ⭐ Сбрасываем нативную MainButton, чтобы она не перекрывала модальное окно
+            clearMainButton();
+
             const existingModal = document.getElementById('workout-exit-modal');
             if (existingModal) existingModal.remove();
 
@@ -1195,6 +1179,10 @@
             const closeDialog = () => {
                 workoutDialogOpen = false;
                 modal.remove();
+                // Если закрыли по кнопке "Отмена", возвращаем кнопку MainButton назад на экран тренировки
+                if (state.currentScreen === 'workout') {
+                    setMainButton('Завершить тренировку', () => promptWorkoutExit('programs'));
+                }
             };
 
             document.getElementById('workout-cancel-btn').onclick = () => { closeDialog(); haptic('light'); };
