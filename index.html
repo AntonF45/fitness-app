@@ -610,91 +610,96 @@
         }
 
         function renderPrograms() {
-    const programs = DataAPI.getPrograms();
-    let listHTML = programs.length
-        ? programs.map((program, index) => {
-            const exercises = program.exercises || [];
-            const allSsIds = exercises.map(e => e.supersetId);
-            const exerciseBlocks = [];
-            const processed = new Set();
-            let globalExCounter = 1;
+            const programs = DataAPI.getPrograms();
+            let listHTML = programs.length
+                ? programs.map((program, index) => {
+                    const exercises = program.exercises || [];
+                    const allSsIds = exercises.map(e => e.supersetId);
+                    const exerciseBlocks = [];
+                    const processed = new Set();
+                    let globalExCounter = 1;
 
-            exercises.forEach((exercise, idx) => {
-                if (processed.has(idx)) return;
+                    exercises.forEach((exercise, idx) => {
+                        if (processed.has(idx)) return;
 
-                if (exercise.supersetId) {
-                    const group = exercises
-                        .map((e, i) => ({ ...e, originalIndex: i }))
-                        .filter(e => e.supersetId === exercise.supersetId);
-                    group.forEach(e => processed.add(e.originalIndex));
+                        if (exercise.supersetId) {
+                            const group = exercises
+                                .map((e, i) => ({ ...e, originalIndex: i }))
+                                .filter(e => e.supersetId === exercise.supersetId);
+                            group.forEach(e => processed.add(e.originalIndex));
 
-                    const style = getSupersetStyle(exercise.supersetId, allSsIds);
+                            const style = getSupersetStyle(exercise.supersetId, allSsIds);
 
-                    const groupHTML = group.map((e) => `
-                        <div class="flex items-start gap-2 py-1.5">
-                            <span class="text-tgHint font-mono text-xs shrink-0 mt-0.5">${globalExCounter++}.</span>
-                            <div class="flex-1 min-w-0">
-                                <div class="text-sm font-medium leading-snug break-words">${esc(e.name)}</div>
+                            const groupHTML = group.map((e) => `
+                                <div class="flex items-start gap-2 py-1.5">
+                                    <span class="text-tgHint font-mono text-xs shrink-0 mt-0.5">${globalExCounter++}.</span>
+                                    <div class="flex-1 min-w-0">
+                                        <div class="text-sm font-medium leading-snug break-words">${esc(e.name)}</div>
+                                    </div>
+                                    <span class="font-mono text-xs text-tgHint shrink-0 bg-tgBg/60 px-2 py-0.5 rounded-md whitespace-nowrap">${e.targetSets ?? 3} × ${e.targetReps ?? 10}</span>
+                                </div>
+                            `).join('');
+
+                            exerciseBlocks.push(`
+                                <div class="p-2.5 rounded-xl mb-2 bg-tgBg/30" style="${style.styleAttr}">
+                                    <div class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold mb-2 uppercase tracking-wide" style="${style.badgeStyle}">
+                                        <i class="fa-solid fa-bolt"></i> Суперсет
+                                    </div>
+                                    <div class="divide-y divide-tgSecondaryBg/40">
+                                        ${groupHTML}
+                                    </div>
+                                </div>
+                            `);
+                        } else {
+                            processed.add(idx);
+                            exerciseBlocks.push(`
+                                <div class="flex items-start gap-2 py-1.5 border-b border-tgSecondaryBg/40 last:border-0">
+                                    <span class="text-tgHint font-mono text-xs shrink-0 mt-0.5">${globalExCounter++}.</span>
+                                    <div class="flex-1 min-w-0">
+                                        <div class="text-sm font-medium leading-snug break-words">${esc(exercise.name)}</div>
+                                    </div>
+                                    <span class="font-mono text-xs text-tgHint shrink-0 bg-tgBg/60 px-2 py-0.5 rounded-md whitespace-nowrap">${exercise.targetSets ?? 3} × ${exercise.targetReps ?? 10}</span>
+                                </div>
+                            `);
+                        }
+                    });
+
+                    return `
+                        <div class="bg-tgSecondaryBg p-4 rounded-2xl mb-3 card-enter" style="animation-delay: ${index * 0.05}s">
+                            <!-- Шапка: Название программы слева, кнопки Редактировать / Удалить справа вверху -->
+                            <div class="flex items-start justify-between gap-3 mb-3">
+                                <div class="font-semibold text-base break-words flex-1 min-w-0 pt-1">${esc(program.name)}</div>
+                                <div class="flex items-center gap-1.5 shrink-0">
+                                    <button onclick="navigate('program_edit', {programId: '${program.id}'})" aria-label="Редактировать" class="w-9 h-9 flex items-center justify-center rounded-xl bg-tgBg text-tgLink active:opacity-70 transition-opacity">
+                                        <i class="fa-solid fa-pen text-sm"></i>
+                                    </button>
+                                    <button onclick="deleteProgram('${program.id}')" aria-label="Удалить" class="w-9 h-9 flex items-center justify-center rounded-xl bg-tgBg text-red-500 active:opacity-70 transition-opacity">
+                                        <i class="fa-solid fa-trash text-sm"></i>
+                                    </button>
+                                </div>
                             </div>
-                            <span class="font-mono text-xs text-tgHint shrink-0 bg-tgBg/60 px-2 py-0.5 rounded-md whitespace-nowrap">${e.targetSets ?? 3} × ${e.targetReps ?? 10}</span>
-                        </div>
-                    `).join('');
 
-                    exerciseBlocks.push(`
-                        <div class="p-2.5 rounded-xl mb-2 bg-tgBg/30" style="${style.styleAttr}">
-                            <div class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold mb-2 uppercase tracking-wide" style="${style.badgeStyle}">
-                                <i class="fa-solid fa-bolt"></i> Суперсет
+                            <!-- Список упражнений -->
+                            <div class="space-y-0.5 mb-4">
+                                ${exerciseBlocks.join('') || '<div class="text-tgHint text-xs italic py-1">Нет упражнений</div>'}
                             </div>
-                            <div class="divide-y divide-tgSecondaryBg/40">
-                                ${groupHTML}
-                            </div>
-                        </div>
-                    `);
-                } else {
-                    processed.add(idx);
-                    exerciseBlocks.push(`
-                        <div class="flex items-start gap-2 py-1.5 border-b border-tgSecondaryBg/40 last:border-0">
-                            <span class="text-tgHint font-mono text-xs shrink-0 mt-0.5">${globalExCounter++}.</span>
-                            <div class="flex-1 min-w-0">
-                                <div class="text-sm font-medium leading-snug break-words">${esc(exercise.name)}</div>
-                            </div>
-                            <span class="font-mono text-xs text-tgHint shrink-0 bg-tgBg/60 px-2 py-0.5 rounded-md whitespace-nowrap">${exercise.targetSets ?? 3} × ${exercise.targetReps ?? 10}</span>
-                        </div>
-                    `);
-                }
-            });
 
-            return `
-                <div class="bg-tgSecondaryBg p-4 rounded-2xl mb-3 card-enter" style="animation-delay: ${index * 0.05}s">
-                    <div class="flex-1 min-w-0">
-                        <div class="font-semibold text-base mb-3 break-words">${esc(program.name)}</div>
-                        <div class="space-y-0.5">
-                            ${exerciseBlocks.join('') || '<div class="text-tgHint text-xs italic py-1">Нет упражнений</div>'}
+                            <!-- Кнопка начала тренировки на всю ширину внизу карточки -->
+                            <button onclick="startWorkout('${program.id}')" class="w-full flex items-center justify-center gap-2 bg-tgButton text-white font-semibold py-3 rounded-xl active:opacity-80 transition-opacity">
+                                <i class="fa-solid fa-play text-sm"></i> Начать тренировку
+                            </button>
                         </div>
-                    </div>
-                    <div class="flex items-center gap-2 mt-3 pt-3 border-t border-tgBg/50">
-                        <button onclick="navigate('program_edit', {programId: '${program.id}'})" class="flex-1 flex items-center justify-center gap-2 bg-tgBg text-tgLink font-medium py-2.5 rounded-xl active:opacity-70 transition-opacity">
-                            <i class="fa-solid fa-pen text-sm"></i> Редактировать
-                        </button>
-                        <button onclick="deleteProgram('${program.id}')" class="flex items-center justify-center w-11 h-11 bg-tgBg text-red-500 rounded-xl active:opacity-70 transition-opacity">
-                            <i class="fa-solid fa-trash text-base"></i>
-                        </button>
-                        <button onclick="startWorkout('${program.id}')" class="flex items-center justify-center w-11 h-11 bg-tgButton text-white rounded-xl active:opacity-80 transition-opacity">
-                            <i class="fa-solid fa-play text-base"></i>
-                        </button>
-                    </div>
-                </div>
+                    `;
+                }).join('')
+                : '<div class="text-center text-tgHint mt-10 card-enter">Нет созданных программ</div>';
+
+            document.getElementById('app-content').innerHTML = `
+                ${listHTML}
+                <button onclick="navigate('program_edit', {programId: null})" class="w-full mt-6 bg-tgButton text-white font-semibold py-4 rounded-2xl active:opacity-80 transition-opacity card-enter" style="animation-delay: 0.1s">
+                    <i class="fa-solid fa-plus mr-2"></i> Создать программу
+                </button>
             `;
-        }).join('')
-        : '<div class="text-center text-tgHint mt-10 card-enter">Нет созданных программ</div>';
-
-    document.getElementById('app-content').innerHTML = `
-        ${listHTML}
-        <button onclick="navigate('program_edit', {programId: null})" class="w-full mt-6 bg-tgButton text-white font-semibold py-4 rounded-2xl active:opacity-80 transition-opacity card-enter" style="animation-delay: 0.1s">
-            <i class="fa-solid fa-plus mr-2"></i> Создать программу
-        </button>
-    `;
-}
+        }
 
         function openMuscleGroupsManager() {
             const modal = document.createElement('div');
