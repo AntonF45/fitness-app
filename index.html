@@ -1224,6 +1224,9 @@
             const allSavedExercises = DataAPI.getUserExercises();
             let selectedMuscle = muscleGroups[0] || 'Грудь';
             let exerciseName = '';
+            let exerciseType = 'weighted'; // 'weighted' или 'bodyweight'
+            let targetSets = 3;
+            let targetReps = 10;
 
             const updateSheetContent = () => {
                 const sheet = modal.querySelector('.modal-sheet');
@@ -1235,18 +1238,44 @@
                     <div class="w-10 h-1 bg-tgHint/40 rounded-full mx-auto mb-5"></div>
                     <h2 class="text-xl font-bold mb-4">Добавить упражнение</h2>
 
-                    <!-- Поле для Группы мышц в стиле Google-автокомплита -->
+                    <!-- Поле для Группы мышц -->
                     <div class="relative mb-3">
                         <label class="text-xs text-tgHint mb-1 block">Группа мышц</label>
                         <input type="text" id="modal-muscle-input" placeholder="Группа мышц" value="${esc(selectedMuscle)}" onfocus="showWorkoutMuscleAutocomplete()" oninput="onWorkoutMuscleInput(this.value)" class="w-full p-3 rounded-xl text-sm font-medium">
                         <div id="${muscleDropdownId}" class="autocomplete-dropdown hidden"></div>
                     </div>
 
-                    <!-- Поле для Названия упражнения в стиле Google-автокомплита -->
-                    <div class="relative mb-4">
+                    <!-- Поле для Названия упражнения -->
+                    <div class="relative mb-3">
                         <label class="text-xs text-tgHint mb-1 block">Название упражнения</label>
                         <input type="text" id="modal-exercise-input" placeholder="Название упражнения" value="${esc(exerciseName)}" onfocus="showWorkoutExerciseAutocomplete()" oninput="onWorkoutExerciseInput(this.value)" class="w-full p-3 rounded-xl text-sm font-medium">
                         <div id="${dropdownId}" class="autocomplete-dropdown hidden"></div>
+                    </div>
+
+                    <!-- Галочка собственного веса -->
+                    <label class="checkbox-label mb-3 p-3 rounded-xl bg-tgBg">
+                        <input type="checkbox" id="modal-bodyweight-checkbox" ${exerciseType === 'bodyweight' ? 'checked' : ''}>
+                        <span class="text-sm font-medium">Собственный вес</span>
+                    </label>
+
+                    <!-- Подходы и повторения с кнопками быстрых шагов (+ / -) -->
+                    <div class="flex gap-3 mb-5">
+                        <div class="flex-1">
+                            <label class="text-xs text-tgHint mb-1 block">Подходы</label>
+                            <div class="flex items-center gap-1">
+                                <button type="button" onclick="adjustModalParam('targetSets', -1)" class="w-10 h-10 rounded-xl bg-tgBg font-bold active:opacity-70 shrink-0">−</button>
+                                <input type="number" id="modal-sets-input" inputmode="numeric" value="${targetSets}" class="w-full h-10 rounded-xl text-sm text-center font-semibold">
+                                <button type="button" onclick="adjustModalParam('targetSets', 1)" class="w-10 h-10 rounded-xl bg-tgBg font-bold active:opacity-70 shrink-0">+</button>
+                            </div>
+                        </div>
+                        <div class="flex-1">
+                            <label class="text-xs text-tgHint mb-1 block">Повторения</label>
+                            <div class="flex items-center gap-1">
+                                <button type="button" onclick="adjustModalParam('targetReps', -1)" class="w-10 h-10 rounded-xl bg-tgBg font-bold active:opacity-70 shrink-0">−</button>
+                                <input type="number" id="modal-reps-input" inputmode="numeric" value="${targetReps}" class="w-full h-10 rounded-xl text-sm text-center font-semibold">
+                                <button type="button" onclick="adjustModalParam('targetReps', 1)" class="w-10 h-10 rounded-xl bg-tgBg font-bold active:opacity-70 shrink-0">+</button>
+                            </div>
+                        </div>
                     </div>
 
                     <div class="flex gap-2">
@@ -1255,7 +1284,34 @@
                     </div>
                 `;
 
-                // Локальные функции автокомплита для модального окна
+                // Обработчик чекбокса собственного веса
+                sheet.querySelector('#modal-bodyweight-checkbox').onchange = (e) => {
+                    exerciseType = e.target.checked ? 'bodyweight' : 'weighted';
+                };
+
+                // Обработчики инпутов подходов и повторений
+                sheet.querySelector('#modal-sets-input').onchange = (e) => {
+                    targetSets = Math.max(1, parseInt(e.target.value) || 3);
+                };
+                sheet.querySelector('#modal-reps-input').onchange = (e) => {
+                    targetReps = Math.max(1, parseInt(e.target.value) || 10);
+                };
+
+                // Глобальная функция изменения параметров через кнопки + / - в модалке
+                window.adjustModalParam = (field, delta) => {
+                    if (field === 'targetSets') {
+                        targetSets = Math.max(1, targetSets + delta);
+                        const el = document.getElementById('modal-sets-input');
+                        if (el) el.value = targetSets;
+                    } else if (field === 'targetReps') {
+                        targetReps = Math.max(1, targetReps + delta);
+                        const el = document.getElementById('modal-reps-input');
+                        if (el) el.value = targetReps;
+                    }
+                    haptic('light');
+                };
+
+                // Автокомплит для групп мышц
                 window.showWorkoutMuscleAutocomplete = () => {
                     const dropdown = document.getElementById(muscleDropdownId);
                     if (!dropdown) return;
@@ -1286,9 +1342,10 @@
                     if (inputEl) inputEl.value = gName;
                     const dropdown = document.getElementById(muscleDropdownId);
                     if (dropdown) dropdown.classList.add('hidden');
-                    updateSheetContent(); // обновим фильтр списка упражнений
+                    updateSheetContent();
                 };
 
+                // Автокомплит для названий упражнений
                 window.showWorkoutExerciseAutocomplete = () => {
                     const dropdown = document.getElementById(dropdownId);
                     if (!dropdown) return;
@@ -1333,7 +1390,6 @@
                     const dropdown = document.getElementById(dropdownId);
                     if (dropdown) dropdown.classList.add('hidden');
                     
-                    // Автоподтягиваем группу мышц, если упражнение уже было создано ранее
                     const matched = allSavedExercises.find(ex => ex.name.toLowerCase() === name.toLowerCase());
                     if (matched && matched.muscleGroup) {
                         selectedMuscle = matched.muscleGroup;
@@ -1351,11 +1407,11 @@
                     state.activeWorkout.exercises.push({
                         name: name,
                         muscleGroup: selectedMuscle,
-                        exerciseType: 'weighted',
+                        exerciseType: exerciseType,
                         supersetId: null,
-                        targetSets: 3,
-                        targetReps: 10,
-                        sets: [{ weight: 0, reps: 10, setType: 'regular' }]
+                        targetSets: targetSets,
+                        targetReps: targetReps,
+                        sets: [{ weight: 0, reps: targetReps, setType: 'regular' }]
                     });
 
                     saveActiveWorkout();
