@@ -1228,25 +1228,25 @@
             const updateSheetContent = () => {
                 const sheet = modal.querySelector('.modal-sheet');
                 const filtered = allSavedExercises.filter(e => e.muscleGroup === selectedMuscle);
-                const datalistId = 'workout-add-datalist';
+                const dropdownId = 'workout-add-autocomplete';
+                const muscleDropdownId = 'workout-add-muscle-autocomplete';
 
                 sheet.innerHTML = `
                     <div class="w-10 h-1 bg-tgHint/40 rounded-full mx-auto mb-5"></div>
                     <h2 class="text-xl font-bold mb-4">Добавить упражнение</h2>
 
-                    <div class="mb-3">
+                    <!-- Поле для Группы мышц в стиле Google-автокомплита -->
+                    <div class="relative mb-3">
                         <label class="text-xs text-tgHint mb-1 block">Группа мышц</label>
-                        <select id="modal-muscle-select" class="w-full p-3 rounded-xl text-sm">
-                            ${muscleGroups.map(g => `<option value="${g}" ${g === selectedMuscle ? 'selected' : ''}>${g}</option>`).join('')}
-                        </select>
+                        <input type="text" id="modal-muscle-input" placeholder="Группа мышц" value="${esc(selectedMuscle)}" onfocus="showWorkoutMuscleAutocomplete()" oninput="onWorkoutMuscleInput(this.value)" class="w-full p-3 rounded-xl text-sm font-medium">
+                        <div id="${muscleDropdownId}" class="autocomplete-dropdown hidden"></div>
                     </div>
 
-                    <div class="mb-4">
+                    <!-- Поле для Названия упражнения в стиле Google-автокомплита -->
+                    <div class="relative mb-4">
                         <label class="text-xs text-tgHint mb-1 block">Название упражнения</label>
-                        <input type="text" id="modal-exercise-input" list="${datalistId}" placeholder="Название упражнения" value="${esc(exerciseName)}" class="w-full p-3 rounded-xl text-sm font-medium">
-                        <datalist id="${datalistId}">
-                            ${filtered.map(ex => `<option value="${esc(ex.name)}">`).join('')}
-                        </datalist>
+                        <input type="text" id="modal-exercise-input" placeholder="Название упражнения" value="${esc(exerciseName)}" onfocus="showWorkoutExerciseAutocomplete()" oninput="onWorkoutExerciseInput(this.value)" class="w-full p-3 rounded-xl text-sm font-medium">
+                        <div id="${dropdownId}" class="autocomplete-dropdown hidden"></div>
                     </div>
 
                     <div class="flex gap-2">
@@ -1255,19 +1255,90 @@
                     </div>
                 `;
 
-                sheet.querySelector('#modal-muscle-select').onchange = (e) => {
-                    selectedMuscle = e.target.value;
-                    updateSheetContent();
+                // Локальные функции автокомплита для модального окна
+                window.showWorkoutMuscleAutocomplete = () => {
+                    const dropdown = document.getElementById(muscleDropdownId);
+                    if (!dropdown) return;
+                    dropdown.innerHTML = muscleGroups.map(g => `
+                        <div class="autocomplete-item" onclick="selectWorkoutMuscleItem('${esc(g)}')">${esc(g)}</div>
+                    `).join('');
+                    dropdown.classList.remove('hidden');
                 };
-                
-                const inputEl = sheet.querySelector('#modal-exercise-input');
-                inputEl.oninput = (e) => {
-                    exerciseName = e.target.value;
-                    // Умная подтяжка группы мышц при выборе из автозаполнения
-                    const matched = allSavedExercises.find(ex => ex.name.toLowerCase() === exerciseName.trim().toLowerCase());
-                    if (matched && matched.muscleGroup && matched.muscleGroup !== selectedMuscle) {
+
+                window.onWorkoutMuscleInput = (val) => {
+                    selectedMuscle = val;
+                    const dropdown = document.getElementById(muscleDropdownId);
+                    if (!dropdown) return;
+                    const matchedGroups = muscleGroups.filter(g => g.toLowerCase().includes(val.toLowerCase()));
+                    if (matchedGroups.length === 0) {
+                        dropdown.classList.add('hidden');
+                        return;
+                    }
+                    dropdown.innerHTML = matchedGroups.map(g => `
+                        <div class="autocomplete-item" onclick="selectWorkoutMuscleItem('${esc(g)}')">${esc(g)}</div>
+                    `).join('');
+                    dropdown.classList.remove('hidden');
+                };
+
+                window.selectWorkoutMuscleItem = (gName) => {
+                    selectedMuscle = gName;
+                    const inputEl = document.getElementById('modal-muscle-input');
+                    if (inputEl) inputEl.value = gName;
+                    const dropdown = document.getElementById(muscleDropdownId);
+                    if (dropdown) dropdown.classList.add('hidden');
+                    updateSheetContent(); // обновим фильтр списка упражнений
+                };
+
+                window.showWorkoutExerciseAutocomplete = () => {
+                    const dropdown = document.getElementById(dropdownId);
+                    if (!dropdown) return;
+                    const filtered = selectedMuscle ? allSavedExercises.filter(e => e.muscleGroup === selectedMuscle) : allSavedExercises;
+                    if (filtered.length === 0) {
+                        dropdown.classList.add('hidden');
+                        return;
+                    }
+                    dropdown.innerHTML = filtered.map(item => `
+                        <div class="autocomplete-item" onclick="selectWorkoutExerciseItem('${esc(item.name)}')">
+                            ${esc(item.name)} <span class="text-xs text-tgHint float-right">(${esc(item.muscleGroup)})</span>
+                        </div>
+                    `).join('');
+                    dropdown.classList.remove('hidden');
+                };
+
+                window.onWorkoutExerciseInput = (val) => {
+                    exerciseName = val;
+                    const dropdown = document.getElementById(dropdownId);
+                    if (!dropdown) return;
+                    const filtered = allSavedExercises.filter(e => {
+                        const matchMuscle = !selectedMuscle || e.muscleGroup === selectedMuscle;
+                        const matchText = e.name.toLowerCase().includes(val.toLowerCase());
+                        return matchMuscle && matchText;
+                    });
+                    if (filtered.length === 0) {
+                        dropdown.classList.add('hidden');
+                        return;
+                    }
+                    dropdown.innerHTML = filtered.map(item => `
+                        <div class="autocomplete-item" onclick="selectWorkoutExerciseItem('${esc(item.name)}')">
+                            ${esc(item.name)} <span class="text-xs text-tgHint float-right">(${esc(item.muscleGroup)})</span>
+                        </div>
+                    `).join('');
+                    dropdown.classList.remove('hidden');
+                };
+
+                window.selectWorkoutExerciseItem = (name) => {
+                    exerciseName = name;
+                    const inputEl = document.getElementById('modal-exercise-input');
+                    if (inputEl) inputEl.value = name;
+                    const dropdown = document.getElementById(dropdownId);
+                    if (dropdown) dropdown.classList.add('hidden');
+                    
+                    // Автоподтягиваем группу мышц, если упражнение уже было создано ранее
+                    const matched = allSavedExercises.find(ex => ex.name.toLowerCase() === name.toLowerCase());
+                    if (matched && matched.muscleGroup) {
                         selectedMuscle = matched.muscleGroup;
-                        updateSheetContent();
+                        const mInput = document.getElementById('modal-muscle-input');
+                        if (mInput) mInput.value = selectedMuscle;
                     }
                 };
 
