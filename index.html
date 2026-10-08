@@ -197,6 +197,11 @@
             cursor: pointer;
             accent-color: #4ade80;
         }
+
+        /* Класс для скрытия элементов при открытой клавиатуре */
+        .keyboard-hidden {
+            display: none !important;
+        }
     </style>
 </head>
 
@@ -204,7 +209,7 @@
     <main id="app-content" class="px-4 pt-4"></main>
 
     <nav id="bottom-nav"
-        class="fixed bottom-0 left-0 right-0 bg-tgBg border-t border-tgSecondaryBg flex justify-around z-20"
+        class="fixed bottom-0 left-0 right-0 bg-tgBg border-t border-tgSecondaryBg flex justify-around z-20 transition-all duration-200"
         style="padding-bottom: max(12px, var(--safe-bottom));">
 
         <button onclick="switchTab('stats')" id="tab-stats" role="tab" aria-selected="true"
@@ -276,26 +281,10 @@
             } catch (error) { console.warn('BackButton update error:', error); }
         }
 
-        let currentMainButtonHandler = null;
-
-        function setMainButton(text, handler) {
-            try {
-                if (currentMainButtonHandler) {
-                    tg.MainButton.offClick(currentMainButtonHandler);
-                    currentMainButtonHandler = null;
-                }
-                if (!text || !handler) {
-                    tg.MainButton.hide();
-                    return;
-                }
-                tg.MainButton.setText(text);
-                tg.MainButton.show();
-                tg.MainButton.onClick(handler);
-                currentMainButtonHandler = handler;
-            } catch (error) { console.warn('MainButton error:', error); }
+        // ⭐ Полностью убираем зависимость от системной MainButton, чтобы она не перекрывала контент
+        function clearMainButton() {
+            try { tg.MainButton.hide(); } catch (e) {}
         }
-
-        function clearMainButton() { setMainButton(null, null); }
 
         const DataAPI = {
             _key(type) { return `twa_fitness_${type}_${USER_ID}`; },
@@ -687,14 +676,18 @@
                 `;
             }).join('');
 
+            // ⭐ Кнопка сохранения теперь в потоке страницы НАД нижней навигацией
             document.getElementById('app-content').innerHTML = `
                 <input type="text" id="prog-name" placeholder="Название программы" value="${esc(program.name)}" oninput="updateProgramName(this.value)" class="w-full p-4 rounded-2xl mb-4 text-lg font-semibold card-enter">
                 <div id="exercises-list">${exercisesHTML}</div>
                 <button onclick="addExercise()" class="w-full py-4 border-2 border-dashed border-tgHint rounded-2xl text-tgHint mt-2 active:bg-tgSecondaryBg transition-colors card-enter" style="animation-delay: 0.1s">
                     <i class="fa-solid fa-plus mr-2"></i> Добавить упражнение
                 </button>
+                <button onclick="saveProgram()" class="w-full mt-6 mb-4 bg-tgButton text-white font-semibold py-4 rounded-2xl active:opacity-80 transition-opacity card-enter">
+                    <i class="fa-solid fa-check mr-2"></i> Сохранить программу
+                </button>
             `;
-            setMainButton('Сохранить программу', saveProgram);
+            clearMainButton();
         }
 
         function updateProgramName(value) {
@@ -791,9 +784,6 @@
             DataAPI.savePrograms(programs);
             haptic('success');
             state.editingProgram = null;
-            
-            // Сбрасываем кнопку MainButton перед переходом
-            clearMainButton();
             openProgramsScreen();
         }
 
@@ -924,16 +914,20 @@
                 }
             }).join('');
 
+            // ⭐ Кнопка завершения тренировки теперь находится в потоке страницы НАД нижней навигацией
             document.getElementById('app-content').innerHTML = `
                 <div class="sticky top-0 z-10 bg-tgBg/95 backdrop-blur-md py-4 mb-4 border-b border-tgSecondaryBg card-enter">
                     <div class="text-4xl font-mono font-bold text-tgLink tracking-wider text-center" id="workout-timer">00:00:00</div>
                     <div class="text-tgHint text-xs mt-1 uppercase tracking-wide text-center">Время тренировки</div>
                 </div>
                 ${groupsHTML}
+                <button onclick="promptWorkoutExit('programs')" class="w-full mt-6 mb-4 bg-red-600 text-white font-semibold py-4 rounded-2xl active:opacity-80 transition-opacity card-enter">
+                    <i class="fa-solid fa-stop mr-2"></i> Завершить тренировку
+                </button>
             `;
 
             startTimer();
-            setMainButton('Завершить тренировку', () => promptWorkoutExit('programs'));
+            clearMainButton();
         }
 
         function adjustSet(exerciseIndex, setIndex, field, delta) {
@@ -1146,8 +1140,6 @@
         function promptWorkoutExit(targetTab = 'programs') {
             if (workoutDialogOpen) return;
             workoutDialogOpen = true;
-            
-            // ⭐ Сбрасываем нативную MainButton, чтобы она не перекрывала модальное окно
             clearMainButton();
 
             const existingModal = document.getElementById('workout-exit-modal');
@@ -1179,10 +1171,6 @@
             const closeDialog = () => {
                 workoutDialogOpen = false;
                 modal.remove();
-                // Если закрыли по кнопке "Отмена", возвращаем кнопку MainButton назад на экран тренировки
-                if (state.currentScreen === 'workout') {
-                    setMainButton('Завершить тренировку', () => promptWorkoutExit('programs'));
-                }
             };
 
             document.getElementById('workout-cancel-btn').onclick = () => { closeDialog(); haptic('light'); };
@@ -1230,6 +1218,21 @@
             clearWorkoutState();
             haptic('light');
             openProgramsScreen();
+        }
+
+        // ⭐ АВТОМАТИЧЕСКОЕ СКРЫТИЕ НИЖНЕЙ ПАНЕЛИ ПРИ ПОЯВЛЕНИИ КЛАВИАТУРЫ
+        if (window.visualViewport) {
+            window.visualViewport.addEventListener('resize', () => {
+                const bottomNav = document.getElementById('bottom-nav');
+                if (!bottomNav) return;
+                // Если высота viewport уменьшилась более чем на 150px, значит открылась виртуальная клавиатура
+                const isKeyboardOpen = window.visualViewport.height < window.innerHeight - 150;
+                if (isKeyboardOpen) {
+                    bottomNav.classList.add('keyboard-hidden');
+                } else {
+                    bottomNav.classList.remove('keyboard-hidden');
+                }
+            });
         }
 
         document.addEventListener('visibilitychange', () => {
