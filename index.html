@@ -32,6 +32,8 @@
         :root {
             --bottom-nav-height: 72px;
             --safe-bottom: env(safe-area-inset-bottom, 0px);
+            --card-bg: rgba(59, 130, 246, 0.04);
+            --card-border: rgba(59, 130, 246, 0.12);
         }
 
         body {
@@ -78,12 +80,25 @@
             scroll-snap-align: center;
         }
 
-        .chip {
-            transition: background-color 0.18s ease, color 0.18s ease, transform 0.12s ease;
+        /* НОВЫЙ СТИЛЬ ЧИПОВ — как у графика */
+        .stat-chip {
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
+            transition: all 0.2s ease;
         }
 
-        .chip:active {
+        .stat-chip:active {
             transform: scale(0.96);
+        }
+
+        .stat-chip.active {
+            background: rgba(59, 130, 246, 0.15);
+            border-color: rgba(59, 130, 246, 0.4);
+            color: #ffffff;
+        }
+
+        .stat-chip.inactive {
+            color: var(--tg-theme-hint-color, #8e8e93);
         }
 
         .card-enter {
@@ -95,15 +110,15 @@
             to { opacity: 1; transform: translateY(0); }
         }
 
-        /* НОВЫЙ СТИЛЬ ГРАФИКА */
+        /* СТИЛЬ КАРТОЧКИ ГРАФИКА */
         .chart-card {
-            background: linear-gradient(180deg, rgba(59, 130, 246, 0.08) 0%, rgba(59, 130, 246, 0.02) 100%);
-            border: 1px solid rgba(59, 130, 246, 0.15);
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
         }
 
         .chart-wrapper {
             position: relative;
-            height: 240px;
+            height: 220px;
             width: 100%;
         }
 
@@ -111,34 +126,51 @@
             touch-action: pan-x;
         }
 
-        .month-selector {
-            scrollbar-width: none;
-            -ms-overflow-style: none;
-        }
-        .month-selector::-webkit-scrollbar {
-            display: none;
+        /* ПЕРИОД-ФИЛЬТР */
+        .period-filter {
+            display: flex;
+            gap: 6px;
+            background: rgba(0, 0, 0, 0.2);
+            padding: 4px;
+            border-radius: 12px;
         }
 
-        .month-chip {
+        .period-btn {
+            padding: 6px 12px;
+            border-radius: 8px;
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--tg-theme-hint-color, #8e8e93);
             transition: all 0.2s ease;
             white-space: nowrap;
         }
 
-        .month-chip.active {
+        .period-btn.active {
+            background: rgba(59, 130, 246, 0.25);
             color: #ffffff;
-            font-weight: 700;
-            font-size: 1.25rem;
         }
 
-        .month-chip.inactive {
-            color: var(--tg-theme-hint-color, #8e8e93);
-            font-size: 1rem;
+        .period-btn:active {
+            transform: scale(0.95);
         }
 
-        .chart-info-label {
-            font-size: 11px;
-            letter-spacing: 0.5px;
-            text-transform: uppercase;
+        /* ТЕПЛОВАЯ КАРТА */
+        .heatmap-cell {
+            width: 14px;
+            height: 14px;
+            border-radius: 3px;
+            background: rgba(59, 130, 246, 0.08);
+        }
+
+        .heatmap-cell.level-1 { background: rgba(59, 130, 246, 0.2); }
+        .heatmap-cell.level-2 { background: rgba(59, 130, 246, 0.4); }
+        .heatmap-cell.level-3 { background: rgba(59, 130, 246, 0.6); }
+        .heatmap-cell.level-4 { background: rgba(59, 130, 246, 0.85); }
+
+        /* СТАТИСТИЧЕСКИЕ БЛОКИ */
+        .stat-block {
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
         }
 
         .set-drop {
@@ -288,9 +320,10 @@
                 : Date.now().toString(36) + Math.random().toString(36).slice(2);
         }
 
-        const MONTHS_RU = ['Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь', 'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь'];
+        const MONTHS_RU = ['Янв', 'Фев', 'Мар', 'Апр', 'Май', 'Июн', 'Июл', 'Авг', 'Сен', 'Окт', 'Ноя', 'Дек'];
+        const MONTHS_FULL = ['Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь', 'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь'];
         const WEEKDAYS_RU = ['Вс', 'Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб'];
-        const WEEKDAYS_SHORT = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+        const WEEKDAYS_SHORT = ['Вс', 'Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб'];
 
         const DEFAULT_MUSCLE_GROUPS = ['Грудь', 'Спина', 'Ноги', 'Плечи', 'Руки'];
         
@@ -423,7 +456,7 @@
             selectedMuscleGroup: 'Грудь',
             selectedExercise: null,
             supersetActiveId: null,
-            selectedMonth: null // НОВОЕ: выбранный месяц для графика
+            selectedPeriod: 'month' // НОВОЕ: период фильтра (week/month/quarter/all)
         };
 
         function updateTabUI(activeTab) {
@@ -500,9 +533,293 @@
         }
 
         // ==========================================
-        // НОВЫЙ ДИЗАЙН ГРАФИКА
+        // НОВАЯ ВКЛАДКА СТАТИСТИКА
         // ==========================================
         
+        function getFilteredHistory(history, period) {
+            if (period === 'all') return history;
+            const now = new Date();
+            let cutoff;
+            if (period === 'week') cutoff = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+            else if (period === 'month') cutoff = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+            else if (period === 'quarter') cutoff = new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000);
+            return history.filter(item => new Date(item.date) >= cutoff);
+        }
+
+        function renderStats() {
+            const exercises = DataAPI.getUserExercises();
+            const muscleGroups = getMuscleGroups();
+            
+            // Чипы групп мышц (компактные, в стиле графика)
+            const muscleGroupsHTML = muscleGroups.map(group => `
+                <button onclick="selectMuscleGroup('${group}')" role="tab" aria-selected="${state.selectedMuscleGroup === group}"
+                    class="stat-chip snap-center min-w-[80px] px-3 py-2 rounded-xl text-xs font-medium whitespace-nowrap ${
+                        state.selectedMuscleGroup === group ? 'active' : 'inactive'
+                    }">${group}</button>
+            `).join('');
+
+            // Чипы упражнений (компактные, в стиле графика)
+            const filteredExercises = exercises.filter(exercise => exercise.muscleGroup === state.selectedMuscleGroup);
+            const exercisesHTML = filteredExercises.length
+                ? filteredExercises.map(exercise => `
+                    <button onclick="selectExercise('${esc(exercise.name)}')" role="tab" aria-selected="${state.selectedExercise === exercise.name}"
+                        class="stat-chip snap-center min-w-[110px] px-3 py-2 rounded-xl text-xs font-medium text-center ${
+                            state.selectedExercise === exercise.name ? 'active' : 'inactive'
+                        }">${esc(exercise.name)}</button>
+                `).join('')
+                : '<p class="text-tgHint text-xs px-4 py-2">Нет упражнений в этой группе</p>';
+
+            // Основной контент
+            let mainContent = '';
+            
+            if (state.selectedExercise) {
+                const history = DataAPI.getExerciseHistory(state.selectedExercise);
+                const filteredHistory = getFilteredHistory(history, state.selectedPeriod);
+                
+                // Статистика по упражнению за период
+                const maxWeight = filteredHistory.length > 0 ? Math.max(...filteredHistory.map(h => h.weight)) : 0;
+                const avgWeight = filteredHistory.length > 0 
+                    ? (filteredHistory.reduce((sum, h) => sum + h.weight, 0) / filteredHistory.length).toFixed(1)
+                    : 0;
+                const totalSets = filteredHistory.length;
+                
+                // Общий тоннаж за период
+                let totalTonnage = 0;
+                filteredHistory.forEach(h => {
+                    totalTonnage += h.weight * h.reps;
+                });
+
+                mainContent = `
+                    <!-- Блок с информацией об упражнении -->
+                    <div class="chart-card rounded-2xl p-4 mb-3 card-enter" style="animation-delay: 0.05s">
+                        <div class="flex items-center justify-between mb-3">
+                            <div>
+                                <h2 class="text-base font-bold">${esc(state.selectedExercise)}</h2>
+                                <div class="text-tgHint text-xs mt-0.5">${state.selectedMuscleGroup}</div>
+                            </div>
+                            <div class="text-right">
+                                <div class="text-2xl font-bold text-tgLink">${maxWeight}</div>
+                                <div class="text-tgHint text-[10px] uppercase tracking-wide">кг макс.</div>
+                            </div>
+                        </div>
+                        <div class="grid grid-cols-3 gap-2 pt-3 border-t border-tgSecondaryBg/40">
+                            <div>
+                                <div class="text-tgHint text-[10px] uppercase tracking-wide mb-0.5">Средний</div>
+                                <div class="text-sm font-semibold">${avgWeight} кг</div>
+                            </div>
+                            <div>
+                                <div class="text-tgHint text-[10px] uppercase tracking-wide mb-0.5">Подходов</div>
+                                <div class="text-sm font-semibold">${totalSets}</div>
+                            </div>
+                            <div>
+                                <div class="text-tgHint text-[10px] uppercase tracking-wide mb-0.5">Тоннаж</div>
+                                <div class="text-sm font-semibold">${(totalTonnage / 1000).toFixed(1)}т</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- График с фильтром -->
+                    <div class="chart-card rounded-2xl p-4 mb-3 card-enter" style="animation-delay: 0.1s">
+                        <div class="flex items-center justify-between mb-3">
+                            <div class="text-xs font-semibold text-tgHint uppercase tracking-wide">Прогресс веса</div>
+                            <div class="period-filter">
+                                <button onclick="selectPeriod('week')" class="period-btn ${state.selectedPeriod === 'week' ? 'active' : ''}">Нед</button>
+                                <button onclick="selectPeriod('month')" class="period-btn ${state.selectedPeriod === 'month' ? 'active' : ''}">Мес</button>
+                                <button onclick="selectPeriod('quarter')" class="period-btn ${state.selectedPeriod === 'quarter' ? 'active' : ''}">3 мес</button>
+                                <button onclick="selectPeriod('all')" class="period-btn ${state.selectedPeriod === 'all' ? 'active' : ''}">Все</button>
+                            </div>
+                        </div>
+                        <div class="chart-wrapper">
+                            <canvas id="progressChart"></canvas>
+                        </div>
+                    </div>
+                `;
+            } else {
+                mainContent = `
+                    <div class="chart-card rounded-2xl p-8 mb-3 card-enter text-center" style="animation-delay: 0.05s">
+                        <i class="fa-solid fa-chart-line text-3xl text-tgHint mb-3"></i>
+                        <div class="text-tgHint text-sm">Выберите упражнение для просмотра статистики</div>
+                    </div>
+                `;
+            }
+
+            // Дополнительные блоки статистики (всегда видны)
+            const overallStats = renderOverallStats();
+
+            document.getElementById('app-content').innerHTML = `
+                ${mainContent}
+                
+                <!-- Группы мышц -->
+                <div class="mb-3 card-enter" style="animation-delay: 0.15s">
+                    <div class="text-xs font-semibold text-tgHint uppercase tracking-wide mb-2 px-1">Группа мышц</div>
+                    <div class="flex overflow-x-auto gap-2 pb-1 snap-x scroll-container">${muscleGroupsHTML}</div>
+                </div>
+                
+                <!-- Упражнения -->
+                <div class="mb-4 card-enter" style="animation-delay: 0.2s">
+                    <div class="text-xs font-semibold text-tgHint uppercase tracking-wide mb-2 px-1">Упражнения</div>
+                    <div class="flex overflow-x-auto gap-2 pb-1 snap-x scroll-container">${exercisesHTML}</div>
+                </div>
+
+                ${overallStats}
+            `;
+
+            setTimeout(() => {
+                document.querySelectorAll('.scroll-container').forEach(container => {
+                    const activeChip = container.querySelector('[aria-selected="true"]');
+                    if (activeChip) activeChip.scrollIntoView({ behavior: 'auto', inline: 'center', block: 'nearest' });
+                });
+            }, 50);
+            
+            if (state.selectedExercise) renderChart();
+        }
+
+        function renderOverallStats() {
+            const history = DataAPI.getHistory();
+            const filteredHistory = getFilteredHistory(history, state.selectedPeriod);
+            
+            if (filteredHistory.length === 0) {
+                return `
+                    <div class="chart-card rounded-2xl p-6 mb-3 card-enter text-center" style="animation-delay: 0.25s">
+                        <div class="text-tgHint text-sm">Нет тренировок за выбранный период</div>
+                    </div>
+                `;
+            }
+
+            // Общая статистика
+            let totalTonnage = 0;
+            let totalDuration = 0;
+            let totalExercises = 0;
+            let totalSets = 0;
+            const exerciseVolume = {};
+
+            filteredHistory.forEach(entry => {
+                totalDuration += entry.duration || 0;
+                (entry.exercises || []).forEach(ex => {
+                    totalExercises++;
+                    (ex.sets || []).forEach(set => {
+                        totalSets++;
+                        const vol = (Number(set.weight) || 0) * (Number(set.reps) || 0);
+                        totalTonnage += vol;
+                        exerciseVolume[ex.name] = (exerciseVolume[ex.name] || 0) + vol;
+                    });
+                });
+            });
+
+            const avgDuration = Math.round(totalDuration / filteredHistory.length / 60);
+            const topExercise = Object.entries(exerciseVolume).sort((a, b) => b[1] - a[1])[0];
+
+            // Тепловая карта активности (последние 12 недель)
+            const heatmapData = generateHeatmapData(filteredHistory);
+
+            return `
+                <!-- Общая статистика за период -->
+                <div class="chart-card rounded-2xl p-4 mb-3 card-enter" style="animation-delay: 0.25s">
+                    <div class="text-xs font-semibold text-tgHint uppercase tracking-wide mb-3">Обзор за период</div>
+                    <div class="grid grid-cols-2 gap-3">
+                        <div class="bg-tgBg/40 rounded-xl p-3">
+                            <div class="text-tgHint text-[10px] uppercase tracking-wide mb-1">Тренировок</div>
+                            <div class="text-xl font-bold">${filteredHistory.length}</div>
+                        </div>
+                        <div class="bg-tgBg/40 rounded-xl p-3">
+                            <div class="text-tgHint text-[10px] uppercase tracking-wide mb-1">Время</div>
+                            <div class="text-xl font-bold">${avgDuration} <span class="text-xs font-normal text-tgHint">мин</span></div>
+                        </div>
+                        <div class="bg-tgBg/40 rounded-xl p-3">
+                            <div class="text-tgHint text-[10px] uppercase tracking-wide mb-1">Тоннаж</div>
+                            <div class="text-xl font-bold">${(totalTonnage / 1000).toFixed(1)} <span class="text-xs font-normal text-tgHint">т</span></div>
+                        </div>
+                        <div class="bg-tgBg/40 rounded-xl p-3">
+                            <div class="text-tgHint text-[10px] uppercase tracking-wide mb-1">Подходов</div>
+                            <div class="text-xl font-bold">${totalSets}</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Топ упражнение по объему -->
+                ${topExercise ? `
+                <div class="chart-card rounded-2xl p-4 mb-3 card-enter" style="animation-delay: 0.3s">
+                    <div class="text-xs font-semibold text-tgHint uppercase tracking-wide mb-2">Топ упражнение по объему</div>
+                    <div class="flex items-center justify-between">
+                        <div class="font-semibold text-sm">${esc(topExercise[0])}</div>
+                        <div class="text-tgLink font-bold">${(topExercise[1] / 1000).toFixed(1)}т</div>
+                    </div>
+                </div>
+                ` : ''}
+
+                <!-- Тепловая карта активности -->
+                <div class="chart-card rounded-2xl p-4 mb-3 card-enter" style="animation-delay: 0.35s">
+                    <div class="flex items-center justify-between mb-3">
+                        <div class="text-xs font-semibold text-tgHint uppercase tracking-wide">Активность</div>
+                        <div class="text-[10px] text-tgHint">Последние 12 недель</div>
+                    </div>
+                    <div class="flex gap-1 overflow-x-auto pb-2">
+                        ${heatmapData.map(week => `
+                            <div class="flex flex-col gap-1">
+                                ${week.map(day => `
+                                    <div class="heatmap-cell ${day.level}" title="${day.count} тренировок"></div>
+                                `).join('')}
+                            </div>
+                        `).join('')}
+                    </div>
+                    <div class="flex items-center justify-between mt-2 text-[10px] text-tgHint">
+                        <span>Меньше</span>
+                        <div class="flex gap-1">
+                            <div class="heatmap-cell"></div>
+                            <div class="heatmap-cell level-1"></div>
+                            <div class="heatmap-cell level-2"></div>
+                            <div class="heatmap-cell level-3"></div>
+                            <div class="heatmap-cell level-4"></div>
+                        </div>
+                        <span>Больше</span>
+                    </div>
+                </div>
+            `;
+        }
+
+        function generateHeatmapData(history) {
+            const weeks = 12;
+            const daysPerWeek = 7;
+            const now = new Date();
+            const data = [];
+
+            for (let w = weeks - 1; w >= 0; w--) {
+                const week = [];
+                for (let d = 0; d < daysPerWeek; d++) {
+                    const date = new Date(now.getTime() - (w * 7 + (6 - d)) * 24 * 60 * 60 * 1000);
+                    const dateStr = date.toISOString().slice(0, 10);
+                    const count = history.filter(h => h.date.slice(0, 10) === dateStr).length;
+                    
+                    let level = 0;
+                    if (count === 1) level = 1;
+                    else if (count === 2) level = 2;
+                    else if (count === 3) level = 3;
+                    else if (count >= 4) level = 4;
+                    
+                    week.push({ count, level });
+                }
+                data.push(week);
+            }
+            return data;
+        }
+
+        function selectPeriod(period) {
+            state.selectedPeriod = period;
+            haptic('light');
+            renderStats();
+        }
+
+        function selectMuscleGroup(group) {
+            state.selectedMuscleGroup = group;
+            state.selectedExercise = null;
+            renderStats();
+        }
+
+        function selectExercise(name) {
+            state.selectedExercise = state.selectedExercise === name ? null : name;
+            renderStats();
+        }
+
         // Кастомный плагин для вертикальной линии и точки при наведении
         const crosshairPlugin = {
             id: 'crosshair',
@@ -514,7 +831,6 @@
                     const topY = chart.scales.y.top;
                     const bottomY = chart.scales.y.bottom;
 
-                    // Вертикальная линия
                     ctx.save();
                     ctx.beginPath();
                     ctx.moveTo(x, topY);
@@ -525,7 +841,6 @@
                     ctx.stroke();
                     ctx.restore();
 
-                    // Точка на линии
                     ctx.save();
                     ctx.beginPath();
                     ctx.arc(x, activePoint.element.y, 6, 0, 2 * Math.PI);
@@ -540,125 +855,6 @@
             }
         };
 
-        function getAvailableMonths(history) {
-            const months = new Set();
-            history.forEach(item => {
-                const d = new Date(item.date);
-                const key = `${d.getFullYear()}-${d.getMonth()}`;
-                months.add(key);
-            });
-            return Array.from(months).sort();
-        }
-
-        function formatMonthKey(key) {
-            const [year, month] = key.split('-').map(Number);
-            return { year, month, label: MONTHS_RU[month] };
-        }
-
-        function selectMonth(monthKey) {
-            state.selectedMonth = monthKey;
-            renderStats();
-        }
-
-        function renderStats() {
-            const exercises = DataAPI.getUserExercises();
-            const muscleGroups = getMuscleGroups();
-            const muscleGroupsHTML = muscleGroups.map(group => `
-                <button onclick="selectMuscleGroup('${group}')" role="tab" aria-selected="${state.selectedMuscleGroup === group}"
-                    class="chip snap-center min-w-[100px] px-4 py-3 rounded-xl text-sm font-medium whitespace-nowrap ${
-                        state.selectedMuscleGroup === group ? 'bg-tgLink text-white ring-2 ring-tgLink ring-offset-2 ring-offset-tgBg' : 'bg-tgSecondaryBg text-tgText'
-                    }">${group}</button>
-            `).join('');
-
-            const filteredExercises = exercises.filter(exercise => exercise.muscleGroup === state.selectedMuscleGroup);
-            const exercisesHTML = filteredExercises.length
-                ? filteredExercises.map(exercise => `
-                    <button onclick="selectExercise('${esc(exercise.name)}')" role="tab" aria-selected="${state.selectedExercise === exercise.name}"
-                        class="chip snap-center min-w-[130px] px-4 py-3 rounded-xl text-sm font-medium text-center ${
-                            state.selectedExercise === exercise.name ? 'bg-tgLink text-white ring-2 ring-tgLink ring-offset-2 ring-offset-tgBg' : 'bg-tgSecondaryBg text-tgText'
-                        }">${esc(exercise.name)}</button>
-                `).join('')
-                : '<p class="text-tgHint text-sm px-4 py-3">Нет упражнений в этой группе</p>';
-
-            document.getElementById('app-content').innerHTML = `
-                <div class="chart-card rounded-3xl p-5 mb-6 card-enter" style="animation-delay: 0.05s">
-                    ${state.selectedExercise ? renderChartHeader() : '<div class="text-center text-tgHint text-sm py-8">Выберите упражнение ниже для отображения графика</div>'}
-                    <div class="chart-wrapper">
-                        <canvas id="progressChart"></canvas>
-                    </div>
-                </div>
-                <div class="mb-4 card-enter" style="animation-delay: 0.1s">
-                    <h3 class="text-sm font-semibold mb-2 text-tgHint px-1">Группа мышц</h3>
-                    <div class="flex overflow-x-auto gap-3 pb-2 pt-2 snap-x scroll-container px-4">${muscleGroupsHTML}</div>
-                </div>
-                <div class="mb-4 card-enter" style="animation-delay: 0.15s">
-                    <h3 class="text-sm font-semibold mb-2 text-tgHint px-1">Упражнения</h3>
-                    <div class="flex overflow-x-auto gap-3 pb-2 pt-2 snap-x scroll-container px-4">${exercisesHTML}</div>
-                </div>
-            `;
-
-            setTimeout(() => {
-                document.querySelectorAll('.scroll-container').forEach(container => {
-                    const activeChip = container.querySelector('[aria-selected="true"]');
-                    if (activeChip) activeChip.scrollIntoView({ behavior: 'auto', inline: 'center', block: 'nearest' });
-                });
-            }, 50);
-            
-            if (state.selectedExercise) renderChart();
-        }
-
-        function renderChartHeader() {
-            const history = DataAPI.getExerciseHistory(state.selectedExercise);
-            if (history.length === 0) return '';
-            
-            const months = getAvailableMonths(history);
-            if (months.length === 0) return '';
-            
-            // Если месяц не выбран, выбираем последний
-            if (!state.selectedMonth || !months.includes(state.selectedMonth)) {
-                state.selectedMonth = months[months.length - 1];
-            }
-            
-            const currentMonthInfo = formatMonthKey(state.selectedMonth);
-            
-            // Статистика за выбранный месяц
-            const monthHistory = history.filter(item => {
-                const d = new Date(item.date);
-                return `${d.getFullYear()}-${d.getMonth()}` === state.selectedMonth;
-            });
-            
-            const maxWeight = monthHistory.length > 0 ? Math.max(...monthHistory.map(h => h.weight)) : 0;
-            const avgWeight = monthHistory.length > 0 
-                ? (monthHistory.reduce((sum, h) => sum + h.weight, 0) / monthHistory.length).toFixed(1)
-                : 0;
-            
-            const monthsHTML = months.map(key => {
-                const info = formatMonthKey(key);
-                const isActive = key === state.selectedMonth;
-                return `
-                    <button onclick="selectMonth('${key}')" class="month-chip px-3 py-1 rounded-lg ${isActive ? 'active' : 'inactive'}">
-                        ${info.label}
-                    </button>
-                `;
-            }).join('');
-
-            return `
-                <div class="mb-4">
-                    <div class="flex overflow-x-auto gap-2 month-selector pb-2 -mx-1 px-1">
-                        ${monthsHTML}
-                    </div>
-                </div>
-                <div class="mb-4">
-                    <h2 class="text-xl font-bold mb-1">${esc(state.selectedExercise)}</h2>
-                    <div class="flex items-baseline gap-2">
-                        <span class="text-3xl font-bold text-tgLink">${maxWeight}</span>
-                        <span class="text-tgHint text-sm">кг макс.</span>
-                    </div>
-                    <div class="text-tgHint text-xs mt-1">Средний вес: ${avgWeight} кг · ${monthHistory.length} подх. за месяц</div>
-                </div>
-            `;
-        }
-
         function renderChart() {
             const ctx = document.getElementById('progressChart');
             if (!ctx) return;
@@ -667,22 +863,21 @@
             if (!state.selectedExercise) return;
 
             const history = DataAPI.getExerciseHistory(state.selectedExercise);
-            if (history.length === 0) return;
+            const filteredHistory = getFilteredHistory(history, state.selectedPeriod);
 
-            // Фильтруем по выбранному месяцу
-            const monthHistory = history.filter(item => {
-                const d = new Date(item.date);
-                return `${d.getFullYear()}-${d.getMonth()}` === state.selectedMonth;
-            });
-
-            if (monthHistory.length === 0) {
-                // Если нет данных за месяц, показываем все
-                monthHistory.push(...history);
+            if (filteredHistory.length === 0) {
+                const c = ctx.getContext('2d');
+                c.clearRect(0, 0, ctx.width, ctx.height);
+                c.font = '13px sans-serif';
+                c.fillStyle = '#8e8e93';
+                c.textAlign = 'center';
+                c.fillText('Нет данных за период', ctx.width / 2, ctx.height / 2);
+                return;
             }
 
             // Группируем по дням (берем максимальный вес за день)
             const dataByDay = {};
-            monthHistory.forEach(item => {
+            filteredHistory.forEach(item => {
                 const d = new Date(item.date);
                 const key = d.toISOString().slice(0, 10);
                 if (!dataByDay[key] || item.weight > dataByDay[key].weight) {
@@ -699,13 +894,10 @@
             const data = sortedDays.map(key => dataByDay[key].weight);
             const dates = sortedDays.map(key => dataByDay[key].date);
 
-            // Создаем градиент
-            const gradient = ctx.getContext('2d').createLinearGradient(0, 0, 0, 240);
+            const gradient = ctx.getContext('2d').createLinearGradient(0, 0, 0, 220);
             const linkColor = getComputedStyle(document.documentElement).getPropertyValue('--tg-theme-link-color') || '#3b82f6';
-            gradient.addColorStop(0, linkColor + '40');
+            gradient.addColorStop(0, linkColor + '30');
             gradient.addColorStop(1, linkColor + '00');
-
-            const chartColor = linkColor;
 
             new Chart(ctx, {
                 type: 'line',
@@ -713,15 +905,15 @@
                     labels: labels,
                     datasets: [{
                         data: data,
-                        borderColor: chartColor,
+                        borderColor: linkColor,
                         backgroundColor: gradient,
-                        borderWidth: 2.5,
+                        borderWidth: 2,
                         tension: 0.4,
                         fill: true,
                         pointRadius: 0,
                         pointHoverRadius: 6,
                         pointHoverBackgroundColor: '#ffffff',
-                        pointHoverBorderColor: chartColor,
+                        pointHoverBorderColor: linkColor,
                         pointHoverBorderWidth: 3
                     }]
                 },
@@ -739,15 +931,15 @@
                             backgroundColor: 'rgba(30, 30, 32, 0.95)',
                             titleColor: '#8e8e93',
                             bodyColor: '#ffffff',
-                            bodyFont: { size: 16, weight: 'bold' },
-                            padding: 12,
-                            cornerRadius: 12,
+                            bodyFont: { size: 14, weight: 'bold' },
+                            padding: 10,
+                            cornerRadius: 10,
                             displayColors: false,
                             callbacks: {
                                 title: (items) => {
                                     const idx = items[0].dataIndex;
                                     const d = dates[idx];
-                                    return `${d.getDate()} ${MONTHS_RU[d.getMonth()].slice(0, 3)}, ${WEEKDAYS_RU[d.getDay()]}`;
+                                    return `${d.getDate()} ${MONTHS_RU[d.getMonth()]}, ${WEEKDAYS_RU[d.getDay()]}`;
                                 },
                                 label: (item) => `${item.raw} кг`
                             }
@@ -763,40 +955,27 @@
                             grid: { display: false },
                             ticks: {
                                 color: '#8e8e93',
-                                font: { size: 11 },
-                                padding: 8,
+                                font: { size: 10 },
+                                padding: 6,
                                 callback: function(value, index) {
                                     const d = dates[index];
                                     if (!d) return '';
-                                    // Показываем день недели и дату
-                                    return `${d.getDate()}\n${WEEKDAYS_SHORT[d.getDay()]}`;
+                                    return `${d.getDate()} ${WEEKDAYS_SHORT[d.getDay()]}`;
                                 },
                                 maxRotation: 0,
-                                autoSkip: false
+                                autoSkip: true,
+                                maxTicksLimit: 7
                             },
                             border: { display: false }
                         }
                     },
                     animation: {
-                        duration: 600,
+                        duration: 500,
                         easing: 'easeOutQuart'
                     }
                 },
                 plugins: [crosshairPlugin]
             });
-        }
-
-        function selectMuscleGroup(group) {
-            state.selectedMuscleGroup = group;
-            state.selectedExercise = null;
-            state.selectedMonth = null;
-            renderStats();
-        }
-
-        function selectExercise(name) {
-            state.selectedExercise = state.selectedExercise === name ? null : name;
-            state.selectedMonth = null;
-            renderStats();
         }
 
         const SUPERSET_COLORS = [
