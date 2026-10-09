@@ -33,52 +33,35 @@ input[type=number] { -moz-appearance: textfield; }
 .chart-container-fixed { height: 260px; position: relative; overflow: hidden; }
 .chart-wrapper-fixed { position: absolute; top: 0; left: 0; right: 0; bottom: 0; }
 
-/* ИСПРАВЛЕНИЕ 1: Шапка как в тренировке — полупрозрачная */
-.stats-header { 
-    position: sticky; 
-    top: 0; 
-    z-index: 10; 
-    background: rgba(28, 28, 30, 0.8);
+/* === ШАПКА СТАТИСТИКИ (идентична шапке тренировки) === */
+.stats-header {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    /* Полупрозрачный фон через CSS-переменную темы */
+    background-color: color-mix(in srgb, var(--tg-theme-bg-color, #1c1c1e) 92%, transparent);
+    /* Fallback для старых браузеров */
+    background-color: rgba(28, 28, 30, 0.92);
     backdrop-filter: blur(20px) saturate(180%);
     -webkit-backdrop-filter: blur(20px) saturate(180%);
-    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-    margin-left: -16px; 
-    margin-right: -16px; 
+    border-bottom: 1px solid color-mix(in srgb, var(--tg-theme-secondary-bg-color, #2c2c2e) 60%, transparent);
+    margin-left: -16px;
+    margin-right: -16px;
     padding: 12px 16px 16px;
 }
-.stats-title { 
-    font-size: 20px; 
-    font-weight: 800; 
-    letter-spacing: -0.3px; 
-    line-height: 1.2; 
-}
+.stats-title { font-size: 20px; font-weight: 800; letter-spacing: -0.3px; line-height: 1.2; color: var(--tg-theme-text-color, #ffffff); }
 
 .summary-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
 .summary-cell { background: var(--card-bg); border: 1px solid var(--card-border); border-radius: 14px; padding: 10px 8px; text-align: center; min-width: 0; }
 .summary-value { font-size: 18px; font-weight: 700; line-height: 1.2; }
 .summary-label { font-size: 9px; text-transform: uppercase; letter-spacing: 0.5px; color: var(--tg-theme-hint-color, #8e8e93); margin-top: 2px; line-height: 1.2; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
-/* ИСПРАВЛЕНИЕ 2: Правильная структура слайдера */
-.chart-top-bar { 
-    position: relative; 
-    height: 40px; 
-    overflow: hidden; 
-    margin-top: 8px; 
-}
-.chart-top-slider { 
-    display: flex; 
-    width: 200%; 
-    height: 100%; 
-    transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1); 
-}
-.chart-top-slider.show-filter { 
-    transform: translateX(-50%); 
-}
-.chart-top-slider > div { 
-    width: 50%; 
-    height: 100%; 
-    flex-shrink: 0; 
-}
+/* === АНИМАЦИЯ ФИЛЬТРА СПРАВА НАЛЕВО === */
+.chart-top-bar { position: relative; height: 0; overflow: hidden; transition: height 0.35s cubic-bezier(0.4, 0, 0.2, 1); }
+.chart-top-bar.expanded { height: 52px; margin-top: 8px; }
+.chart-top-slider { display: flex; width: 200%; height: 100%; transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1); }
+.chart-top-slider.show-filter { transform: translateX(-50%); }
+.chart-top-slider > div { width: 50%; height: 100%; flex-shrink: 0; }
 
 .filter-toggle-btn { width: 36px; height: 36px; border-radius: 10px; background: rgba(59, 130, 246, 0.12); border: 1px solid rgba(59, 130, 246, 0.25); display: flex; align-items: center; justify-content: center; color: var(--tg-theme-link-color, #3b82f6); transition: all 0.2s ease; flex-shrink: 0; }
 .filter-toggle-btn:active { transform: scale(0.92); background: rgba(59, 130, 246, 0.2); }
@@ -119,20 +102,63 @@ input[type=number] { -moz-appearance: textfield; }
 <body class="min-h-screen">
 <main id="app-content" class="px-4 pt-4"></main>
 <nav id="bottom-nav" class="fixed bottom-0 left-0 right-0 bg-tgBg border-t border-tgSecondaryBg flex justify-around z-20 transition-all duration-200" style="padding-bottom: max(12px, var(--safe-bottom));">
-<button onclick="switchTab('stats')" id="tab-stats" role="tab" aria-selected="false" class="flex flex-col items-center justify-center min-h-[56px] min-w-[64px] text-tgHint"><i class="fa-solid fa-chart-line text-xl mb-1"></i><span class="text-xs font-medium">Статистика</span></button>
-<button onclick="switchTab('programs')" id="tab-programs" role="tab" aria-selected="true" class="flex flex-col items-center justify-center min-h-[56px] min-w-[64px] text-tgLink"><i class="fa-solid fa-list-check text-xl mb-1"></i><span class="text-xs font-medium">Программы</span></button>
-<button onclick="switchTab('history')" id="tab-history" role="tab" aria-selected="false" class="flex flex-col items-center justify-center min-h-[56px] min-w-[64px] text-tgHint"><i class="fa-solid fa-clock-rotate-left text-xl mb-1"></i><span class="text-xs font-medium">История</span></button>
+<button data-action="switch-tab" data-payload="stats" id="tab-stats" role="tab" aria-selected="false" class="flex flex-col items-center justify-center min-h-[56px] min-w-[64px] text-tgHint"><i class="fa-solid fa-chart-line text-xl mb-1"></i><span class="text-xs font-medium">Статистика</span></button>
+<button data-action="switch-tab" data-payload="programs" id="tab-programs" role="tab" aria-selected="true" class="flex flex-col items-center justify-center min-h-[56px] min-w-[64px] text-tgLink"><i class="fa-solid fa-list-check text-xl mb-1"></i><span class="text-xs font-medium">Программы</span></button>
+<button data-action="switch-tab" data-payload="history" id="tab-history" role="tab" aria-selected="false" class="flex flex-col items-center justify-center min-h-[56px] min-w-[64px] text-tgHint"><i class="fa-solid fa-clock-rotate-left text-xl mb-1"></i><span class="text-xs font-medium">История</span></button>
 </nav>
 <script>
-function esc(str = '') { return String(str).replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;').replaceAll('"', '&quot;').replaceAll("'", '&#39;'); }
+// === БЕЗОПАСНОСТЬ: ЭКРАНИРОВАНИЕ ===
+function escHtml(value) {
+    if (value === null || value === undefined) return '';
+    return String(value)
+        .replaceAll('&', '&amp;')
+        .replaceAll('<', '&lt;')
+        .replaceAll('>', '&gt;')
+        .replaceAll('"', '&quot;')
+        .replaceAll("'", '&#39;')
+        .replaceAll('`', '&#96;');
+}
+function escAttr(value) { return escHtml(value); }
+function sanitizeId(value) { return String(value).replace(/[^a-zA-Z0-9_-]/g, '_'); }
+function esc(str) { return escHtml(str); }
+
 function createId() { return typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : Date.now().toString(36) + Math.random().toString(36).slice(2); }
+
 const MONTHS_RU = ['Янв', 'Фев', 'Мар', 'Апр', 'Май', 'Июн', 'Июл', 'Авг', 'Сен', 'Окт', 'Ноя', 'Дек'];
 const MONTHS_FULL = ['Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь', 'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь'];
 const WEEKDAYS_RU = ['Вс', 'Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб'];
 const DEFAULT_MUSCLE_GROUPS = ['Грудь', 'Спина', 'Ноги', 'Плечи', 'Руки'];
 
+// === ВАЛИДАЦИЯ ВВОДА ===
+const WEIGHT_MIN = 0, WEIGHT_MAX = 1000, WEIGHT_STEP = 2.5;
+const REPS_MIN = 0, REPS_MAX = 100;
+
+function parseWeight(value) {
+    if (value === '' || value === null || value === undefined) return 0;
+    const n = Number(value);
+    if (!isFinite(n) || isNaN(n)) return null;
+    if (n < WEIGHT_MIN || n > WEIGHT_MAX) return null;
+    return Math.round(n * 10) / 10;
+}
+function parseReps(value) {
+    if (value === '' || value === null || value === undefined) return 0;
+    const n = parseInt(value, 10);
+    if (isNaN(n) || !isFinite(n)) return null;
+    if (n < REPS_MIN || n > REPS_MAX) return null;
+    return n;
+}
+function adjustWeight(current, delta) {
+    const base = Number(current) || 0;
+    const next = Math.round((base + delta) * 10) / 10;
+    return Math.max(WEIGHT_MIN, Math.min(WEIGHT_MAX, next));
+}
+function adjustReps(current, delta) {
+    const base = parseInt(current, 10) || 0;
+    return Math.max(REPS_MIN, Math.min(REPS_MAX, base + delta));
+}
+
 function getMuscleGroups() { try { const saved = localStorage.getItem(`twa_fitness_muscle_groups_${USER_ID}`); return saved ? JSON.parse(saved) : [...DEFAULT_MUSCLE_GROUPS]; } catch (e) { return [...DEFAULT_MUSCLE_GROUPS]; } }
-function saveMuscleGroups(groups) { localStorage.setItem(`twa_fitness_muscle_groups_${USER_ID}`, JSON.stringify(groups)); }
+function saveMuscleGroups(groups) { try { localStorage.setItem(`twa_fitness_muscle_groups_${USER_ID}`, JSON.stringify(groups)); } catch (e) {} }
 
 const tg = window.Telegram.WebApp;
 try { tg.ready(); tg.expand(); } catch (error) { console.warn('Telegram init error:', error); }
@@ -145,105 +171,110 @@ try { tg.BackButton.onClick(() => navigateBack()); } catch (error) {}
 function updateBackButton(isSubScreen) { try { if (isSubScreen) tg.BackButton.show(); else tg.BackButton.hide(); } catch (error) {} }
 function clearMainButton() { try { tg.MainButton.hide(); } catch (e) {} }
 
+// === БЕЗОПАСНЫЙ DATАAPI ===
 const DataAPI = {
     _key(type) { return `twa_fitness_${type}_${USER_ID}`; },
-    getPrograms() { try { const data = JSON.parse(localStorage.getItem(this._key('programs')) || '[]'); return data.map(p => ({ ...p, exercises: (p.exercises || []).map(ex => ({ ...ex, exerciseType: ex.exerciseType || 'weighted', supersetId: ex.supersetId || null })) })); } catch (error) { return []; } },
-    savePrograms(data) { localStorage.setItem(this._key('programs'), JSON.stringify(data)); },
-    getHistory() { try { return JSON.parse(localStorage.getItem(this._key('history')) || '[]'); } catch (error) { return []; } },
-    saveHistory(data) { localStorage.setItem(this._key('history'), JSON.stringify(data)); },
-    getProgramById(id) { return this.getPrograms().find(program => program.id === id); },
-    getHistoryEntryById(id) { return this.getHistory().find(entry => entry.id === id); },
+    _safeRead(type, fallback = []) {
+        try {
+            const raw = localStorage.getItem(this._key(type));
+            if (!raw) return fallback;
+            const parsed = JSON.parse(raw);
+            if (!Array.isArray(parsed)) return fallback;
+            return parsed;
+        } catch (err) { console.warn(`DataAPI: corrupted ${type}`, err); return fallback; }
+    },
+    _safeWrite(type, data) { try { localStorage.setItem(this._key(type), JSON.stringify(data)); return true; } catch (err) { console.error('DataAPI write failed', err); return false; } },
+    getPrograms() {
+        const raw = this._safeRead('programs', []);
+        return raw.map(p => {
+            if (!p || typeof p !== 'object') return null;
+            return {
+                id: p.id || createId(), name: String(p.name || ''),
+                exercises: Array.isArray(p.exercises) ? p.exercises.map(ex => ({
+                    id: ex.id || createId(), name: String(ex.name || ''),
+                    muscleGroup: String(ex.muscleGroup || 'Другое'),
+                    exerciseType: ['weighted', 'bodyweight'].includes(ex.exerciseType) ? ex.exerciseType : 'weighted',
+                    supersetId: ex.supersetId || null,
+                    targetSets: Math.max(1, parseInt(ex.targetSets) || 3),
+                    targetReps: Math.max(1, parseInt(ex.targetReps) || 10)
+                })) : []
+            };
+        }).filter(p => p !== null);
+    },
+    savePrograms(data) { this._safeWrite('programs', data); },
+    getHistory() {
+        const raw = this._safeRead('history', []);
+        return raw.filter(entry => entry && typeof entry === 'object' && entry.id && entry.date);
+    },
+    saveHistory(data) { this._safeWrite('history', data); },
+    getProgramById(id) { return this.getPrograms().find(p => p.id === id); },
+    getHistoryEntryById(id) { return this.getHistory().find(e => e.id === id); },
     getUserExercises() {
         const exerciseMap = new Map();
-        const addExercise = exercise => { if (!exercise || !exercise.name) return; if (!exerciseMap.has(exercise.name)) exerciseMap.set(exercise.name, { name: exercise.name, muscleGroup: exercise.muscleGroup || 'Другое', exerciseType: exercise.exerciseType || 'weighted' }); };
-        this.getPrograms().forEach(program => (program.exercises || []).forEach(addExercise));
-        this.getHistory().forEach(entry => (entry.exercises || []).forEach(addExercise));
+        const addExercise = exercise => {
+            if (!exercise || !exercise.name) return;
+            const name = String(exercise.name).trim();
+            if (!name) return;
+            if (!exerciseMap.has(name)) exerciseMap.set(name, { name, muscleGroup: String(exercise.muscleGroup || 'Другое'), exerciseType: ['weighted', 'bodyweight'].includes(exercise.exerciseType) ? exercise.exerciseType : 'weighted' });
+        };
+        this.getPrograms().forEach(p => (p.exercises || []).forEach(addExercise));
+        this.getHistory().forEach(e => (e.exercises || []).forEach(addExercise));
         return Array.from(exerciseMap.values());
     },
     getExerciseHistory(exerciseName) {
+        if (!exerciseName) return [];
         const results = [];
-        this.getHistory().forEach(entry => { (entry.exercises || []).forEach(exercise => { if (exercise.name === exerciseName) (exercise.sets || []).forEach(set => results.push({ date: entry.date, weight: set.weight, reps: set.reps })); }); });
+        this.getHistory().forEach(entry => {
+            if (!entry || !Array.isArray(entry.exercises)) return;
+            entry.exercises.forEach(exercise => {
+                if (!exercise || exercise.name !== exerciseName) return;
+                if (!Array.isArray(exercise.sets)) return;
+                exercise.sets.forEach(set => {
+                    if (!set || typeof set !== 'object') return;
+                    const w = Number(set.weight), r = Number(set.reps);
+                    if (!isFinite(w) || !isFinite(r)) return;
+                    results.push({ date: entry.date, weight: Math.max(0, w), reps: Math.max(0, Math.floor(r)) });
+                });
+            });
+        });
         return results.sort((a, b) => new Date(a.date) - new Date(b.date));
     }
 };
 
 const ACTIVE_KEY = `twa_fitness_active_workout_${USER_ID}`;
-function saveActiveWorkout() { if (state.activeWorkout) localStorage.setItem(ACTIVE_KEY, JSON.stringify(state.activeWorkout)); else localStorage.removeItem(ACTIVE_KEY); }
-function restoreActiveWorkout() { const saved = localStorage.getItem(ACTIVE_KEY); if (!saved) return false; try { state.activeWorkout = JSON.parse(saved); return true; } catch (error) { localStorage.removeItem(ACTIVE_KEY); return false; } }
-
-let state = { 
-    currentScreen: 'programs', currentTab: 'programs', activeWorkout: null, editingProgram: null, workoutTimer: null, 
-    selectedMuscleGroup: 'Грудь', selectedExercise: null, supersetActiveId: null, 
-    selectedPeriod: 'all', selectedMonthKey: null, selectedExerciseMetric: 'weight' 
-};
-
-function updateTabUI(activeTab) { 
-    ['stats', 'programs', 'history'].forEach(tab => { 
-        const button = document.getElementById(`tab-${tab}`); 
-        if (!button) return; 
-        if (tab === activeTab) { button.classList.remove('text-tgHint'); button.classList.add('text-tgLink'); button.setAttribute('aria-selected', 'true'); } 
-        else { button.classList.remove('text-tgLink'); button.classList.add('text-tgHint'); button.setAttribute('aria-selected', 'false'); } 
-    }); 
+function saveActiveWorkout() { try { if (state.activeWorkout && typeof state.activeWorkout === 'object') localStorage.setItem(ACTIVE_KEY, JSON.stringify(state.activeWorkout)); else localStorage.removeItem(ACTIVE_KEY); } catch (err) { console.error('saveActiveWorkout failed', err); } }
+function restoreActiveWorkout() {
+    try {
+        const saved = localStorage.getItem(ACTIVE_KEY);
+        if (!saved) return false;
+        const parsed = JSON.parse(saved);
+        if (!parsed || !parsed.startTime || !Array.isArray(parsed.exercises)) { localStorage.removeItem(ACTIVE_KEY); return false; }
+        state.activeWorkout = parsed;
+        return true;
+    } catch (err) { console.error('restoreActiveWorkout failed', err); localStorage.removeItem(ACTIVE_KEY); return false; }
 }
+
+let state = { currentScreen: 'programs', currentTab: 'programs', activeWorkout: null, editingProgram: null, workoutTimer: null, selectedMuscleGroup: 'Грудь', selectedExercise: null, supersetActiveId: null, selectedPeriod: 'all', selectedMonthKey: null, selectedExerciseMetric: 'weight' };
+
+function updateTabUI(activeTab) { ['stats', 'programs', 'history'].forEach(tab => { const button = document.getElementById(`tab-${tab}`); if (!button) return; if (tab === activeTab) { button.classList.remove('text-tgHint'); button.classList.add('text-tgLink'); button.setAttribute('aria-selected', 'true'); } else { button.classList.remove('text-tgLink'); button.classList.add('text-tgHint'); button.setAttribute('aria-selected', 'false'); } }); }
 function openProgramsScreen() { state.currentTab = 'programs'; state.currentScreen = 'programs'; updateTabUI('programs'); updateBackButton(false); clearMainButton(); renderPrograms(); }
 function navigateToTab(tab) { state.currentTab = tab; updateTabUI(tab); navigate(tab); }
 function switchTab(tab) { if (state.currentScreen === 'workout' && state.activeWorkout && tab !== 'workout') { promptWorkoutExit(tab); return; } haptic('light'); navigateToTab(tab); }
 function navigateBack() { if (state.currentScreen === 'workout' && state.activeWorkout) { promptWorkoutExit('programs'); return; } haptic('light'); const tabMap = { program_edit: 'programs', history_detail: 'history', workout: 'programs' }; navigateToTab(tabMap[state.currentScreen] || state.currentTab || 'programs'); }
 function navigate(screen, data = {}) { haptic('light'); stopWorkoutTimer(); state.currentScreen = screen; state.supersetActiveId = null; if (data.programId !== undefined) state.editingProgram = data.programId ? DataAPI.getProgramById(data.programId) : { name: '', exercises: [] }; updateBackButton(['program_edit', 'history_detail', 'workout'].includes(screen)); clearMainButton(); switch (screen) { case 'stats': renderStats(); break; case 'programs': renderPrograms(); break; case 'program_edit': renderProgramEdit(); break; case 'workout': renderWorkout(); break; case 'history': renderHistory(); break; case 'history_detail': renderHistoryDetail(data.entryId); break; } }
 
-// --- ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ ---
-function formatLocalDateKey(date) {
-    const d = date instanceof Date ? date : new Date(date);
-    if (isNaN(d.getTime())) return null;
-    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-}
-function formatLocalMonthKey(date) {
-    const d = date instanceof Date ? date : new Date(date);
-    if (isNaN(d.getTime())) return null;
-    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
-}
-function getWeekStart(date) {
-    const d = new Date(date);
-    const day = d.getDay();
-    const diff = (day === 0 ? -6 : 1 - day);
-    d.setDate(d.getDate() + diff);
-    d.setHours(0, 0, 0, 0);
-    return d;
-}
-function isValidSetRecord(rec) {
-    if (!rec) return false;
-    const w = Number(rec.weight), r = Number(rec.reps);
-    if (!isFinite(w) || !isFinite(r) || w < 0 || r < 0) return false;
-    return w > 0 && r > 0;
-}
-function estimate1RM(weight, reps) {
-    const w = Number(weight), r = Number(reps);
-    if (!isFinite(w) || !isFinite(r) || w <= 0 || r <= 0) return 0;
-    if (r === 1) return w;
-    if (r <= 10) return w * (1 + r / 30);
-    if (r <= 20) return w * (36 / (37 - r));
-    return 0;
-}
-function getExerciseTypeByName(name) {
-    const programs = DataAPI.getPrograms();
-    for (const p of programs) { const ex = (p.exercises || []).find(e => e.name === name); if (ex) return ex.exerciseType || 'weighted'; }
-    const history = DataAPI.getHistory();
-    for (const entry of history) { const ex = (entry.exercises || []).find(e => e.name === name); if (ex) return ex.exerciseType || 'weighted'; }
-    return 'weighted';
-}
-function getPeriodLabel() {
-    if (state.selectedMonthKey) {
-        const m = getAvailableMonthsForExercise(null).find(x => x.key === state.selectedMonthKey);
-        return m ? m.label : 'месяц';
-    }
-    return { week: '7 дней', month: '30 дней', quarter: '90 дней', all: 'всё время' }[state.selectedPeriod] || 'всё время';
-}
+// === ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ ДАТ ===
+function formatLocalDateKey(date) { const d = date instanceof Date ? date : new Date(date); if (isNaN(d.getTime())) return null; return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; }
+function formatLocalMonthKey(date) { const d = date instanceof Date ? date : new Date(date); if (isNaN(d.getTime())) return null; return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`; }
+function getWeekStart(date) { const d = new Date(date); const day = d.getDay(); const diff = (day === 0 ? -6 : 1 - day); d.setDate(d.getDate() + diff); d.setHours(0, 0, 0, 0); return d; }
+function isValidSetRecord(rec) { if (!rec) return false; const w = Number(rec.weight), r = Number(rec.reps); if (!isFinite(w) || !isFinite(r) || w < 0 || r < 0) return false; return w > 0 && r > 0; }
+function estimate1RM(weight, reps) { const w = Number(weight), r = Number(reps); if (!isFinite(w) || !isFinite(r) || w <= 0 || r <= 0) return 0; if (r === 1) return w; if (r <= 10) return w * (1 + r / 30); if (r <= 20) return w * (36 / (37 - r)); return 0; }
+function getExerciseTypeByName(name) { const programs = DataAPI.getPrograms(); for (const p of programs) { const ex = (p.exercises || []).find(e => e.name === name); if (ex) return ex.exerciseType || 'weighted'; } const history = DataAPI.getHistory(); for (const entry of history) { const ex = (entry.exercises || []).find(e => e.name === name); if (ex) return ex.exerciseType || 'weighted'; } return 'weighted'; }
+function getPeriodLabel() { if (state.selectedMonthKey) { const m = getAvailableMonthsForExercise(null).find(x => x.key === state.selectedMonthKey); return m ? m.label : 'месяц'; } return { week: '7 дней', month: '30 дней', quarter: '90 дней', all: 'всё время' }[state.selectedPeriod] || 'всё время'; }
 
-// --- СТАТИСТИКА ---
+// === СТАТИСТИКА ===
 function getFilteredHistory(history, period) {
-    if (state.selectedMonthKey) {
-        return history.filter(item => formatLocalMonthKey(item.date) === state.selectedMonthKey);
-    }
+    if (state.selectedMonthKey) return history.filter(item => formatLocalMonthKey(item.date) === state.selectedMonthKey);
     if (period === 'all') return history;
     const now = new Date(); now.setHours(23, 59, 59, 999);
     let cutoff;
@@ -256,101 +287,40 @@ function getFilteredHistory(history, period) {
 
 function getAvailableMonthsForExercise(exerciseName) {
     const monthSet = new Set();
-    if (exerciseName) {
-        DataAPI.getExerciseHistory(exerciseName).forEach(h => { const key = formatLocalMonthKey(h.date); if (key) monthSet.add(key); });
-    }
-    if (monthSet.size === 0) {
-        const now = new Date();
-        for (let i = 0; i < 6; i++) { const d = new Date(now.getFullYear(), now.getMonth() - i, 1); monthSet.add(formatLocalMonthKey(d)); }
-    }
-    return Array.from(monthSet).sort((a, b) => b.localeCompare(a)).map(key => {
-        const [y, m] = key.split('-').map(Number);
-        return { key, label: `${MONTHS_RU[m - 1]} ${y}` };
-    });
+    if (exerciseName) DataAPI.getExerciseHistory(exerciseName).forEach(h => { const key = formatLocalMonthKey(h.date); if (key) monthSet.add(key); });
+    if (monthSet.size === 0) { const now = new Date(); for (let i = 0; i < 6; i++) { const d = new Date(now.getFullYear(), now.getMonth() - i, 1); monthSet.add(formatLocalMonthKey(d)); } }
+    return Array.from(monthSet).sort((a, b) => b.localeCompare(a)).map(key => { const [y, m] = key.split('-').map(Number); return { key, label: `${MONTHS_RU[m - 1]} ${y}` }; });
 }
 
 function renderGeneralSummaryHTML(filteredHistory) {
     const validEntries = (filteredHistory || []).filter(e => (e.exercises || []).flatMap(ex => ex.sets || []).some(isValidSetRecord));
     const workoutsCount = validEntries.length;
     let workingSets = 0, totalVolume = 0;
-    validEntries.forEach(entry => {
-        (entry.exercises || []).forEach(ex => {
-            (ex.sets || []).forEach(s => {
-                if (isValidSetRecord(s)) { workingSets++; totalVolume += Number(s.weight) * Number(s.reps); }
-            });
-        });
-    });
+    validEntries.forEach(entry => { (entry.exercises || []).forEach(ex => { (ex.sets || []).forEach(s => { if (isValidSetRecord(s)) { workingSets++; totalVolume += Number(s.weight) * Number(s.reps); } }); }); });
     const periodLabel = getPeriodLabel();
-
-    if (workoutsCount === 0) {
-        return `<div class="empty-state-block mb-3 card-enter" style="animation-delay: 0.08s"><i class="fa-solid fa-calendar-xmark"></i><div class="title">Нет тренировок за ${periodLabel}</div><div class="desc">Завершите тренировку — и здесь появится сводка.</div></div>`;
-    }
-    return `<div class="mb-3 card-enter" style="animation-delay: 0.08s"><div class="text-xs font-semibold text-tgHint uppercase tracking-wide mb-2 px-1">Сводка · ${periodLabel}</div><div class="summary-grid"><div class="summary-cell"><div class="summary-value">${workoutsCount}</div><div class="summary-label">Тренировок</div></div><div class="summary-cell"><div class="summary-value">${workingSets}</div><div class="summary-label">Подходов</div></div><div class="summary-cell"><div class="summary-value">${totalVolume >= 1000 ? (totalVolume / 1000).toFixed(1) + 'т' : totalVolume + ' кг'}</div><div class="summary-label">Объём</div></div></div></div>`;
+    if (workoutsCount === 0) return `<div class="empty-state-block mb-3 card-enter" style="animation-delay: 0.08s"><i class="fa-solid fa-calendar-xmark"></i><div class="title">Нет тренировок за ${escHtml(periodLabel)}</div><div class="desc">Завершите тренировку — и здесь появится сводка.</div></div>`;
+    return `<div class="mb-3 card-enter" style="animation-delay: 0.08s"><div class="text-xs font-semibold text-tgHint uppercase tracking-wide mb-2 px-1">Сводка · ${escHtml(periodLabel)}</div><div class="summary-grid"><div class="summary-cell"><div class="summary-value">${workoutsCount}</div><div class="summary-label">Тренировок</div></div><div class="summary-cell"><div class="summary-value">${workingSets}</div><div class="summary-label">Подходов</div></div><div class="summary-cell"><div class="summary-value">${totalVolume >= 1000 ? (totalVolume / 1000).toFixed(1) + 'т' : totalVolume + ' кг'}</div><div class="summary-label">Объём</div></div></div></div>`;
 }
 
 function renderMuscleGroupSetsChartHTML(filteredHistory) {
     const mgSets = {};
-    filteredHistory.forEach(entry => {
-        (entry.exercises || []).forEach(ex => {
-            const mg = ex.muscleGroup || 'Другое';
-            if (!mgSets[mg]) mgSets[mg] = 0;
-            (ex.sets || []).forEach(s => {
-                if (isValidSetRecord(s)) mgSets[mg]++;
-            });
-        });
-    });
-    
-    const labels = Object.keys(mgSets);
-    const data = Object.values(mgSets);
-    
+    filteredHistory.forEach(entry => { (entry.exercises || []).forEach(ex => { const mg = ex.muscleGroup || 'Другое'; if (!mgSets[mg]) mgSets[mg] = 0; (ex.sets || []).forEach(s => { if (isValidSetRecord(s)) mgSets[mg]++; }); }); });
+    const labels = Object.keys(mgSets); const data = Object.values(mgSets);
     if (labels.length === 0) return '';
-
     const canvasId = 'mgSetsChart_' + Date.now();
-    
     setTimeout(() => {
-        const ctx = document.getElementById(canvasId);
-        if (!ctx) return;
-        const existing = Chart.getChart(ctx);
-        if (existing) existing.destroy();
-        
-        new Chart(ctx, {
-            type: 'bar',
-            data: {
-                labels: labels,
-                datasets: [{
-                    label: 'Подходы',
-                    data: data,
-                    backgroundColor: 'rgba(59, 130, 246, 0.5)',
-                    borderColor: 'rgba(59, 130, 246, 0.8)',
-                    borderWidth: 1,
-                    borderRadius: 4
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: { legend: { display: false } },
-                scales: {
-                    y: { beginAtZero: true, ticks: { color: '#8e8e93', font: { size: 10 } }, grid: { color: 'rgba(142, 142, 147, 0.1)' } },
-                    x: { ticks: { color: '#8e8e93', font: { size: 10 } }, grid: { display: false } }
-                }
-            }
-        });
+        const ctx = document.getElementById(canvasId); if (!ctx) return;
+        const existing = Chart.getChart(ctx); if (existing) existing.destroy();
+        try {
+            new Chart(ctx, { type: 'bar', data: { labels, datasets: [{ label: 'Подходы', data, backgroundColor: 'rgba(59, 130, 246, 0.5)', borderColor: 'rgba(59, 130, 246, 0.8)', borderWidth: 1, borderRadius: 4 }] }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, ticks: { color: '#8e8e93', font: { size: 10 } }, grid: { color: 'rgba(142, 142, 147, 0.1)' } }, x: { ticks: { color: '#8e8e93', font: { size: 10 } }, grid: { display: false } } } });
+        } catch (err) { console.error('Chart init failed', err); }
     }, 100);
-
-    return `
-        <div class="chart-card rounded-2xl p-4 mb-3 card-enter" style="animation-delay: 0.12s">
-            <div class="text-xs font-semibold text-tgHint uppercase tracking-wide mb-2">Подходы по группам мышц</div>
-            <div class="chart-container-fixed" style="height: 200px;">
-                <div class="chart-wrapper-fixed"><canvas id="${canvasId}"></canvas></div>
-            </div>
-        </div>
-    `;
+    return `<div class="chart-card rounded-2xl p-4 mb-3 card-enter" style="animation-delay: 0.12s"><div class="text-xs font-semibold text-tgHint uppercase tracking-wide mb-2">Подходы по группам мышц</div><div class="chart-container-fixed" style="height: 200px;"><div class="chart-wrapper-fixed"><canvas id="${canvasId}"></canvas></div></div></div>`;
 }
 
 function renderExerciseMetricSwitcherHTML() {
     const metrics = [{ key: 'weight', label: 'Вес' }, { key: 'volume', label: 'Тоннаж' }, { key: '1rm', label: '1ПМ*' }];
-    return `<div class="metric-switcher" role="tablist" aria-label="Метрика графика">${metrics.map(m => `<button onclick="selectExerciseMetric('${m.key}')" role="tab" aria-selected="${state.selectedExerciseMetric === m.key}" class="metric-btn ${state.selectedExerciseMetric === m.key ? 'active' : ''}">${m.label}</button>`).join('')}</div>${state.selectedExerciseMetric === '1rm' ? '<div class="metric-note">* Расчётный 1ПМ по формулам Epley/Brzycki.</div>' : ''}`;
+    return `<div class="metric-switcher" role="tablist" aria-label="Метрика графика">${metrics.map(m => `<button data-action="select-metric" data-payload="${m.key}" role="tab" aria-selected="${state.selectedExerciseMetric === m.key}" class="metric-btn ${state.selectedExerciseMetric === m.key ? 'active' : ''}">${escHtml(m.label)}</button>`).join('')}</div>${state.selectedExerciseMetric === '1rm' ? '<div class="metric-note">* Расчётный 1ПМ по формулам Epley/Brzycki.</div>' : ''}`;
 }
 
 function renderExerciseBlockHTML() {
@@ -359,10 +329,8 @@ function renderExerciseBlockHTML() {
     const filteredExHistory = getFilteredHistory(exHistory, state.selectedPeriod);
     const exType = getExerciseTypeByName(state.selectedExercise);
     const hasData = filteredExHistory.some(isValidSetRecord);
-    if (!hasData) {
-        return `<div class="chart-card rounded-2xl p-4 mb-3 card-enter" style="animation-delay: 0.2s"><div class="flex items-center justify-between mb-3"><h2 class="text-base font-bold break-words flex-1 min-w-0 pr-2">${esc(state.selectedExercise)}</h2></div><div class="empty-state-block"><i class="fa-solid fa-chart-line"></i><div class="title">Нет данных за период</div><div class="desc">Для этого упражнения нет рабочих подходов в выбранном периоде.</div></div></div>`;
-    }
-    return `<div class="chart-card rounded-2xl p-4 mb-3 card-enter" style="animation-delay: 0.2s"><div class="flex items-center justify-between mb-2 gap-2"><h2 class="text-base font-bold break-words flex-1 min-w-0">${esc(state.selectedExercise)}</h2>${exType === 'bodyweight' ? '<span class="bodyweight-badge shrink-0">Свой вес</span>' : ''}</div>${renderExerciseMetricSwitcherHTML()}<div class="chart-container-fixed"><div class="chart-wrapper-fixed"><canvas id="progressChart" aria-label="График прогресса упражнения"></canvas></div></div>${exType === 'bodyweight' ? '<div class="metric-note">Вес = только дополнительный вес, без массы тела.</div>' : ''}</div>${renderAchievementsHTML()}`;
+    if (!hasData) return `<div class="chart-card rounded-2xl p-4 mb-3 card-enter" style="animation-delay: 0.2s"><div class="flex items-center justify-between mb-3"><h2 class="text-base font-bold break-words flex-1 min-w-0 pr-2">${escHtml(state.selectedExercise)}</h2></div><div class="empty-state-block"><i class="fa-solid fa-chart-line"></i><div class="title">Нет данных за период</div><div class="desc">Для этого упражнения нет рабочих подходов в выбранном периоде.</div></div></div>`;
+    return `<div class="chart-card rounded-2xl p-4 mb-3 card-enter" style="animation-delay: 0.2s"><div class="flex items-center justify-between mb-2 gap-2"><h2 class="text-base font-bold break-words flex-1 min-w-0">${escHtml(state.selectedExercise)}</h2>${exType === 'bodyweight' ? '<span class="bodyweight-badge shrink-0">Свой вес</span>' : ''}</div>${renderExerciseMetricSwitcherHTML()}<div class="chart-container-fixed"><div class="chart-wrapper-fixed"><canvas id="progressChart" aria-label="График прогресса упражнения"></canvas></div></div>${exType === 'bodyweight' ? '<div class="metric-note">Вес = только дополнительный вес, без массы тела.</div>' : ''}</div>${renderAchievementsHTML()}`;
 }
 
 function renderAchievementsHTML() {
@@ -370,70 +338,22 @@ function renderAchievementsHTML() {
     const history = DataAPI.getExerciseHistory(name).filter(isValidSetRecord);
     const exType = getExerciseTypeByName(name);
     if (history.length === 0) return `<div class="empty-state-block mb-4 card-enter" style="animation-delay: 0.25s"><i class="fa-solid fa-trophy"></i><div class="title">Нет рабочих подходов</div><div class="desc">Для этого упражнения пока нет завершённых подходов с весом и повторениями.</div></div>`;
-
     const maxWeight = Math.max(...history.map(h => Number(h.weight)));
     const maxWeightEntry = history.find(h => Number(h.weight) === maxWeight);
     const maxWeightDate = maxWeightEntry ? formatLocalDateKey(maxWeightEntry.date) : null;
-
     let max1RM = 0, max1RMEntry = null;
     history.forEach(h => { const est = estimate1RM(h.weight, h.reps); if (est > max1RM) { max1RM = est; max1RMEntry = h; } });
     const max1RMDate = max1RMEntry ? formatLocalDateKey(max1RMEntry.date) : null;
-
     const uniqueDates = new Set(); history.forEach(h => { const key = formatLocalDateKey(h.date); if (key) uniqueDates.add(key); });
     const totalVolume = history.reduce((sum, h) => sum + Number(h.weight) * Number(h.reps), 0);
     const fmtDate = (key) => { if (!key) return ''; const [y, m, d] = key.split('-').map(Number); return new Date(y, m - 1, d).toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' }); };
-
     const achievements = [
         { icon: 'fa-crown', color: 'gold', label: 'Макс. вес', value: `${maxWeight} кг`, sub: fmtDate(maxWeightDate) },
         { icon: 'fa-dumbbell', color: 'blue', label: 'Расчётный 1ПМ', value: `${Math.round(max1RM)} кг`, sub: fmtDate(max1RMDate), estimated: true },
         { icon: 'fa-calendar-check', color: 'green', label: 'Тренировок', value: uniqueDates.size, sub: 'уникальных дней' },
         { icon: 'fa-weight-hanging', color: 'purple', label: exType === 'bodyweight' ? 'Объём (доп. вес)' : 'Общий объём', value: totalVolume >= 1000 ? `${(totalVolume / 1000).toFixed(1)} т` : `${totalVolume} кг`, sub: 'за всё время' }
     ];
-
-    return `<div class="mb-4 card-enter" style="animation-delay: 0.25s"><div class="text-xs font-semibold text-tgHint uppercase tracking-wide mb-2 px-1">Рекорды · за всё время</div><div class="summary-grid" style="grid-template-columns: repeat(2, 1fr);">${achievements.map(a => `<div class="achievement-card"><div class="flex items-start gap-3"><div class="achievement-icon ${a.color}"><i class="fa-solid ${a.icon}"></i></div><div class="min-w-0 flex-1"><div class="text-[10px] text-tgHint uppercase tracking-wide leading-tight">${a.label}${a.estimated ? '<span class="estimated-badge">расч.</span>' : ''}</div><div class="text-base font-bold mt-0.5 leading-tight break-words">${a.value}</div>${a.sub ? `<div class="text-[10px] text-tgHint mt-0.5 leading-tight">${a.sub}</div>` : ''}</div></div></div>`).join('')}</div></div>`;
-}
-
-// ИСПРАВЛЕНИЕ 4: Точечные обновления вместо полной перерисовки
-function updateStatsHeader() {
-    const titleEl = document.getElementById('stats-title');
-    if (titleEl) titleEl.textContent = `Статистика: ${getPeriodLabel()}`;
-    
-    const monthsEl = document.getElementById('months-scroll');
-    if (monthsEl) {
-        const availableMonths = getAvailableMonthsForExercise(state.selectedExercise);
-        monthsEl.innerHTML = availableMonths.map(m => `<button onclick="selectMonthFilter('${m.key}')" aria-label="Месяц: ${m.label}" class="period-btn ${state.selectedMonthKey === m.key ? 'active' : ''}">${m.label}</button>`).join('');
-    }
-    
-    updatePeriodButtons();
-}
-
-function updateStatsSummary() {
-    const history = DataAPI.getHistory();
-    const filteredHistory = getFilteredHistory(history, state.selectedPeriod);
-    const container = document.getElementById('stats-summary-container');
-    if (container) container.innerHTML = renderGeneralSummaryHTML(filteredHistory);
-}
-
-function updateExerciseBlock() {
-    const container = document.getElementById('exercise-block-container');
-    if (container) {
-        container.innerHTML = renderExerciseBlockHTML();
-        if (state.selectedExercise) {
-            setTimeout(() => renderChart(), 50);
-        }
-    }
-}
-
-function updateChartOnly() {
-    if (state.selectedExercise) {
-        renderChart();
-        // Обновляем только переключатель метрик (для подписи 1ПМ)
-        const container = document.getElementById('exercise-block-container');
-        if (container) {
-            const switcher = container.querySelector('.metric-switcher');
-            if (switcher) switcher.outerHTML = renderExerciseMetricSwitcherHTML();
-        }
-    }
+    return `<div class="mb-4 card-enter" style="animation-delay: 0.25s"><div class="text-xs font-semibold text-tgHint uppercase tracking-wide mb-2 px-1">Рекорды · за всё время</div><div class="summary-grid" style="grid-template-columns: repeat(2, 1fr);">${achievements.map(a => `<div class="achievement-card"><div class="flex items-start gap-3"><div class="achievement-icon ${a.color}"><i class="fa-solid ${a.icon}"></i></div><div class="min-w-0 flex-1"><div class="text-[10px] text-tgHint uppercase tracking-wide leading-tight">${escHtml(a.label)}${a.estimated ? '<span class="estimated-badge">расч.</span>' : ''}</div><div class="text-base font-bold mt-0.5 leading-tight break-words">${escHtml(a.value)}</div>${a.sub ? `<div class="text-[10px] text-tgHint mt-0.5 leading-tight">${escHtml(a.sub)}</div>` : ''}</div></div></div>`).join('')}</div></div>`;
 }
 
 function renderStats() {
@@ -442,35 +362,34 @@ function renderStats() {
     const exercises = DataAPI.getUserExercises();
     const muscleGroups = getMuscleGroups();
 
-    const muscleGroupsHTML = muscleGroups.map(group => `<button onclick="selectMuscleGroup('${esc(group)}')" role="tab" aria-selected="${state.selectedMuscleGroup === group}" aria-label="Группа мышц: ${esc(group)}" class="stat-chip snap-center px-3 py-2 rounded-xl text-xs font-medium ${state.selectedMuscleGroup === group ? 'active' : 'inactive'}">${esc(group)}</button>`).join('');
+    const muscleGroupsHTML = muscleGroups.map(group => `<button data-action="select-muscle-group" data-payload="${escAttr(group)}" role="tab" aria-selected="${state.selectedMuscleGroup === group}" aria-label="Группа мышц: ${escHtml(group)}" class="stat-chip snap-center px-3 py-2 rounded-xl text-xs font-medium ${state.selectedMuscleGroup === group ? 'active' : 'inactive'}">${escHtml(group)}</button>`).join('');
     const filteredExercises = exercises.filter(ex => ex.muscleGroup === state.selectedMuscleGroup);
-    const exercisesHTML = filteredExercises.length ? filteredExercises.map(ex => `<button onclick="selectExercise('${esc(ex.name)}')" role="tab" aria-selected="${state.selectedExercise === ex.name}" aria-label="Упражнение: ${esc(ex.name)}" class="stat-chip snap-center px-3 py-2 rounded-xl text-xs font-medium ${state.selectedExercise === ex.name ? 'active' : 'inactive'}">${esc(ex.name)}</button>`).join('') : `<div class="empty-state-block"><i class="fa-solid fa-dumbbell"></i><div class="title">Нет упражнений</div><div class="desc">В группе «${esc(state.selectedMuscleGroup)}» пока нет упражнений.</div></div>`;
+    const exercisesHTML = filteredExercises.length ? filteredExercises.map(ex => `<button data-action="select-exercise" data-payload="${escAttr(ex.name)}" role="tab" aria-selected="${state.selectedExercise === ex.name}" aria-label="Упражнение: ${escHtml(ex.name)}" class="stat-chip snap-center px-3 py-2 rounded-xl text-xs font-medium ${state.selectedExercise === ex.name ? 'active' : 'inactive'}">${escHtml(ex.name)}</button>`).join('') : `<div class="empty-state-block"><i class="fa-solid fa-dumbbell"></i><div class="title">Нет упражнений</div><div class="desc">В группе «${escHtml(state.selectedMuscleGroup)}» пока нет упражнений.</div></div>`;
     
     const availableMonths = getAvailableMonthsForExercise(state.selectedExercise);
-    const monthsHTML = availableMonths.map(m => `<button onclick="selectMonthFilter('${m.key}')" aria-label="Месяц: ${m.label}" class="period-btn ${state.selectedMonthKey === m.key ? 'active' : ''}">${m.label}</button>`).join('');
-
+    const monthsHTML = availableMonths.map(m => `<button data-action="select-month" data-payload="${escAttr(m.key)}" aria-label="Месяц: ${escHtml(m.label)}" class="period-btn ${state.selectedMonthKey === m.key ? 'active' : ''}">${escHtml(m.label)}</button>`).join('');
     const periodTitle = getPeriodLabel();
 
     document.getElementById('app-content').innerHTML = `
         <div class="stats-header card-enter" style="animation-delay: 0.02s">
-            <h1 id="stats-title" class="stats-title">Статистика: ${periodTitle}</h1>
+            <h1 id="stats-title" class="stats-title">Статистика: ${escHtml(periodTitle)}</h1>
             <div class="flex items-center gap-2 mt-3">
                 <div id="months-scroll" class="flex-1 overflow-x-auto scroll-container flex gap-1.5">${monthsHTML}</div>
-                <button id="filter-toggle-btn" onclick="toggleFilterPanel()" class="filter-toggle-btn shrink-0" aria-label="Фильтр периода"><i class="fa-solid fa-sliders"></i></button>
+                <button id="filter-toggle-btn" data-action="toggle-filter" class="filter-toggle-btn shrink-0" aria-label="Фильтр периода"><i class="fa-solid fa-sliders"></i></button>
             </div>
             <div class="chart-top-bar">
                 <div id="chart-top-slider" class="chart-top-slider">
                     <div class="flex items-center justify-end gap-2 pr-1">
-                        <button onclick="toggleFilterPanel()" class="filter-toggle-btn" aria-label="Закрыть фильтр"><i class="fa-solid fa-xmark"></i></button>
+                        <button data-action="toggle-filter" class="filter-toggle-btn" aria-label="Закрыть фильтр"><i class="fa-solid fa-xmark"></i></button>
                     </div>
                     <div class="flex items-center pl-1">
                         <div class="period-filter flex-1">
-                            <button onclick="selectPeriod('week')" class="period-btn ${state.selectedPeriod === 'week' ? 'active' : ''}">7 дней</button>
-                            <button onclick="selectPeriod('month')" class="period-btn ${state.selectedPeriod === 'month' ? 'active' : ''}">30 дней</button>
-                            <button onclick="selectPeriod('quarter')" class="period-btn ${state.selectedPeriod === 'quarter' ? 'active' : ''}">90 дней</button>
-                            <button onclick="selectPeriod('all')" class="period-btn ${state.selectedPeriod === 'all' ? 'active' : ''}">Всё</button>
+                            <button data-action="select-period" data-payload="week" class="period-btn ${state.selectedPeriod === 'week' ? 'active' : ''}">7 дней</button>
+                            <button data-action="select-period" data-payload="month" class="period-btn ${state.selectedPeriod === 'month' ? 'active' : ''}">30 дней</button>
+                            <button data-action="select-period" data-payload="quarter" class="period-btn ${state.selectedPeriod === 'quarter' ? 'active' : ''}">90 дней</button>
+                            <button data-action="select-period" data-payload="all" class="period-btn ${state.selectedPeriod === 'all' ? 'active' : ''}">Всё</button>
                         </div>
-                        <button onclick="toggleFilterPanel()" class="filter-toggle-btn ml-2" aria-label="Закрыть фильтр"><i class="fa-solid fa-xmark"></i></button>
+                        <button data-action="toggle-filter" class="filter-toggle-btn ml-2" aria-label="Закрыть фильтр"><i class="fa-solid fa-xmark"></i></button>
                     </div>
                 </div>
             </div>
@@ -494,105 +413,12 @@ function renderStats() {
     if (state.selectedExercise) renderChart();
 }
 
-function toggleFilterPanel() { 
-    const slider = document.getElementById('chart-top-slider'); 
-    const btn = document.getElementById('filter-toggle-btn'); 
-    if (!slider) return; 
-    slider.classList.toggle('show-filter'); 
-    if (btn) btn.classList.toggle('active'); 
-    haptic('light'); 
-}
-
-function selectMonthFilter(monthKey) { 
-    state.selectedMonthKey = state.selectedMonthKey === monthKey ? null : monthKey; 
-    if (state.selectedMonthKey) state.selectedPeriod = 'month'; 
-    haptic('light'); 
-    // ИСПРАВЛЕНИЕ 4: Точечное обновление вместо полной перерисовки
-    updateStatsHeader();
-    updateStatsSummary();
-    updateExerciseBlock();
-}
-
-function selectPeriod(period) { 
-    state.selectedPeriod = period; 
-    state.selectedMonthKey = null; 
-    haptic('light'); 
-    // ИСПРАВЛЕНИЕ 4: Точечное обновление
-    updateStatsHeader();
-    updateStatsSummary();
-    updateExerciseBlock();
-}
-
-function updatePeriodButtons() {
-    const periodMap = { '7 дней': 'week', '30 дней': 'month', '90 дней': 'quarter', 'Всё': 'all' };
-    document.querySelectorAll('.period-filter .period-btn').forEach(btn => { 
-        const text = btn.textContent.trim(); 
-        btn.classList.toggle('active', periodMap[text] === state.selectedPeriod && !state.selectedMonthKey); 
-    });
-    document.querySelectorAll('#months-scroll .period-btn, #months-scroll-dup .period-btn').forEach(btn => { 
-        const label = btn.textContent.trim(); 
-        const match = getAvailableMonthsForExercise(state.selectedExercise).find(m => m.label === label); 
-        btn.classList.toggle('active', match && match.key === state.selectedMonthKey); 
-    });
-}
-
-function selectMuscleGroup(group) { 
-    state.selectedMuscleGroup = group; 
-    state.selectedExercise = null; 
-    state.selectedMonthKey = null; 
-    haptic('light'); 
-    // ИСПРАВЛЕНИЕ 4: Перерисовываем только список упражнений и очищаем блок упражнения
-    const exercises = DataAPI.getUserExercises();
-    const filtered = exercises.filter(ex => ex.muscleGroup === group);
-    const exContainer = document.getElementById('exercises-container');
-    if (exContainer) {
-        exContainer.innerHTML = filtered.length ? filtered.map(ex => `<button onclick="selectExercise('${esc(ex.name)}')" role="tab" aria-selected="false" aria-label="Упражнение: ${esc(ex.name)}" class="stat-chip snap-center px-3 py-2 rounded-xl text-xs font-medium inactive chip-update">${esc(ex.name)}</button>`).join('') : `<div class="empty-state-block"><i class="fa-solid fa-dumbbell"></i><div class="title">Нет упражнений</div><div class="desc">В группе «${esc(group)}» пока нет упражнений.</div></div>`;
-    }
-    // Обновляем подсветку кнопок групп
-    const mgContainer = document.getElementById('muscle-groups-container');
-    if (mgContainer) {
-        mgContainer.querySelectorAll('.stat-chip').forEach(btn => {
-            const isActive = btn.textContent.trim() === group;
-            btn.classList.toggle('active', isActive);
-            btn.classList.toggle('inactive', !isActive);
-            btn.setAttribute('aria-selected', isActive ? 'true' : 'false');
-        });
-    }
-    // Очищаем блок упражнения
-    const exBlock = document.getElementById('exercise-block-container');
-    if (exBlock) exBlock.innerHTML = '';
-    // Обновляем заголовок и сводку (период сбросился)
-    updateStatsHeader();
-    updateStatsSummary();
-}
-
-function selectExercise(name) { 
-    const wasSelected = state.selectedExercise === name; 
-    state.selectedExercise = wasSelected ? null : name; 
-    state.selectedMonthKey = null; 
-    state.selectedExerciseMetric = 'weight'; 
-    haptic('light'); 
-    // ИСПРАВЛЕНИЕ 4: Точечное обновление
-    const container = document.getElementById('exercises-container');
-    if (container) {
-        container.querySelectorAll('.stat-chip').forEach(btn => {
-            const isActive = btn.textContent.trim() === state.selectedExercise;
-            btn.classList.toggle('active', isActive);
-            btn.classList.toggle('inactive', !isActive);
-            btn.setAttribute('aria-selected', isActive ? 'true' : 'false');
-        });
-    }
-    updateStatsHeader();
-    updateExerciseBlock();
-}
-
-function selectExerciseMetric(metric) {
-    if (!['weight', 'volume', '1rm'].includes(metric)) return;
-    state.selectedExerciseMetric = metric; 
-    haptic('light'); 
-    // ИСПРАВЛЕНИЕ 4: Обновляем только график и переключатель
-    updateChartOnly();
-}
+function toggleFilterPanel() { const slider = document.getElementById('chart-top-slider'); const bar = document.getElementById('chart-top-bar'); const btn = document.getElementById('filter-toggle-btn'); if (!slider || !bar) return; slider.classList.toggle('show-filter'); bar.classList.toggle('expanded'); if (btn) btn.classList.toggle('active'); haptic('light'); }
+function selectMonthFilter(monthKey) { state.selectedMonthKey = state.selectedMonthKey === monthKey ? null : monthKey; if (state.selectedMonthKey) state.selectedPeriod = 'month'; haptic('light'); renderStats(); }
+function selectPeriod(period) { state.selectedPeriod = period; state.selectedMonthKey = null; haptic('light'); renderStats(); }
+function selectMuscleGroup(group) { state.selectedMuscleGroup = group; state.selectedExercise = null; state.selectedMonthKey = null; haptic('light'); renderStats(); }
+function selectExercise(name) { const wasSelected = state.selectedExercise === name; state.selectedExercise = wasSelected ? null : name; state.selectedMonthKey = null; state.selectedExerciseMetric = 'weight'; haptic('light'); renderStats(); }
+function selectExerciseMetric(metric) { if (!['weight', 'volume', '1rm'].includes(metric)) return; state.selectedExerciseMetric = metric; haptic('light'); renderStats(); }
 
 const crosshairPlugin = {
     id: 'crosshair', afterDraw(chart) {
@@ -605,46 +431,30 @@ const crosshairPlugin = {
 };
 
 function renderChart() {
-    const ctx = document.getElementById('progressChart'); if (!ctx) return;
-    const existingChart = Chart.getChart(ctx); if (existingChart) existingChart.destroy();
+    const canvas = document.getElementById('progressChart'); if (!canvas) return;
+    const existingChart = Chart.getChart(canvas); if (existingChart) existingChart.destroy();
     if (!state.selectedExercise) return;
-
     const history = DataAPI.getExerciseHistory(state.selectedExercise).filter(isValidSetRecord);
     const filtered = getFilteredHistory(history, state.selectedPeriod);
     if (filtered.length === 0) return;
-
     const byDay = {};
-    filtered.forEach(item => {
-        const key = formatLocalDateKey(item.date); if (!key) return;
-        if (!byDay[key]) byDay[key] = { date: new Date(item.date), weight: 0, volume: 0, max1RM: 0 };
-        const w = Number(item.weight), r = Number(item.reps);
-        if (w > byDay[key].weight) byDay[key].weight = w;
-        byDay[key].volume += w * r;
-        const est = estimate1RM(w, r); if (est > byDay[key].max1RM) byDay[key].max1RM = est;
-    });
-
-    const sortedKeys = Object.keys(byDay).sort();
-    const labels = sortedKeys.map(k => String(byDay[k].date.getDate()));
-    const dates = sortedKeys.map(k => byDay[k].date);
+    filtered.forEach(item => { const key = formatLocalDateKey(item.date); if (!key) return; if (!byDay[key]) byDay[key] = { date: new Date(item.date), weight: 0, volume: 0, max1RM: 0 }; const w = Number(item.weight), r = Number(item.reps); if (w > byDay[key].weight) byDay[key].weight = w; byDay[key].volume += w * r; const est = estimate1RM(w, r); if (est > byDay[key].max1RM) byDay[key].max1RM = est; });
+    const sortedKeys = Object.keys(byDay).sort(); const labels = sortedKeys.map(k => String(byDay[k].date.getDate())); const dates = sortedKeys.map(k => byDay[k].date);
     const metric = state.selectedExerciseMetric || 'weight';
-    
     let data, unit;
     if (metric === 'volume') { data = sortedKeys.map(k => byDay[k].volume); unit = 'кг'; }
     else if (metric === '1rm') { data = sortedKeys.map(k => Math.round(byDay[k].max1RM)); unit = 'кг'; }
     else { data = sortedKeys.map(k => byDay[k].weight); unit = 'кг'; }
-
-    const gradient = ctx.getContext('2d').createLinearGradient(0, 0, 0, 220);
+    const gradient = canvas.getContext('2d').createLinearGradient(0, 0, 0, 220);
     const linkColor = getComputedStyle(document.documentElement).getPropertyValue('--tg-theme-link-color') || '#3b82f6';
     gradient.addColorStop(0, linkColor + '30'); gradient.addColorStop(1, linkColor + '00');
-    const spanDays = dates.length > 1 ? (dates[dates.length - 1] - dates[0]) / (1000 * 60 * 60 * 24) : 0;
-
-    new Chart(ctx, {
-        type: 'line', data: { labels, datasets: [{ data, borderColor: linkColor, backgroundColor: gradient, borderWidth: 2, tension: 0.4, fill: true, pointRadius: 0, pointHoverRadius: 6, pointHoverBackgroundColor: '#ffffff', pointHoverBorderColor: linkColor, pointHoverBorderWidth: 3 }] },
-        options: { responsive: true, maintainAspectRatio: false, interaction: { mode: 'index', intersect: false }, plugins: { legend: { display: false }, tooltip: { backgroundColor: 'rgba(30, 30, 32, 0.95)', titleColor: '#8e8e93', bodyColor: '#ffffff', bodyFont: { size: 14, weight: 'bold' }, padding: 10, cornerRadius: 10, displayColors: false, callbacks: { title: (items) => { const d = dates[items[0].dataIndex]; return `${d.getDate()} ${MONTHS_RU[d.getMonth()]} ${d.getFullYear()}, ${WEEKDAYS_RU[d.getDay()]}`; }, label: (item) => `${item.raw} ${unit}` } } }, scales: { y: { display: false, beginAtZero: metric !== 'weight', grace: '10%' }, x: { grid: { display: false }, ticks: { color: '#8e8e93', font: { size: 10 }, padding: 6, callback: (value, index) => { const d = dates[index]; if (!d) return ''; return spanDays > 60 ? `${d.getDate()} ${MONTHS_RU[d.getMonth()]}` : `${d.getDate()} ${WEEKDAYS_RU[d.getDay()]}`; }, maxRotation: 0, autoSkip: true, maxTicksLimit: 7 }, border: { display: false } } }, animation: { duration: 400, easing: 'easeOutQuart' } }, plugins: [crosshairPlugin]
-    });
+    const spanDays = dates.length > 1 ? (dates[dates.length - 1] - dates[0]) / 86400000 : 0;
+    try {
+        new Chart(canvas, { type: 'line', data: { labels, datasets: [{ data, borderColor: linkColor, backgroundColor: gradient, borderWidth: 2, tension: 0.4, fill: true, pointRadius: 0, pointHoverRadius: 6, pointHoverBackgroundColor: '#ffffff', pointHoverBorderColor: linkColor, pointHoverBorderWidth: 3 }] }, options: { responsive: true, maintainAspectRatio: false, interaction: { mode: 'index', intersect: false }, plugins: { legend: { display: false }, tooltip: { backgroundColor: 'rgba(30, 30, 32, 0.95)', titleColor: '#8e8e93', bodyColor: '#ffffff', bodyFont: { size: 14, weight: 'bold' }, padding: 10, cornerRadius: 10, displayColors: false, callbacks: { title: (items) => { const d = dates[items[0].dataIndex]; return `${d.getDate()} ${MONTHS_RU[d.getMonth()]} ${d.getFullYear()}, ${WEEKDAYS_RU[d.getDay()]}`; }, label: (item) => `${item.raw} ${unit}` } } }, scales: { y: { display: false, beginAtZero: metric !== 'weight', grace: '10%' }, x: { grid: { display: false }, ticks: { color: '#8e8e93', font: { size: 10 }, padding: 6, callback: (value, index) => { const d = dates[index]; if (!d) return ''; return spanDays > 60 ? `${d.getDate()} ${MONTHS_RU[d.getMonth()]}` : `${d.getDate()} ${WEEKDAYS_RU[d.getDay()]}`; }, maxRotation: 0, autoSkip: true, maxTicksLimit: 7 }, border: { display: false } } }, animation: { duration: 400, easing: 'easeOutQuart' } }, plugins: [crosshairPlugin] });
+    } catch (err) { console.error('Chart render failed', err); }
 }
 
-// --- ПРОГРАММЫ ---
+// === ПРОГРАММЫ ===
 const SUPERSET_COLORS = [{ border: '#a855f7', bg: 'rgba(168, 85, 247, 0.08)', badgeBg: 'rgba(168, 85, 247, 0.25)', text: '#c084fc' }, { border: '#3b82f6', bg: 'rgba(59, 130, 246, 0.08)', badgeBg: 'rgba(59, 130, 246, 0.25)', text: '#60a5fa' }, { border: '#10b981', bg: 'rgba(16, 185, 129, 0.08)', badgeBg: 'rgba(16, 185, 129, 0.25)', text: '#34d399' }, { border: '#f59e0b', bg: 'rgba(245, 158, 11, 0.08)', badgeBg: 'rgba(245, 158, 11, 0.25)', text: '#fbbf24' }, { border: '#ec4899', bg: 'rgba(236, 72, 153, 0.08)', badgeBg: 'rgba(236, 72, 153, 0.25)', text: '#f472b6' }];
 function getSupersetStyle(supersetId, allSupersetIds) { if (!supersetId) return { styleAttr: '', badgeStyle: '', text: '#c084fc', border: '#a855f7' }; const uniqueIds = Array.from(new Set(allSupersetIds.filter(Boolean))); const c = SUPERSET_COLORS[uniqueIds.indexOf(supersetId) % SUPERSET_COLORS.length]; return { styleAttr: `border-left: 4px solid ${c.border}; background: linear-gradient(90deg, ${c.bg}, transparent);`, badgeStyle: `background: ${c.badgeBg}; color: ${c.text};`, text: c.text, border: c.border }; }
 function renderPrograms() {
@@ -653,12 +463,12 @@ function renderPrograms() {
         const exercises = program.exercises || []; const allSsIds = exercises.map(e => e.supersetId); const exerciseBlocks = []; const processed = new Set(); let globalExCounter = 1;
         exercises.forEach((exercise, idx) => {
             if (processed.has(idx)) return;
-            if (exercise.supersetId) { const group = exercises.map((e, i) => ({ ...e, originalIndex: i })).filter(e => e.supersetId === exercise.supersetId); group.forEach(e => processed.add(e.originalIndex)); const style = getSupersetStyle(exercise.supersetId, allSsIds); exerciseBlocks.push(`<div class="p-2.5 rounded-xl mb-2 bg-tgBg/30" style="${style.styleAttr}"><div class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold mb-2 uppercase tracking-wide" style="${style.badgeStyle}"><i class="fa-solid fa-bolt"></i> Суперсет</div><div class="divide-y divide-tgSecondaryBg/40">${group.map(e => `<div class="flex items-start gap-2 py-1.5"><span class="text-tgHint font-mono text-xs shrink-0 mt-0.5">${globalExCounter++}.</span><div class="flex-1 min-w-0"><div class="text-sm font-medium leading-snug break-words">${esc(e.name)}</div></div><span class="font-mono text-xs text-tgHint shrink-0 bg-tgBg/60 px-2 py-0.5 rounded-md whitespace-nowrap">${e.targetSets ?? 3} × ${e.targetReps ?? 10}</span></div>`).join('')}</div></div>`); }
-            else { processed.add(idx); exerciseBlocks.push(`<div class="flex items-start gap-2 py-1.5 border-b border-tgSecondaryBg/40 last:border-0"><span class="text-tgHint font-mono text-xs shrink-0 mt-0.5">${globalExCounter++}.</span><div class="flex-1 min-w-0"><div class="text-sm font-medium leading-snug break-words">${esc(exercise.name)}</div></div><span class="font-mono text-xs text-tgHint shrink-0 bg-tgBg/60 px-2 py-0.5 rounded-md whitespace-nowrap">${exercise.targetSets ?? 3} × ${exercise.targetReps ?? 10}</span></div>`); }
+            if (exercise.supersetId) { const group = exercises.map((e, i) => ({ ...e, originalIndex: i })).filter(e => e.supersetId === exercise.supersetId); group.forEach(e => processed.add(e.originalIndex)); const style = getSupersetStyle(exercise.supersetId, allSsIds); exerciseBlocks.push(`<div class="p-2.5 rounded-xl mb-2 bg-tgBg/30" style="${style.styleAttr}"><div class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold mb-2 uppercase tracking-wide" style="${style.badgeStyle}"><i class="fa-solid fa-bolt"></i> Суперсет</div><div class="divide-y divide-tgSecondaryBg/40">${group.map(e => `<div class="flex items-start gap-2 py-1.5"><span class="text-tgHint font-mono text-xs shrink-0 mt-0.5">${globalExCounter++}.</span><div class="flex-1 min-w-0"><div class="text-sm font-medium leading-snug break-words">${escHtml(e.name)}</div></div><span class="font-mono text-xs text-tgHint shrink-0 bg-tgBg/60 px-2 py-0.5 rounded-md whitespace-nowrap">${e.targetSets ?? 3} × ${e.targetReps ?? 10}</span></div>`).join('')}</div></div>`); }
+            else { processed.add(idx); exerciseBlocks.push(`<div class="flex items-start gap-2 py-1.5 border-b border-tgSecondaryBg/40 last:border-0"><span class="text-tgHint font-mono text-xs shrink-0 mt-0.5">${globalExCounter++}.</span><div class="flex-1 min-w-0"><div class="text-sm font-medium leading-snug break-words">${escHtml(exercise.name)}</div></div><span class="font-mono text-xs text-tgHint shrink-0 bg-tgBg/60 px-2 py-0.5 rounded-md whitespace-nowrap">${exercise.targetSets ?? 3} × ${exercise.targetReps ?? 10}</span></div>`); }
         });
-        return `<div class="bg-tgSecondaryBg p-4 rounded-2xl mb-3 card-enter" style="animation-delay: ${index * 0.05}s"><div class="flex items-start justify-between gap-3 mb-3"><div class="font-semibold text-base break-words flex-1 min-w-0 pt-1">${esc(program.name)}</div><div class="flex items-center gap-1.5 shrink-0"><button onclick="navigate('program_edit', {programId: '${program.id}'})" class="w-9 h-9 flex items-center justify-center rounded-xl bg-tgBg text-tgLink active:opacity-70"><i class="fa-solid fa-pen text-sm"></i></button><button onclick="deleteProgram('${program.id}')" class="w-9 h-9 flex items-center justify-center rounded-xl bg-tgBg text-red-500 active:opacity-70"><i class="fa-solid fa-trash text-sm"></i></button></div></div><div class="space-y-0.5 mb-4">${exerciseBlocks.join('') || '<div class="text-tgHint text-xs italic py-1">Нет упражнений</div>'}</div><button onclick="startWorkout('${program.id}')" class="w-full flex items-center justify-center gap-2 bg-tgButton text-white font-semibold py-3 rounded-xl active:opacity-80"><i class="fa-solid fa-play text-sm"></i> Начать тренировку</button></div>`;
+        return `<div class="bg-tgSecondaryBg p-4 rounded-2xl mb-3 card-enter" style="animation-delay: ${index * 0.05}s"><div class="flex items-start justify-between gap-3 mb-3"><div class="font-semibold text-base break-words flex-1 min-w-0 pt-1">${escHtml(program.name)}</div><div class="flex items-center gap-1.5 shrink-0"><button data-action="edit-program" data-payload="${escAttr(program.id)}" class="w-9 h-9 flex items-center justify-center rounded-xl bg-tgBg text-tgLink active:opacity-70"><i class="fa-solid fa-pen text-sm"></i></button><button data-action="delete-program" data-payload="${escAttr(program.id)}" class="w-9 h-9 flex items-center justify-center rounded-xl bg-tgBg text-red-500 active:opacity-70"><i class="fa-solid fa-trash text-sm"></i></button></div></div><div class="space-y-0.5 mb-4">${exerciseBlocks.join('') || '<div class="text-tgHint text-xs italic py-1">Нет упражнений</div>'}</div><button data-action="start-workout" data-payload="${escAttr(program.id)}" class="w-full flex items-center justify-center gap-2 bg-tgButton text-white font-semibold py-3 rounded-xl active:opacity-80"><i class="fa-solid fa-play text-sm"></i> Начать тренировку</button></div>`;
     }).join('') : '<div class="text-center text-tgHint mt-10 card-enter">Нет созданных программ</div>';
-    document.getElementById('app-content').innerHTML = `${listHTML}<button onclick="navigate('program_edit', {programId: null})" class="w-full mt-6 bg-tgButton text-white font-semibold py-4 rounded-2xl active:opacity-80 card-enter" style="animation-delay: 0.1s"><i class="fa-solid fa-plus mr-2"></i> Создать программу</button>`;
+    document.getElementById('app-content').innerHTML = `${listHTML}<button data-action="create-program" class="w-full mt-6 bg-tgButton text-white font-semibold py-4 rounded-2xl active:opacity-80 card-enter" style="animation-delay: 0.1s"><i class="fa-solid fa-plus mr-2"></i> Создать программу</button>`;
 }
 function renderProgramEdit() {
     const program = state.editingProgram || { name: '', exercises: [] }; const exercises = program.exercises || []; const muscleGroups = getMuscleGroups(); const allSsIds = exercises.map(e => e.supersetId); const activeSsId = state.supersetActiveId;
@@ -667,10 +477,14 @@ function renderProgramEdit() {
         let btnStyle = '', btnClass = 'text-tgHint bg-tgBg', btnTitle = 'Объединить в суперсет';
         if (activeSsId) { if (isInThisSuperset) { btnStyle = `background: ${style.border}; color: #ffffff; box-shadow: 0 0 12px ${style.border};`; btnTitle = 'В активном суперсете'; } else { btnStyle = `border: 2px dashed ${style.border}; color: ${style.text};`; btnClass = 'animate-pulse'; btnTitle = 'Добавить в суперсет'; } }
         else if (exercise.supersetId) { btnStyle = `background: ${style.badgeStyle}; color: ${style.text}; border: 1px solid ${style.border};`; }
-        return `<div class="bg-tgSecondaryBg p-4 rounded-2xl mb-3 card-enter" style="animation-delay: ${index * 0.05}s; ${exercise.supersetId ? style.styleAttr : ''}"><div class="flex justify-between items-center mb-3"><span class="font-medium text-sm text-tgHint">Упражнение ${index + 1}</span><div class="flex gap-1"><button onclick="toggleSupersetClick(${index})" title="${btnTitle}" class="w-9 h-9 flex items-center justify-center rounded-full ${btnClass} active:opacity-70 transition-all" style="${btnStyle}"><i class="fa-solid fa-link"></i></button><button onclick="removeExercise(${index})" class="w-9 h-9 flex items-center justify-center rounded-full text-red-500 active:opacity-70"><i class="fa-solid fa-times"></i></button></div></div><input type="text" placeholder="Название" value="${esc(exercise.name)}" oninput="updateExercise(${index}, 'name', this.value)" class="w-full p-3 rounded-xl mb-3 text-sm font-medium"><label class="checkbox-label mb-3 p-3 rounded-xl bg-tgBg"><input type="checkbox" ${isBodyweight ? 'checked' : ''} onchange="updateExercise(${index}, 'exerciseType', this.checked ? 'bodyweight' : 'weighted')"><span class="text-sm font-medium">Собственный вес</span></label><select onchange="updateExercise(${index}, 'muscleGroup', this.value)" class="w-full p-3 rounded-xl mb-3 text-sm"><option value="">Группа мышц</option>${muscleGroups.map(g => `<option value="${g}" ${exercise.muscleGroup === g ? 'selected' : ''}>${g}</option>`).join('')}</select><div class="flex gap-3"><div class="flex-1"><label class="text-xs text-tgHint mb-1 block">Подходы</label><div class="flex items-center gap-1"><button onclick="adjustProgramParam(${index}, 'targetSets', -1)" class="w-10 h-10 rounded-xl bg-tgBg font-bold active:opacity-70 shrink-0">−</button><input type="number" id="sets-${index}" inputmode="numeric" value="${exercise.targetSets ?? 3}" onchange="updateExercise(${index}, 'targetSets', parseInt(this.value) || 3)" class="w-full h-10 rounded-xl text-sm text-center font-semibold"><button onclick="adjustProgramParam(${index}, 'targetSets', 1)" class="w-10 h-10 rounded-xl bg-tgBg font-bold active:opacity-70 shrink-0">+</button></div></div><div class="flex-1"><label class="text-xs text-tgHint mb-1 block">Повторения</label><div class="flex items-center gap-1"><button onclick="adjustProgramParam(${index}, 'targetReps', -1)" class="w-10 h-10 rounded-xl bg-tgBg font-bold active:opacity-70 shrink-0">−</button><input type="number" id="reps-${index}" inputmode="numeric" value="${exercise.targetReps ?? 10}" onchange="updateExercise(${index}, 'targetReps', parseInt(this.value) || 10)" class="w-full h-10 rounded-xl text-sm text-center font-semibold"><button onclick="adjustProgramParam(${index}, 'targetReps', 1)" class="w-10 h-10 rounded-xl bg-tgBg font-bold active:opacity-70 shrink-0">+</button></div></div></div></div>`;
+        return `<div class="bg-tgSecondaryBg p-4 rounded-2xl mb-3 card-enter" style="animation-delay: ${index * 0.05}s; ${exercise.supersetId ? style.styleAttr : ''}"><div class="flex justify-between items-center mb-3"><span class="font-medium text-sm text-tgHint">Упражнение ${index + 1}</span><div class="flex gap-1"><button data-action="toggle-superset" data-payload="${index}" title="${escHtml(btnTitle)}" class="w-9 h-9 flex items-center justify-center rounded-full ${btnClass} active:opacity-70 transition-all" style="${btnStyle}"><i class="fa-solid fa-link"></i></button><button data-action="remove-exercise" data-payload="${index}" class="w-9 h-9 flex items-center justify-center rounded-full text-red-500 active:opacity-70"><i class="fa-solid fa-times"></i></button></div></div><input type="text" placeholder="Название" value="${escAttr(exercise.name)}" data-exercise-index="${index}" data-field="name" class="exercise-input w-full p-3 rounded-xl mb-3 text-sm font-medium"><label class="checkbox-label mb-3 p-3 rounded-xl bg-tgBg"><input type="checkbox" ${isBodyweight ? 'checked' : ''} data-exercise-index="${index}" data-field="exerciseType" class="exercise-checkbox"><span class="text-sm font-medium">Собственный вес</span></label><select data-exercise-index="${index}" data-field="muscleGroup" class="exercise-select w-full p-3 rounded-xl mb-3 text-sm"><option value="">Группа мышц</option>${muscleGroups.map(g => `<option value="${escAttr(g)}" ${exercise.muscleGroup === g ? 'selected' : ''}>${escHtml(g)}</option>`).join('')}</select><div class="flex gap-3"><div class="flex-1"><label class="text-xs text-tgHint mb-1 block">Подходы</label><div class="flex items-center gap-1"><button data-action="adjust-param" data-payload="${index}:targetSets:-1" class="w-10 h-10 rounded-xl bg-tgBg font-bold active:opacity-70 shrink-0">−</button><input type="number" id="sets-${index}" inputmode="numeric" value="${exercise.targetSets ?? 3}" data-exercise-index="${index}" data-field="targetSets" class="exercise-input w-full h-10 rounded-xl text-sm text-center font-semibold"><button data-action="adjust-param" data-payload="${index}:targetSets:1" class="w-10 h-10 rounded-xl bg-tgBg font-bold active:opacity-70 shrink-0">+</button></div></div><div class="flex-1"><label class="text-xs text-tgHint mb-1 block">Повторения</label><div class="flex items-center gap-1"><button data-action="adjust-param" data-payload="${index}:targetReps:-1" class="w-10 h-10 rounded-xl bg-tgBg font-bold active:opacity-70 shrink-0">−</button><input type="number" id="reps-${index}" inputmode="numeric" value="${exercise.targetReps ?? 10}" data-exercise-index="${index}" data-field="targetReps" class="exercise-input w-full h-10 rounded-xl text-sm text-center font-semibold"><button data-action="adjust-param" data-payload="${index}:targetReps:1" class="w-10 h-10 rounded-xl bg-tgBg font-bold active:opacity-70 shrink-0">+</button></div></div></div></div>`;
     }).join('');
-    document.getElementById('app-content').innerHTML = `<input type="text" id="prog-name" placeholder="Название программы" value="${esc(program.name)}" oninput="updateProgramName(this.value)" class="w-full p-4 rounded-2xl mb-4 text-lg font-semibold card-enter"><div id="exercises-list">${exercisesHTML}</div><button onclick="addExercise()" class="w-full py-4 border-2 border-dashed border-tgHint rounded-2xl text-tgHint mt-2 active:bg-tgSecondaryBg card-enter" style="animation-delay: 0.1s"><i class="fa-solid fa-plus mr-2"></i> Добавить упражнение</button><button onclick="saveProgram()" class="w-full mt-6 mb-4 bg-tgButton text-white font-semibold py-4 rounded-2xl active:opacity-80 card-enter"><i class="fa-solid fa-check mr-2"></i> Сохранить</button>`;
+    document.getElementById('app-content').innerHTML = `<input type="text" id="prog-name" placeholder="Название программы" value="${escAttr(program.name)}" class="w-full p-4 rounded-2xl mb-4 text-lg font-semibold card-enter"><div id="exercises-list">${exercisesHTML}</div><button data-action="add-exercise" class="w-full py-4 border-2 border-dashed border-tgHint rounded-2xl text-tgHint mt-2 active:bg-tgSecondaryBg card-enter" style="animation-delay: 0.1s"><i class="fa-solid fa-plus mr-2"></i> Добавить упражнение</button><button data-action="save-program" class="w-full mt-6 mb-4 bg-tgButton text-white font-semibold py-4 rounded-2xl active:opacity-80 card-enter"><i class="fa-solid fa-check mr-2"></i> Сохранить</button>`;
     clearMainButton();
+    // Навешиваем обработчики на инпуты
+    document.querySelectorAll('.exercise-input').forEach(input => { input.addEventListener('input', (e) => { const idx = parseInt(e.target.dataset.exerciseIndex); const field = e.target.dataset.field; updateExercise(idx, field, e.target.value); }); });
+    document.querySelectorAll('.exercise-checkbox').forEach(cb => { cb.addEventListener('change', (e) => { const idx = parseInt(e.target.dataset.exerciseIndex); const field = e.target.dataset.field; updateExercise(idx, field, e.target.checked ? 'bodyweight' : 'weighted'); }); });
+    document.querySelectorAll('.exercise-select').forEach(sel => { sel.addEventListener('change', (e) => { const idx = parseInt(e.target.dataset.exerciseIndex); const field = e.target.dataset.field; updateExercise(idx, field, e.target.value); }); });
 }
 function updateProgramName(value) { if (!state.editingProgram) state.editingProgram = { name: '', exercises: [] }; state.editingProgram.name = value; }
 function adjustProgramParam(index, field, delta) { const ex = state.editingProgram.exercises[index]; ex[field] = Math.max(1, (ex[field] ?? (field === 'targetSets' ? 3 : 10)) + delta); haptic('light'); const input = document.getElementById(`${field === 'targetSets' ? 'sets' : 'reps'}-${index}`); if (input) input.value = ex[field]; }
@@ -681,35 +495,80 @@ function toggleSupersetClick(index) { const exercises = state.editingProgram.exe
 function saveProgram() { const name = document.getElementById('prog-name')?.value.trim(); if (!name) { showAlert('Введите название'); return; } if (!state.editingProgram || state.editingProgram.exercises.length === 0) { showAlert('Добавьте упражнение'); return; } for (const ex of state.editingProgram.exercises) { if (!ex.name?.trim()) { showAlert('Заполните названия'); return; } if (!ex.muscleGroup) { showAlert(`Выберите группу для «${ex.name}»`); return; } } state.editingProgram.name = name; const programs = DataAPI.getPrograms(); const idx = programs.findIndex(p => p.id === state.editingProgram.id); if (idx > -1) programs[idx] = state.editingProgram; else { state.editingProgram.id = createId(); programs.push(state.editingProgram); } DataAPI.savePrograms(programs); haptic('success'); state.editingProgram = null; state.supersetActiveId = null; openProgramsScreen(); }
 function deleteProgram(id) { showConfirm('Удалить программу?', ok => { if (ok) { DataAPI.savePrograms(DataAPI.getPrograms().filter(p => p.id !== id)); renderPrograms(); } }); }
 
-// --- ТРЕНИРОВКА ---
-function generateSetHTML(exIdx, setIdx, set, exType) { const isBw = exType === 'bodyweight'; const wHeader = isBw ? 'Доп. вес (кг)' : 'Вес (кг)'; const isDrop = set.setType === 'drop'; return `<div id="set-row-${exIdx}-${setIdx}" class="bg-tgBg rounded-xl p-3 mb-2 card-enter ${isDrop ? 'set-drop' : ''}" style="animation-delay: 0.03s"><div class="flex items-center justify-between mb-2"><div class="flex items-center gap-2 flex-wrap"><span class="text-tgHint text-sm font-medium">Подход ${setIdx + 1}</span>${isDrop ? '<span class="drop-badge"><i class="fa-solid fa-fire"></i> ДРОП-СЕТ</span>' : ''}</div><button onclick="removeSet(${exIdx}, ${setIdx})" class="w-8 h-8 flex items-center justify-center rounded-full text-red-500 active:opacity-70"><i class="fa-solid fa-trash-can text-sm"></i></button></div><div class="flex items-center gap-2"><div class="flex-1"><div class="text-[11px] text-tgHint mb-1 font-medium">${wHeader}</div><div class="flex items-center bg-tgSecondaryBg rounded-xl p-1" style="border:none!important"><button onclick="adjustSet(${exIdx}, ${setIdx}, 'weight', -2.5)" class="w-7 h-9 rounded-lg bg-tgBg text-lg flex items-center justify-center active:opacity-70 font-bold shrink-0">−</button><input type="number" id="set-${exIdx}-${setIdx}-weight" inputmode="decimal" value="${set.weight}" onchange="updateSet(${exIdx}, ${setIdx}, 'weight', parseFloat(this.value)||0)" class="w-full h-9 text-center bg-transparent text-lg font-semibold min-w-0" style="border:none!important;outline:none!important"><button onclick="adjustSet(${exIdx}, ${setIdx}, 'weight', 2.5)" class="w-7 h-9 rounded-lg bg-tgBg text-lg flex items-center justify-center active:opacity-70 font-bold shrink-0">+</button></div></div><div class="flex-1"><div class="text-[11px] text-tgHint mb-1 font-medium">Повторения</div><div class="flex items-center bg-tgSecondaryBg rounded-xl p-1" style="border:none!important"><button onclick="adjustSet(${exIdx}, ${setIdx}, 'reps', -1)" class="w-7 h-9 rounded-lg bg-tgBg text-lg flex items-center justify-center active:opacity-70 font-bold shrink-0">−</button><input type="number" id="set-${exIdx}-${setIdx}-reps" inputmode="numeric" value="${set.reps}" onchange="updateSet(${exIdx}, ${setIdx}, 'reps', parseInt(this.value)||0)" class="w-full h-9 text-center bg-transparent text-lg font-semibold min-w-0" style="border:none!important;outline:none!important"><button onclick="adjustSet(${exIdx}, ${setIdx}, 'reps', 1)" class="w-7 h-9 rounded-lg bg-tgBg text-lg flex items-center justify-center active:opacity-70 font-bold shrink-0">+</button></div></div></div></div>`; }
-function generateExerciseCardHTML(exIdx, ex, allSsIds) { const sets = ex.sets || []; const completed = sets.filter(s => s.weight > 0 && s.reps > 0).length; const target = ex.targetSets ?? 3; const isComplete = completed >= target; return `<div id="exercise-card-${exIdx}" class="bg-tgSecondaryBg p-4 rounded-2xl mb-4 card-enter"><div class="flex justify-between items-center mb-3 gap-2"><div class="flex items-center gap-2 flex-1 min-w-0 flex-wrap"><h3 class="font-bold text-sm leading-snug break-words flex-1">${esc(ex.name)}</h3>${ex.exerciseType === 'bodyweight' ? '<span class="bodyweight-badge shrink-0">Собственный вес</span>' : ''}</div><div class="flex items-center gap-2 shrink-0"><span id="badge-${exIdx}" class="text-xs font-medium px-2 py-1 rounded-md ${isComplete ? 'bg-green-500/20 text-green-500' : 'bg-tgBg text-tgHint'}">${isComplete ? '✓ Готово' : `${completed}/${target}`}</span><button onclick="removeWorkoutExercise(${exIdx})" class="w-8 h-8 flex items-center justify-center rounded-full text-red-500 bg-tgBg active:opacity-70"><i class="fa-solid fa-times text-sm"></i></button></div></div><div id="sets-container-${exIdx}">${sets.map((s, i) => generateSetHTML(exIdx, i, s, ex.exerciseType)).join('')}</div><div class="flex gap-2 mt-2"><button onclick="tryAddSet(${exIdx})" class="flex-1 py-3 bg-tgBg rounded-xl text-tgLink text-sm font-semibold active:opacity-70">+ Подход</button><button onclick="tryAddDropSet(${exIdx})" class="flex-1 py-3 bg-orange-500/15 rounded-xl text-orange-400 text-sm font-semibold active:opacity-70"><i class="fa-solid fa-fire mr-1"></i> Дроп-сет</button></div></div>`; }
-function updateExerciseCardInDOM(exIdx, ex) { const cardHTML = generateExerciseCardHTML(exIdx, ex, state.activeWorkout.exercises.map(e => e.supersetId)); const existing = document.getElementById(`exercise-card-${exIdx}`); if (existing) existing.outerHTML = cardHTML; }
+// === ТРЕНИРОВКА ===
+function generateSetHTML(exIdx, setIdx, set, exType) { const isBw = exType === 'bodyweight'; const wHeader = isBw ? 'Доп. вес (кг)' : 'Вес (кг)'; const isDrop = set.setType === 'drop'; return `<div id="set-row-${exIdx}-${setIdx}" class="bg-tgBg rounded-xl p-3 mb-2 card-enter ${isDrop ? 'set-drop' : ''}" style="animation-delay: 0.03s"><div class="flex items-center justify-between mb-2"><div class="flex items-center gap-2 flex-wrap"><span class="text-tgHint text-sm font-medium">Подход ${setIdx + 1}</span>${isDrop ? '<span class="drop-badge"><i class="fa-solid fa-fire"></i> ДРОП-СЕТ</span>' : ''}</div><button data-action="remove-set" data-payload="${exIdx}:${setIdx}" class="w-8 h-8 flex items-center justify-center rounded-full text-red-500 active:opacity-70"><i class="fa-solid fa-trash-can text-sm"></i></button></div><div class="flex items-center gap-2"><div class="flex-1"><div class="text-[11px] text-tgHint mb-1 font-medium">${wHeader}</div><div class="flex items-center bg-tgSecondaryBg rounded-xl p-1" style="border:none!important"><button data-action="adjust-set" data-payload="${exIdx}:${setIdx}:weight:-2.5" class="w-7 h-9 rounded-lg bg-tgBg text-lg flex items-center justify-center active:opacity-70 font-bold shrink-0">−</button><input type="number" id="set-${exIdx}-${setIdx}-weight" inputmode="decimal" value="${set.weight}" data-exercise="${exIdx}" data-set="${setIdx}" data-field="weight" class="set-input w-full h-9 text-center bg-transparent text-lg font-semibold min-w-0" style="border:none!important;outline:none!important"><button data-action="adjust-set" data-payload="${exIdx}:${setIdx}:weight:2.5" class="w-7 h-9 rounded-lg bg-tgBg text-lg flex items-center justify-center active:opacity-70 font-bold shrink-0">+</button></div></div><div class="flex-1"><div class="text-[11px] text-tgHint mb-1 font-medium">Повторения</div><div class="flex items-center bg-tgSecondaryBg rounded-xl p-1" style="border:none!important"><button data-action="adjust-set" data-payload="${exIdx}:${setIdx}:reps:-1" class="w-7 h-9 rounded-lg bg-tgBg text-lg flex items-center justify-center active:opacity-70 font-bold shrink-0">−</button><input type="number" id="set-${exIdx}-${setIdx}-reps" inputmode="numeric" value="${set.reps}" data-exercise="${exIdx}" data-set="${setIdx}" data-field="reps" class="set-input w-full h-9 text-center bg-transparent text-lg font-semibold min-w-0" style="border:none!important;outline:none!important"><button data-action="adjust-set" data-payload="${exIdx}:${setIdx}:reps:1" class="w-7 h-9 rounded-lg bg-tgBg text-lg flex items-center justify-center active:opacity-70 font-bold shrink-0">+</button></div></div></div></div>`; }
+function generateExerciseCardHTML(exIdx, ex, allSsIds) { const sets = ex.sets || []; const completed = sets.filter(s => s.weight > 0 && s.reps > 0).length; const target = ex.targetSets ?? 3; const isComplete = completed >= target; return `<div id="exercise-card-${exIdx}" class="bg-tgSecondaryBg p-4 rounded-2xl mb-4 card-enter"><div class="flex justify-between items-center mb-3 gap-2"><div class="flex items-center gap-2 flex-1 min-w-0 flex-wrap"><h3 class="font-bold text-sm leading-snug break-words flex-1">${escHtml(ex.name)}</h3>${ex.exerciseType === 'bodyweight' ? '<span class="bodyweight-badge shrink-0">Собственный вес</span>' : ''}</div><div class="flex items-center gap-2 shrink-0"><span id="badge-${exIdx}" class="text-xs font-medium px-2 py-1 rounded-md ${isComplete ? 'bg-green-500/20 text-green-500' : 'bg-tgBg text-tgHint'}">${isComplete ? '✓ Готово' : `${completed}/${target}`}</span><button data-action="remove-workout-exercise" data-payload="${exIdx}" class="w-8 h-8 flex items-center justify-center rounded-full text-red-500 bg-tgBg active:opacity-70"><i class="fa-solid fa-times text-sm"></i></button></div></div><div id="sets-container-${exIdx}">${sets.map((s, i) => generateSetHTML(exIdx, i, s, ex.exerciseType)).join('')}</div><div class="flex gap-2 mt-2"><button data-action="add-set" data-payload="${exIdx}" class="flex-1 py-3 bg-tgBg rounded-xl text-tgLink text-sm font-semibold active:opacity-70">+ Подход</button><button data-action="add-drop-set" data-payload="${exIdx}" class="flex-1 py-3 bg-orange-500/15 rounded-xl text-orange-400 text-sm font-semibold active:opacity-70"><i class="fa-solid fa-fire mr-1"></i> Дроп-сет</button></div></div>`; }
+function updateExerciseCardInDOM(exIdx, ex) { const cardHTML = generateExerciseCardHTML(exIdx, ex, state.activeWorkout.exercises.map(e => e.supersetId)); const existing = document.getElementById(`exercise-card-${exIdx}`); if (existing) existing.outerHTML = cardHTML; attachSetInputHandlers(); }
+function attachSetInputHandlers() { document.querySelectorAll('.set-input').forEach(input => { input.addEventListener('change', (e) => { const exIdx = parseInt(e.target.dataset.exercise); const setIdx = parseInt(e.target.dataset.set); const field = e.target.dataset.field; const value = field === 'weight' ? parseWeight(e.target.value) : parseReps(e.target.value); if (value === null) { showAlert('Недопустимое значение'); e.target.value = state.activeWorkout.exercises[exIdx].sets[setIdx][field]; return; } updateSet(exIdx, setIdx, field, value); }); }); }
 function removeWorkoutExercise(exIdx) { showConfirm('Убрать упражнение?', ok => { if (ok) { state.activeWorkout.exercises.splice(exIdx, 1); saveActiveWorkout(); haptic('light'); renderWorkout(); } }); }
 function tryAddSet(exIdx) { const sets = state.activeWorkout.exercises[exIdx].sets || []; if (sets.length > 0) { const last = sets[sets.length - 1]; if (!last.weight || Number(last.weight) <= 0 || !last.reps || Number(last.reps) <= 0) { showAlert('Заполните предыдущий подход'); return; } } addSet(exIdx); }
 function tryAddDropSet(exIdx) { const sets = state.activeWorkout.exercises[exIdx].sets || []; if (sets.length === 0) { showAlert('Сначала добавьте обычный подход'); return; } const last = sets[sets.length - 1]; if (!last.weight || Number(last.weight) <= 0 || !last.reps || Number(last.reps) <= 0) { showAlert('Заполните предыдущий подход'); return; } addDropSet(exIdx); }
-function renderWorkout() { const workout = state.activeWorkout; if (!workout) { openProgramsScreen(); return; } const exercises = workout.exercises || []; const allSsIds = exercises.map(e => e.supersetId); const groups = []; const processed = new Set(); exercises.forEach((ex, idx) => { if (processed.has(idx)) return; if (ex.supersetId) { const group = exercises.map((e, i) => ({ ...e, originalIndex: i })).filter(e => e.supersetId === ex.supersetId); group.forEach(e => processed.add(e.originalIndex)); groups.push({ type: 'superset', exercises: group }); } else { processed.add(idx); groups.push({ type: 'single', exercise: ex, originalIndex: idx }); } }); let groupsHTML = groups.map((g, gIdx) => { if (g.type === 'superset') { const style = getSupersetStyle(g.exercises[0].supersetId, allSsIds); return `<div class="rounded-2xl p-3 mb-4 card-enter shadow-md" style="animation-delay: ${gIdx * 0.1}s; ${style.styleAttr}"><div class="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-[11px] font-bold mb-3 uppercase tracking-wide shadow-sm" style="${style.badgeStyle}"><i class="fa-solid fa-bolt"></i> СУПЕРСЕТ</div>${g.exercises.map(ex => generateExerciseCardHTML(ex.originalIndex, ex, allSsIds)).join('')}</div>`; } return generateExerciseCardHTML(g.originalIndex, g.exercise, allSsIds); }).join(''); document.getElementById('app-content').innerHTML = `<div class="sticky top-0 z-10 bg-tgBg/95 backdrop-blur-md py-4 mb-4 border-b border-tgSecondaryBg card-enter"><div class="text-4xl font-mono font-bold text-tgLink tracking-wider text-center" id="workout-timer">00:00:00</div><div class="text-tgHint text-xs mt-1 uppercase tracking-wide text-center">Время тренировки</div></div>${groupsHTML}<button onclick="promptWorkoutExit('programs')" class="w-full mt-2 mb-4 bg-red-600 text-white font-semibold py-4 rounded-2xl active:opacity-80 card-enter"><i class="fa-solid fa-stop mr-2"></i> Завершить тренировку</button>`; startTimer(); clearMainButton(); }
-function adjustSet(exIdx, setIdx, field, delta) { const ex = state.activeWorkout.exercises[exIdx]; const current = ex.sets[setIdx][field] || 0; const newValue = field === 'weight' ? Math.max(0, parseFloat((current + delta).toFixed(1))) : Math.max(0, current + delta); updateSet(exIdx, setIdx, field, newValue); haptic('light'); const input = document.getElementById(`set-${exIdx}-${setIdx}-${field}`); if (input) input.value = newValue; const completed = ex.sets.filter(s => s.weight > 0 && s.reps > 0).length; const target = ex.targetSets ?? 3; const badge = document.getElementById(`badge-${exIdx}`); if (badge) { badge.className = `text-xs font-medium px-2 py-1 rounded-md shrink-0 ${completed >= target ? 'bg-green-500/20 text-green-500' : 'bg-tgBg text-tgHint'}`; badge.innerText = completed >= target ? '✓ Готово' : `${completed}/${target}`; } }
+function renderWorkout() { const workout = state.activeWorkout; if (!workout) { openProgramsScreen(); return; } const exercises = workout.exercises || []; const allSsIds = exercises.map(e => e.supersetId); const groups = []; const processed = new Set(); exercises.forEach((ex, idx) => { if (processed.has(idx)) return; if (ex.supersetId) { const group = exercises.map((e, i) => ({ ...e, originalIndex: i })).filter(e => e.supersetId === ex.supersetId); group.forEach(e => processed.add(e.originalIndex)); groups.push({ type: 'superset', exercises: group }); } else { processed.add(idx); groups.push({ type: 'single', exercise: ex, originalIndex: idx }); } }); let groupsHTML = groups.map((g, gIdx) => { if (g.type === 'superset') { const style = getSupersetStyle(g.exercises[0].supersetId, allSsIds); return `<div class="rounded-2xl p-3 mb-4 card-enter shadow-md" style="animation-delay: ${gIdx * 0.1}s; ${style.styleAttr}"><div class="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-[11px] font-bold mb-3 uppercase tracking-wide shadow-sm" style="${style.badgeStyle}"><i class="fa-solid fa-bolt"></i> СУПЕРСЕТ</div>${g.exercises.map(ex => generateExerciseCardHTML(ex.originalIndex, ex, allSsIds)).join('')}</div>`; } return generateExerciseCardHTML(g.originalIndex, g.exercise, allSsIds); }).join(''); document.getElementById('app-content').innerHTML = `<div class="sticky top-0 z-10 bg-tgBg/95 backdrop-blur-md py-4 mb-4 border-b border-tgSecondaryBg card-enter"><div class="text-4xl font-mono font-bold text-tgLink tracking-wider text-center" id="workout-timer">00:00:00</div><div class="text-tgHint text-xs mt-1 uppercase tracking-wide text-center">Время тренировки</div></div>${groupsHTML}<button data-action="finish-workout" class="w-full mt-2 mb-4 bg-red-600 text-white font-semibold py-4 rounded-2xl active:opacity-80 card-enter"><i class="fa-solid fa-stop mr-2"></i> Завершить тренировку</button>`; startTimer(); clearMainButton(); attachSetInputHandlers(); }
+function adjustSet(exIdx, setIdx, field, delta) { const ex = state.activeWorkout?.exercises?.[exIdx]; if (!ex) return; const set = ex.sets?.[setIdx]; if (!set) return; const current = Number(set[field]) || 0; const newValue = field === 'weight' ? adjustWeight(current, delta) : adjustReps(current, delta); set[field] = newValue; saveActiveWorkout(); haptic('light'); const input = document.getElementById(`set-${exIdx}-${setIdx}-${field}`); if (input) input.value = newValue; updateExerciseBadge(exIdx); }
+function updateExerciseBadge(exIdx) { const ex = state.activeWorkout?.exercises?.[exIdx]; if (!ex) return; const completed = ex.sets.filter(s => s.weight > 0 && s.reps > 0).length; const target = ex.targetSets ?? 3; const badge = document.getElementById(`badge-${exIdx}`); if (badge) { badge.className = `text-xs font-medium px-2 py-1 rounded-md shrink-0 ${completed >= target ? 'bg-green-500/20 text-green-500' : 'bg-tgBg text-tgHint'}`; badge.innerText = completed >= target ? '✓ Готово' : `${completed}/${target}`; } }
 function addSet(exIdx) { const ex = state.activeWorkout.exercises[exIdx]; const sets = ex.sets; let w = 0, r = ex.targetReps ?? 10; if (sets.length > 0) { w = sets[sets.length - 1].weight; r = sets[sets.length - 1].reps; } sets.push({ weight: w, reps: r, setType: 'regular' }); saveActiveWorkout(); haptic('light'); updateExerciseCardInDOM(exIdx, ex); }
-function addDropSet(exIdx) { const sets = state.activeWorkout.exercises[exIdx].sets; const last = sets[sets.length - 1]; sets.push({ weight: Math.max(0, Math.round((last.weight * 0.75) / 2.5) * 2.5), reps: last.reps, setType: 'drop' }); saveActiveWorkout(); haptic('medium'); updateExerciseCardInDOM(exIdx, state.activeWorkout.exercises[exIdx]); }
+function addDropSet(exIdx) { const sets = state.activeWorkout.exercises[exIdx].sets; const last = sets[sets.length - 1]; sets.push({ weight: adjustWeight(last.weight, -Math.round(last.weight * 0.25 / 2.5) * 2.5), reps: last.reps, setType: 'drop' }); saveActiveWorkout(); haptic('medium'); updateExerciseCardInDOM(exIdx, state.activeWorkout.exercises[exIdx]); }
 function removeSet(exIdx, setIdx) { const sets = state.activeWorkout.exercises[exIdx].sets; if (sets.length <= 1) sets[0] = { weight: 0, reps: 10, setType: 'regular' }; else sets.splice(setIdx, 1); saveActiveWorkout(); haptic('light'); updateExerciseCardInDOM(exIdx, state.activeWorkout.exercises[exIdx]); }
 function updateSet(exIdx, setIdx, field, value) { state.activeWorkout.exercises[exIdx].sets[setIdx][field] = value; saveActiveWorkout(); }
 function startWorkout(programId) { const program = DataAPI.getProgramById(programId); if (!program || !program.exercises?.length) { showAlert('Нет упражнений'); return; } state.activeWorkout = { programId: program.id, programName: program.name, startTime: Date.now(), exercises: program.exercises.map(ex => ({ name: ex.name, muscleGroup: ex.muscleGroup, exerciseType: ex.exerciseType || 'weighted', supersetId: ex.supersetId || null, targetSets: ex.targetSets, targetReps: ex.targetReps, sets: [{ weight: 0, reps: ex.targetReps || 10, setType: 'regular' }] })) }; saveActiveWorkout(); navigate('workout'); }
-function startTimer() { stopWorkoutTimer(); const update = () => { if (!state.activeWorkout) return; const e = Date.now() - state.activeWorkout.startTime; const el = document.getElementById('workout-timer'); if (el) el.innerText = `${Math.floor(e/3600000).toString().padStart(2,'0')}:${Math.floor((e%3600000)/60000).toString().padStart(2,'0')}:${Math.floor((e%60000)/1000).toString().padStart(2,'0')}`; }; update(); state.workoutTimer = setInterval(update, 1000); }
+function startTimer() { stopWorkoutTimer(); const update = () => { if (!state.activeWorkout) return; const elapsed = Math.max(0, Date.now() - state.activeWorkout.startTime); const h = Math.floor(elapsed / 3600000); const m = Math.floor((elapsed % 3600000) / 60000); const s = Math.floor((elapsed % 60000) / 1000); const el = document.getElementById('workout-timer'); if (el) el.innerText = `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`; }; update(); state.workoutTimer = setInterval(update, 1000); }
 function stopWorkoutTimer() { if (state.workoutTimer) { clearInterval(state.workoutTimer); state.workoutTimer = null; } }
 function clearWorkoutState() { stopWorkoutTimer(); state.activeWorkout = null; saveActiveWorkout(); clearMainButton(); }
 
-// --- ИСТОРИЯ ---
-function openDataMenuModal() { const modal = document.createElement('div'); modal.id = 'data-menu-modal'; modal.className = 'modal-backdrop'; modal.innerHTML = `<div class="modal-sheet"><div class="w-10 h-1 bg-tgHint/40 rounded-full mx-auto mb-5"></div><h2 class="text-xl font-bold mb-4">Управление данными</h2><div class="space-y-3 mb-4"><button onclick="document.getElementById('data-menu-modal').remove(); exportData();" class="w-full py-3.5 px-4 rounded-xl bg-tgBg text-tgLink font-medium text-sm flex items-center justify-between active:opacity-80"><span><i class="fa-solid fa-download mr-2"></i> Экспорт (бэкап)</span><i class="fa-solid fa-chevron-right text-xs text-tgHint"></i></button><button onclick="document.getElementById('data-menu-modal').remove(); triggerImportFile();" class="w-full py-3.5 px-4 rounded-xl bg-tgBg text-tgLink font-medium text-sm flex items-center justify-between active:opacity-80"><span><i class="fa-solid fa-upload mr-2"></i> Импорт</span><i class="fa-solid fa-chevron-right text-xs text-tgHint"></i></button><button onclick="document.getElementById('data-menu-modal').remove(); resetAllData();" class="w-full py-3.5 px-4 rounded-xl bg-red-500/10 text-red-500 font-medium text-sm flex items-center justify-between active:opacity-80"><span><i class="fa-solid fa-trash-can mr-2"></i> Сбросить всё</span><i class="fa-solid fa-chevron-right text-xs text-red-500/50"></i></button></div><button onclick="document.getElementById('data-menu-modal').remove();" class="w-full py-3 bg-tgBg rounded-2xl font-semibold active:opacity-80">Закрыть</button></div>`; document.body.appendChild(modal); modal.addEventListener('click', e => { if (e.target === modal) modal.remove(); }); }
+// === ИСТОРИЯ ===
+function openDataMenuModal() { const modal = document.createElement('div'); modal.id = 'data-menu-modal'; modal.className = 'modal-backdrop'; modal.innerHTML = `<div class="modal-sheet"><div class="w-10 h-1 bg-tgHint/40 rounded-full mx-auto mb-5"></div><h2 class="text-xl font-bold mb-4">Управление данными</h2><div class="space-y-3 mb-4"><button data-action="export-data" class="w-full py-3.5 px-4 rounded-xl bg-tgBg text-tgLink font-medium text-sm flex items-center justify-between active:opacity-80"><span><i class="fa-solid fa-download mr-2"></i> Экспорт (бэкап)</span><i class="fa-solid fa-chevron-right text-xs text-tgHint"></i></button><button data-action="import-data" class="w-full py-3.5 px-4 rounded-xl bg-tgBg text-tgLink font-medium text-sm flex items-center justify-between active:opacity-80"><span><i class="fa-solid fa-upload mr-2"></i> Импорт</span><i class="fa-solid fa-chevron-right text-xs text-tgHint"></i></button><button data-action="reset-data" class="w-full py-3.5 px-4 rounded-xl bg-red-500/10 text-red-500 font-medium text-sm flex items-center justify-between active:opacity-80"><span><i class="fa-solid fa-trash-can mr-2"></i> Сбросить всё</span><i class="fa-solid fa-chevron-right text-xs text-red-500/50"></i></button></div><button data-action="close-modal" data-modal="data-menu-modal" class="w-full py-3 bg-tgBg rounded-2xl font-semibold active:opacity-80">Закрыть</button></div>`; document.body.appendChild(modal); modal.addEventListener('click', e => { if (e.target === modal) modal.remove(); }); }
 function triggerImportFile() { const input = document.createElement('input'); input.type = 'file'; input.accept = '.json'; input.onchange = e => { const file = e.target.files[0]; if (!file) return; const reader = new FileReader(); reader.onload = event => { try { const imp = JSON.parse(event.target.result); if (imp.programs && imp.history) { DataAPI.savePrograms(imp.programs); DataAPI.saveHistory(imp.history); if (imp.muscleGroups) saveMuscleGroups(imp.muscleGroups); haptic('success'); showAlert('Восстановлено!'); renderHistory(); } else showAlert('Неверный формат'); } catch (err) { showAlert('Ошибка чтения'); } }; reader.readAsText(file); }; input.click(); }
 async function exportData() { try { const data = { programs: DataAPI.getPrograms(), history: DataAPI.getHistory(), muscleGroups: getMuscleGroups(), exportDate: new Date().toISOString() }; const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' }); const file = new File([blob], `fitnary_backup_${new Date().toISOString().slice(0, 10)}.json`, { type: 'application/json' }); if (navigator.canShare && navigator.canShare({ files: [file] })) { await navigator.share({ files: [file] }); haptic('success'); return; } const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = `fitnary_backup_${new Date().toISOString().slice(0, 10)}.json`; document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url); haptic('success'); } catch (e) { if (e.name !== 'AbortError') showAlert('Ошибка экспорта'); } }
 function resetAllData() { showConfirm('Удалить все данные?', ok => { if (ok) { localStorage.removeItem(DataAPI._key('programs')); localStorage.removeItem(DataAPI._key('history')); localStorage.removeItem(ACTIVE_KEY); localStorage.removeItem(`twa_fitness_muscle_groups_${USER_ID}`); state.activeWorkout = null; haptic('warning'); navigateToTab('programs'); } }); }
-function renderHistory() { const history = DataAPI.getHistory().sort((a, b) => new Date(b.date) - new Date(a.date)); let listHTML = history.length ? history.map((entry, idx) => { const date = new Date(entry.date); const dateStr = date.toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', weekday: 'short' }); let tonnage = 0; (entry.exercises || []).forEach(ex => (ex.sets || []).forEach(s => tonnage += (Number(s.weight)||0) * (Number(s.reps)||0))); return `<div onclick='navigate("history_detail", {entryId: "${entry.id}"})' class="bg-tgSecondaryBg p-4 rounded-2xl mb-3 active:scale-[0.98] transition-transform cursor-pointer card-enter" style="animation-delay: ${idx * 0.05}s"><div class="flex justify-between items-start mb-2"><div class="font-semibold text-base">${esc(entry.programName)}</div><div class="text-tgHint text-sm">${dateStr}</div></div><div class="flex gap-4 text-sm text-tgHint"><span><i class="fa-regular fa-clock mr-1"></i> ${Math.round(entry.duration/60)} мин</span><span><i class="fa-solid fa-dumbbell mr-1"></i> ${(tonnage/1000).toFixed(1)}т</span></div></div>`; }).join('') : '<div class="text-center text-tgHint mt-10 card-enter">История пуста</div>'; document.getElementById('app-content').innerHTML = `${listHTML}<div class="mt-8 pt-6 border-t border-tgSecondaryBg card-enter" style="animation-delay: 0.1s"><button onclick="openDataMenuModal()" class="w-full py-3.5 rounded-xl bg-tgSecondaryBg text-tgText font-semibold text-sm active:opacity-80 flex items-center justify-center gap-2"><i class="fa-solid fa-gear"></i> Управление данными</button></div>`; }
-function renderHistoryDetail(entryId) { const entry = DataAPI.getHistoryEntryById(entryId); if (!entry) { document.getElementById('app-content').innerHTML = '<p class="text-center text-tgHint mt-10">Не найдено</p>'; return; } const date = new Date(entry.date).toLocaleString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' }); let tonnage = 0; (entry.exercises || []).forEach(ex => (ex.sets || []).forEach(s => tonnage += (Number(s.weight)||0) * (Number(s.reps)||0))); const exercises = entry.exercises || []; const allSsIds = exercises.map(e => e.supersetId); const groups = []; const processed = new Set(); exercises.forEach((ex, idx) => { if (processed.has(idx)) return; if (ex.supersetId) { const group = exercises.map((e, i) => ({ ...e, originalIndex: i })).filter(e => e.supersetId === ex.supersetId); group.forEach(e => processed.add(e.originalIndex)); groups.push({ type: 'superset', exercises: group }); } else { processed.add(idx); groups.push({ type: 'single', exercise: ex, originalIndex: idx }); } }); const renderDetail = ex => { const isBw = ex.exerciseType === 'bodyweight'; const setsHTML = (ex.sets || []).map((s, i) => `<div class="flex justify-between py-2 border-b border-tgBg last:border-0 ${s.setType === 'drop' ? 'text-orange-400' : ''}"><span class="text-tgHint text-sm flex items-center gap-2">${i+1}.${s.setType === 'drop' ? '<span class="drop-badge"><i class="fa-solid fa-fire"></i> ДРОП</span>' : ''}</span><span class="font-medium">${s.weight} кг × ${s.reps} повт</span></div>`).join(''); return `<div class="mb-4"><div class="flex items-center gap-2 mb-2 flex-wrap"><h3 class="font-bold text-base">${esc(ex.name)}</h3>${isBw ? '<span class="bodyweight-badge">Собственный вес</span>' : ''}</div><div class="bg-tgSecondaryBg p-4 rounded-2xl text-sm">${setsHTML}</div></div>`; }; const exHTML = groups.map(g => g.type === 'superset' ? `<div class="rounded-2xl p-3 mb-4 shadow-md" style="${getSupersetStyle(g.exercises[0].supersetId, allSsIds).styleAttr}"><div class="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-[11px] font-bold mb-3 uppercase tracking-wide shadow-sm" style="${getSupersetStyle(g.exercises[0].supersetId, allSsIds).badgeStyle}"><i class="fa-solid fa-bolt"></i> СУПЕРСЕТ</div>${g.exercises.map(renderDetail).join('')}</div>` : renderDetail(g.exercise)).join(''); document.getElementById('app-content').innerHTML = `<div class="text-center mb-6 card-enter"><h2 class="text-xl font-bold">${esc(entry.programName)}</h2><p class="text-tgHint text-sm mt-1">${date}</p><div class="flex justify-center gap-6 mt-3 text-sm text-tgHint bg-tgSecondaryBg py-2.5 px-4 rounded-2xl inline-flex"><span><i class="fa-regular fa-clock mr-1"></i> ${Math.round(entry.duration/60)} мин</span><span><i class="fa-solid fa-dumbbell mr-1"></i> ${(tonnage/1000).toFixed(1)}т</span></div></div>${exHTML}`; }
+function renderHistory() { const history = DataAPI.getHistory().sort((a, b) => new Date(b.date) - new Date(a.date)); let listHTML = history.length ? history.map((entry, idx) => { const date = new Date(entry.date); const dateStr = date.toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', weekday: 'short' }); let tonnage = 0; (entry.exercises || []).forEach(ex => (ex.sets || []).forEach(s => tonnage += (Number(s.weight)||0) * (Number(s.reps)||0))); return `<div data-action="history-detail" data-payload="${escAttr(entry.id)}" class="bg-tgSecondaryBg p-4 rounded-2xl mb-3 active:scale-[0.98] transition-transform cursor-pointer card-enter" style="animation-delay: ${idx * 0.05}s"><div class="flex justify-between items-start mb-2"><div class="font-semibold text-base">${escHtml(entry.programName)}</div><div class="text-tgHint text-sm">${dateStr}</div></div><div class="flex gap-4 text-sm text-tgHint"><span><i class="fa-regular fa-clock mr-1"></i> ${Math.round(entry.duration/60)} мин</span><span><i class="fa-solid fa-dumbbell mr-1"></i> ${(tonnage/1000).toFixed(1)}т</span></div></div>`; }).join('') : '<div class="text-center text-tgHint mt-10 card-enter">История пуста</div>'; document.getElementById('app-content').innerHTML = `${listHTML}<div class="mt-8 pt-6 border-t border-tgSecondaryBg card-enter" style="animation-delay: 0.1s"><button data-action="open-data-menu" class="w-full py-3.5 rounded-xl bg-tgSecondaryBg text-tgText font-semibold text-sm active:opacity-80 flex items-center justify-center gap-2"><i class="fa-solid fa-gear"></i> Управление данными</button></div>`; }
+function renderHistoryDetail(entryId) { const entry = DataAPI.getHistoryEntryById(entryId); if (!entry) { document.getElementById('app-content').innerHTML = '<p class="text-center text-tgHint mt-10">Не найдено</p>'; return; } const date = new Date(entry.date).toLocaleString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' }); let tonnage = 0; (entry.exercises || []).forEach(ex => (ex.sets || []).forEach(s => tonnage += (Number(s.weight)||0) * (Number(s.reps)||0))); const exercises = entry.exercises || []; const allSsIds = exercises.map(e => e.supersetId); const groups = []; const processed = new Set(); exercises.forEach((ex, idx) => { if (processed.has(idx)) return; if (ex.supersetId) { const group = exercises.map((e, i) => ({ ...e, originalIndex: i })).filter(e => e.supersetId === ex.supersetId); group.forEach(e => processed.add(e.originalIndex)); groups.push({ type: 'superset', exercises: group }); } else { processed.add(idx); groups.push({ type: 'single', exercise: ex, originalIndex: idx }); } }); const renderDetail = ex => { const isBw = ex.exerciseType === 'bodyweight'; const setsHTML = (ex.sets || []).map((s, i) => `<div class="flex justify-between py-2 border-b border-tgBg last:border-0 ${s.setType === 'drop' ? 'text-orange-400' : ''}"><span class="text-tgHint text-sm flex items-center gap-2">${i+1}.${s.setType === 'drop' ? '<span class="drop-badge"><i class="fa-solid fa-fire"></i> ДРОП</span>' : ''}</span><span class="font-medium">${s.weight} кг × ${s.reps} повт</span></div>`).join(''); return `<div class="mb-4"><div class="flex items-center gap-2 mb-2 flex-wrap"><h3 class="font-bold text-base">${escHtml(ex.name)}</h3>${isBw ? '<span class="bodyweight-badge">Собственный вес</span>' : ''}</div><div class="bg-tgSecondaryBg p-4 rounded-2xl text-sm">${setsHTML}</div></div>`; }; const exHTML = groups.map(g => g.type === 'superset' ? `<div class="rounded-2xl p-3 mb-4 shadow-md" style="${getSupersetStyle(g.exercises[0].supersetId, allSsIds).styleAttr}"><div class="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-[11px] font-bold mb-3 uppercase tracking-wide shadow-sm" style="${getSupersetStyle(g.exercises[0].supersetId, allSsIds).badgeStyle}"><i class="fa-solid fa-bolt"></i> СУПЕРСЕТ</div>${g.exercises.map(renderDetail).join('')}</div>` : renderDetail(g.exercise)).join(''); document.getElementById('app-content').innerHTML = `<div class="text-center mb-6 card-enter"><h2 class="text-xl font-bold">${escHtml(entry.programName)}</h2><p class="text-tgHint text-sm mt-1">${date}</p><div class="flex justify-center gap-6 mt-3 text-sm text-tgHint bg-tgSecondaryBg py-2.5 px-4 rounded-2xl inline-flex"><span><i class="fa-regular fa-clock mr-1"></i> ${Math.round(entry.duration/60)} мин</span><span><i class="fa-solid fa-dumbbell mr-1"></i> ${(tonnage/1000).toFixed(1)}т</span></div></div>${exHTML}`; }
 let workoutDialogOpen = false;
-function promptWorkoutExit(targetTab = 'programs') { if (workoutDialogOpen) return; workoutDialogOpen = true; clearMainButton(); const existing = document.getElementById('workout-exit-modal'); if (existing) existing.remove(); const modal = document.createElement('div'); modal.id = 'workout-exit-modal'; modal.className = 'modal-backdrop'; modal.innerHTML = `<div class="modal-sheet"><div class="w-10 h-1 bg-tgHint/40 rounded-full mx-auto mb-5"></div><h2 class="text-xl font-bold text-center mb-2">Завершить тренировку?</h2><p class="text-tgHint text-sm text-center mb-5">Что сделать с текущей тренировкой?</p><div class="space-y-3"><button id="workout-save-btn" class="w-full py-4 rounded-2xl bg-tgButton text-white font-semibold active:opacity-80"><i class="fa-solid fa-check mr-2"></i> Завершить и сохранить</button><button id="workout-discard-btn" class="w-full py-4 rounded-2xl bg-red-500/15 text-red-500 font-semibold active:opacity-80"><i class="fa-solid fa-trash mr-2"></i> Не сохранять</button><button id="workout-cancel-btn" class="w-full py-4 rounded-2xl bg-tgBg text-tgText font-semibold active:opacity-80">Отмена</button></div></div>`; document.body.appendChild(modal); const close = () => { workoutDialogOpen = false; modal.remove(); }; document.getElementById('workout-cancel-btn').onclick = () => { close(); haptic('light'); }; document.getElementById('workout-save-btn').onclick = () => { close(); saveWorkoutAndOpenPrograms(); }; document.getElementById('workout-discard-btn').onclick = () => { close(); discardWorkoutAndOpenPrograms(); }; modal.addEventListener('click', e => { if (e.target === modal) close(); }); }
+function promptWorkoutExit(targetTab = 'programs') { if (workoutDialogOpen) return; workoutDialogOpen = true; clearMainButton(); const existing = document.getElementById('workout-exit-modal'); if (existing) existing.remove(); const modal = document.createElement('div'); modal.id = 'workout-exit-modal'; modal.className = 'modal-backdrop'; modal.innerHTML = `<div class="modal-sheet"><div class="w-10 h-1 bg-tgHint/40 rounded-full mx-auto mb-5"></div><h2 class="text-xl font-bold text-center mb-2">Завершить тренировку?</h2><p class="text-tgHint text-sm text-center mb-5">Что сделать с текущей тренировкой?</p><div class="space-y-3"><button data-action="workout-save" class="w-full py-4 rounded-2xl bg-tgButton text-white font-semibold active:opacity-80"><i class="fa-solid fa-check mr-2"></i> Завершить и сохранить</button><button data-action="workout-discard" class="w-full py-4 rounded-2xl bg-red-500/15 text-red-500 font-semibold active:opacity-80"><i class="fa-solid fa-trash mr-2"></i> Не сохранять</button><button data-action="workout-cancel" class="w-full py-4 rounded-2xl bg-tgBg text-tgText font-semibold active:opacity-80">Отмена</button></div></div>`; document.body.appendChild(modal); const close = () => { workoutDialogOpen = false; modal.remove(); }; document.getElementById('workout-cancel-btn')?.addEventListener('click', () => { close(); haptic('light'); }); document.getElementById('workout-save-btn')?.addEventListener('click', () => { close(); saveWorkoutAndOpenPrograms(); }); document.getElementById('workout-discard-btn')?.addEventListener('click', () => { close(); discardWorkoutAndOpenPrograms(); }); modal.addEventListener('click', e => { if (e.target === modal) close(); }); }
 function saveWorkoutAndOpenPrograms() { try { const w = state.activeWorkout; if (w) { const hist = DataAPI.getHistory(); hist.push({ id: createId(), date: new Date(w.startTime).toISOString(), duration: Math.max(0, Math.round((Date.now() - w.startTime) / 1000)), programName: w.programName, exercises: w.exercises.map(ex => ({ name: ex.name, muscleGroup: ex.muscleGroup || '', exerciseType: ex.exerciseType || 'weighted', supersetId: ex.supersetId || null, targetSets: ex.targetSets ?? 3, targetReps: ex.targetReps ?? 10, sets: (ex.sets || []).map(s => ({ weight: Number(s.weight)||0, reps: Number(s.reps)||0, setType: s.setType || 'regular' })) })) }); DataAPI.saveHistory(hist); } clearWorkoutState(); haptic('success'); } catch (error) { console.error(error); clearWorkoutState(); } openProgramsScreen(); }
 function discardWorkoutAndOpenPrograms() { clearWorkoutState(); haptic('light'); openProgramsScreen(); }
+
+// === ДЕЛЕГИРОВАНИЕ СОБЫТИЙ ===
+document.addEventListener('click', (event) => {
+    const target = event.target.closest('[data-action]');
+    if (!target) return;
+    const action = target.dataset.action;
+    const payload = target.dataset.payload;
+    try {
+        switch (action) {
+            case 'switch-tab': switchTab(payload); break;
+            case 'select-muscle-group': selectMuscleGroup(payload); break;
+            case 'select-exercise': selectExercise(payload); break;
+            case 'select-month': selectMonthFilter(payload); break;
+            case 'select-period': selectPeriod(payload); break;
+            case 'select-metric': selectExerciseMetric(payload); break;
+            case 'toggle-filter': toggleFilterPanel(); break;
+            case 'edit-program': navigate('program_edit', { programId: payload }); break;
+            case 'delete-program': deleteProgram(payload); break;
+            case 'start-workout': startWorkout(payload); break;
+            case 'create-program': navigate('program_edit', { programId: null }); break;
+            case 'add-exercise': addExercise(); break;
+            case 'remove-exercise': removeExercise(parseInt(payload)); break;
+            case 'toggle-superset': toggleSupersetClick(parseInt(payload)); break;
+            case 'save-program': saveProgram(); break;
+            case 'adjust-param': { const [idx, field, delta] = payload.split(':'); adjustProgramParam(parseInt(idx), field, parseInt(delta)); break; }
+            case 'add-set': addSet(parseInt(payload)); break;
+            case 'add-drop-set': addDropSet(parseInt(payload)); break;
+            case 'remove-set': { const [exIdx, setIdx] = payload.split(':'); removeSet(parseInt(exIdx), parseInt(setIdx)); break; }
+            case 'adjust-set': { const [exIdx, setIdx, field, delta] = payload.split(':'); adjustSet(parseInt(exIdx), parseInt(setIdx), field, parseFloat(delta)); break; }
+            case 'remove-workout-exercise': removeWorkoutExercise(parseInt(payload)); break;
+            case 'finish-workout': promptWorkoutExit('programs'); break;
+            case 'workout-save': saveWorkoutAndOpenPrograms(); break;
+            case 'workout-discard': discardWorkoutAndOpenPrograms(); break;
+            case 'workout-cancel': { const modal = document.getElementById('workout-exit-modal'); if (modal) modal.remove(); workoutDialogOpen = false; haptic('light'); break; }
+            case 'open-data-menu': openDataMenuModal(); break;
+            case 'export-data': document.getElementById('data-menu-modal')?.remove(); exportData(); break;
+            case 'import-data': document.getElementById('data-menu-modal')?.remove(); triggerImportFile(); break;
+            case 'reset-data': document.getElementById('data-menu-modal')?.remove(); resetAllData(); break;
+            case 'close-modal': { const modalId = target.dataset.modal; if (modalId) document.getElementById(modalId)?.remove(); break; }
+            case 'history-detail': navigate('history_detail', { entryId: payload }); break;
+        }
+    } catch (err) { console.error('Delegated action error:', action, payload, err); }
+});
 
 if (window.visualViewport) { window.visualViewport.addEventListener('resize', () => { const nav = document.getElementById('bottom-nav'); if (!nav) return; nav.classList.toggle('keyboard-hidden', window.visualViewport.height < window.innerHeight - 150); }); }
 document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible' && state.currentScreen === 'workout' && state.activeWorkout) startTimer(); });
