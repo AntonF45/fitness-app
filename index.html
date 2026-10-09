@@ -271,6 +271,117 @@
             animation: modalIn 0.2s ease-out;
         }
 
+        /* Фиксированный блок графика — не прыгает */
+.chart-container-fixed {
+    height: 260px;
+    position: relative;
+    overflow: hidden;
+}
+
+.chart-wrapper-fixed {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+}
+
+/* Верхняя панель графика с месяцами/фильтром */
+.chart-top-bar {
+    position: relative;
+    height: 40px;
+    overflow: hidden;
+    margin-bottom: 8px;
+}
+
+.chart-top-slider {
+    display: flex;
+    width: 200%;
+    height: 100%;
+    transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.chart-top-slider.show-filter {
+    transform: translateX(-50%);
+}
+
+.chart-top-slider > div {
+    width: 50%;
+    height: 100%;
+    flex-shrink: 0;
+}
+
+/* Кнопка-фильтр */
+.filter-toggle-btn {
+    width: 36px;
+    height: 36px;
+    border-radius: 10px;
+    background: rgba(59, 130, 246, 0.12);
+    border: 1px solid rgba(59, 130, 246, 0.25);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--tg-theme-link-color, #3b82f6);
+    transition: all 0.2s ease;
+    flex-shrink: 0;
+}
+
+.filter-toggle-btn:active {
+    transform: scale(0.92);
+    background: rgba(59, 130, 246, 0.2);
+}
+
+.filter-toggle-btn.active {
+    background: rgba(59, 130, 246, 0.25);
+}
+
+/* Пустое состояние графика */
+.chart-empty-state {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    color: var(--tg-theme-hint-color, #8e8e93);
+    gap: 8px;
+}
+
+/* Ачивки */
+.achievement-card {
+    background: var(--card-bg);
+    border: 1px solid var(--card-border);
+    border-radius: 16px;
+    padding: 14px;
+    transition: all 0.2s ease;
+}
+
+.achievement-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+    flex-shrink: 0;
+}
+
+.achievement-icon.gold { background: rgba(251, 191, 36, 0.15); color: #fbbf24; }
+.achievement-icon.blue { background: rgba(59, 130, 246, 0.15); color: #60a5fa; }
+.achievement-icon.green { background: rgba(34, 197, 94, 0.15); color: #4ade80; }
+.achievement-icon.purple { background: rgba(168, 85, 247, 0.15); color: #c084fc; }
+
+/* Плавное обновление чипов */
+.chip-update {
+    animation: chipFade 0.25s ease-out;
+}
+
+@keyframes chipFade {
+    from { opacity: 0.5; transform: translateY(2px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
         @keyframes modalIn {
             from { opacity: 0; transform: scale(0.95); }
             to { opacity: 1; transform: scale(1); }
@@ -456,7 +567,8 @@
             selectedMuscleGroup: 'Грудь',
             selectedExercise: null,
             supersetActiveId: null,
-            selectedPeriod: 'month' // НОВОЕ: период фильтра (week/month/quarter/all)
+            selectedPeriod: 'month',
+            selectedMonthIndex: null,
         };
 
         function updateTabUI(activeTab) {
@@ -547,133 +659,327 @@
         }
 
         function renderStats() {
-            const exercises = DataAPI.getUserExercises();
-            const muscleGroups = getMuscleGroups();
-            
-            // Чипы групп мышц (компактные, в стиле графика)
-            const muscleGroupsHTML = muscleGroups.map(group => `
-                <button onclick="selectMuscleGroup('${group}')" role="tab" aria-selected="${state.selectedMuscleGroup === group}"
-                    class="stat-chip snap-center min-w-[80px] px-3 py-2 rounded-xl text-xs font-medium whitespace-nowrap ${
-                        state.selectedMuscleGroup === group ? 'active' : 'inactive'
-                    }">${group}</button>
-            `).join('');
+    const exercises = DataAPI.getUserExercises();
+    const muscleGroups = getMuscleGroups();
 
-            // Чипы упражнений (компактные, в стиле графика)
-            const filteredExercises = exercises.filter(exercise => exercise.muscleGroup === state.selectedMuscleGroup);
-            const exercisesHTML = filteredExercises.length
-                ? filteredExercises.map(exercise => `
-                    <button onclick="selectExercise('${esc(exercise.name)}')" role="tab" aria-selected="${state.selectedExercise === exercise.name}"
-                        class="stat-chip snap-center min-w-[110px] px-3 py-2 rounded-xl text-xs font-medium text-center ${
-                            state.selectedExercise === exercise.name ? 'active' : 'inactive'
-                        }">${esc(exercise.name)}</button>
-                `).join('')
-                : '<p class="text-tgHint text-xs px-4 py-2">Нет упражнений в этой группе</p>';
+    // Чипы групп мышц
+    const muscleGroupsHTML = muscleGroups.map(group => `
+        <button onclick="selectMuscleGroup('${group}')" role="tab" aria-selected="${state.selectedMuscleGroup === group}"
+            class="stat-chip snap-center min-w-[80px] px-3 py-2 rounded-xl text-xs font-medium whitespace-nowrap ${
+                state.selectedMuscleGroup === group ? 'active' : 'inactive'
+            }">${group}</button>
+    `).join('');
 
-            // Основной контент
-            let mainContent = '';
-            
-            if (state.selectedExercise) {
-                const history = DataAPI.getExerciseHistory(state.selectedExercise);
-                const filteredHistory = getFilteredHistory(history, state.selectedPeriod);
-                
-                // Статистика по упражнению за период
-                const maxWeight = filteredHistory.length > 0 ? Math.max(...filteredHistory.map(h => h.weight)) : 0;
-                const avgWeight = filteredHistory.length > 0 
-                    ? (filteredHistory.reduce((sum, h) => sum + h.weight, 0) / filteredHistory.length).toFixed(1)
-                    : 0;
-                const totalSets = filteredHistory.length;
-                
-                // Общий тоннаж за период
-                let totalTonnage = 0;
-                filteredHistory.forEach(h => {
-                    totalTonnage += h.weight * h.reps;
-                });
+    // Чипы упражнений
+    const filteredExercises = exercises.filter(ex => ex.muscleGroup === state.selectedMuscleGroup);
+    const exercisesHTML = filteredExercises.length
+        ? filteredExercises.map(ex => `
+            <button onclick="selectExercise('${esc(ex.name)}')" role="tab" aria-selected="${state.selectedExercise === ex.name}"
+                class="stat-chip snap-center min-w-[110px] px-3 py-2 rounded-xl text-xs font-medium text-center ${
+                    state.selectedExercise === ex.name ? 'active' : 'inactive'
+                }">${esc(ex.name)}</button>
+        `).join('')
+        : '<p class="text-tgHint text-xs px-4 py-2">Нет упражнений в этой группе</p>';
 
-                mainContent = `
-                    <!-- Блок с информацией об упражнении -->
-                    <div class="chart-card rounded-2xl p-4 mb-3 card-enter" style="animation-delay: 0.05s">
-                        <div class="flex items-center justify-between mb-3">
-                            <div>
-                                <h2 class="text-base font-bold">${esc(state.selectedExercise)}</h2>
-                                <div class="text-tgHint text-xs mt-0.5">${state.selectedMuscleGroup}</div>
-                            </div>
-                            <div class="text-right">
-                                <div class="text-2xl font-bold text-tgLink">${maxWeight}</div>
-                                <div class="text-tgHint text-[10px] uppercase tracking-wide">кг макс.</div>
-                            </div>
+    // Месяцы для фильтра
+    const monthsHTML = MONTHS_FULL.map((m, i) => `
+        <button onclick="selectMonthFilter(${i})" class="period-btn ${state.selectedMonthIndex === i ? 'active' : ''}">${m}</button>
+    `).join('');
+
+    document.getElementById('app-content').innerHTML = `
+        <!-- БЛОК ГРАФИКА (фиксированный размер) -->
+        <div class="chart-card rounded-2xl p-4 mb-3 card-enter" style="animation-delay: 0.05s">
+            <!-- Верхняя панель: месяцы / фильтр -->
+            <div class="chart-top-bar">
+                <div id="chart-top-slider" class="chart-top-slider">
+                    <!-- Левая половина: месяцы + кнопка фильтра -->
+                    <div class="flex items-center justify-between gap-2 pr-1">
+                        <div id="months-scroll" class="flex-1 overflow-x-auto scroll-container flex gap-1.5">
+                            ${monthsHTML}
                         </div>
-                        <div class="grid grid-cols-3 gap-2 pt-3 border-t border-tgSecondaryBg/40">
-                            <div>
-                                <div class="text-tgHint text-[10px] uppercase tracking-wide mb-0.5">Средний</div>
-                                <div class="text-sm font-semibold">${avgWeight} кг</div>
-                            </div>
-                            <div>
-                                <div class="text-tgHint text-[10px] uppercase tracking-wide mb-0.5">Подходов</div>
-                                <div class="text-sm font-semibold">${totalSets}</div>
-                            </div>
-                            <div>
-                                <div class="text-tgHint text-[10px] uppercase tracking-wide mb-0.5">Тоннаж</div>
-                                <div class="text-sm font-semibold">${(totalTonnage / 1000).toFixed(1)}т</div>
-                            </div>
-                        </div>
+                        <button id="filter-toggle-btn" onclick="toggleFilterPanel()" class="filter-toggle-btn" aria-label="Фильтр периода">
+                            <i class="fa-solid fa-sliders"></i>
+                        </button>
                     </div>
-
-                    <!-- График с фильтром -->
-                    <div class="chart-card rounded-2xl p-4 mb-3 card-enter" style="animation-delay: 0.1s">
-                        <div class="flex items-center justify-between mb-3">
-                            <div class="text-xs font-semibold text-tgHint uppercase tracking-wide">Прогресс веса</div>
-                            <div class="period-filter">
-                                <button onclick="selectPeriod('week')" class="period-btn ${state.selectedPeriod === 'week' ? 'active' : ''}">Нед</button>
-                                <button onclick="selectPeriod('month')" class="period-btn ${state.selectedPeriod === 'month' ? 'active' : ''}">Мес</button>
-                                <button onclick="selectPeriod('quarter')" class="period-btn ${state.selectedPeriod === 'quarter' ? 'active' : ''}">3 мес</button>
-                                <button onclick="selectPeriod('all')" class="period-btn ${state.selectedPeriod === 'all' ? 'active' : ''}">Все</button>
-                            </div>
+                    <!-- Правая половина: фильтр периодов -->
+                    <div class="flex items-center pl-1">
+                        <div class="period-filter flex-1">
+                            <button onclick="selectPeriod('week')" class="period-btn ${state.selectedPeriod === 'week' ? 'active' : ''}">Неделя</button>
+                            <button onclick="selectPeriod('month')" class="period-btn ${state.selectedPeriod === 'month' ? 'active' : ''}">Месяц</button>
+                            <button onclick="selectPeriod('quarter')" class="period-btn ${state.selectedPeriod === 'quarter' ? 'active' : ''}">3 месяца</button>
+                            <button onclick="selectPeriod('all')" class="period-btn ${state.selectedPeriod === 'all' ? 'active' : ''}">Всё</button>
                         </div>
-                        <div class="chart-wrapper">
-                            <canvas id="progressChart"></canvas>
-                        </div>
+                        <button onclick="toggleFilterPanel()" class="filter-toggle-btn ml-2" aria-label="Закрыть фильтр">
+                            <i class="fa-solid fa-xmark"></i>
+                        </button>
                     </div>
-                `;
-            } else {
-                mainContent = `
-                    <div class="chart-card rounded-2xl p-8 mb-3 card-enter text-center" style="animation-delay: 0.05s">
-                        <i class="fa-solid fa-chart-line text-3xl text-tgHint mb-3"></i>
-                        <div class="text-tgHint text-sm">Выберите упражнение для просмотра статистики</div>
-                    </div>
-                `;
-            }
-
-            // Дополнительные блоки статистики (всегда видны)
-            const overallStats = renderOverallStats();
-
-            document.getElementById('app-content').innerHTML = `
-                ${mainContent}
-                
-                <!-- Группы мышц -->
-                <div class="mb-3 card-enter" style="animation-delay: 0.15s">
-                    <div class="text-xs font-semibold text-tgHint uppercase tracking-wide mb-2 px-1">Группа мышц</div>
-                    <div class="flex overflow-x-auto gap-2 pb-1 snap-x scroll-container">${muscleGroupsHTML}</div>
                 </div>
-                
-                <!-- Упражнения -->
-                <div class="mb-4 card-enter" style="animation-delay: 0.2s">
-                    <div class="text-xs font-semibold text-tgHint uppercase tracking-wide mb-2 px-1">Упражнения</div>
-                    <div class="flex overflow-x-auto gap-2 pb-1 snap-x scroll-container">${exercisesHTML}</div>
+            </div>
+
+            <!-- Сам график (фиксированная высота) -->
+            <div class="chart-container-fixed">
+                <div class="chart-wrapper-fixed">
+                    <canvas id="progressChart"></canvas>
                 </div>
+                <div id="chart-empty-state" class="chart-empty-state" style="display: ${state.selectedExercise ? 'none' : 'flex'}">
+                    <i class="fa-solid fa-chart-line text-2xl"></i>
+                    <div class="text-xs">Выберите упражнение</div>
+                </div>
+            </div>
+        </div>
 
-                ${overallStats}
-            `;
+        <!-- ГРУППЫ МЫШЦ -->
+        <div class="mb-3 card-enter" style="animation-delay: 0.1s">
+            <div class="text-xs font-semibold text-tgHint uppercase tracking-wide mb-2 px-1">Группа мышц</div>
+            <div id="muscle-groups-container" class="flex overflow-x-auto gap-2 pb-1 snap-x scroll-container">${muscleGroupsHTML}</div>
+        </div>
 
-            setTimeout(() => {
-                document.querySelectorAll('.scroll-container').forEach(container => {
-                    const activeChip = container.querySelector('[aria-selected="true"]');
-                    if (activeChip) activeChip.scrollIntoView({ behavior: 'auto', inline: 'center', block: 'nearest' });
-                });
-            }, 50);
-            
-            if (state.selectedExercise) renderChart();
+        <!-- УПРАЖНЕНИЯ -->
+        <div class="mb-4 card-enter" style="animation-delay: 0.15s">
+            <div class="text-xs font-semibold text-tgHint uppercase tracking-wide mb-2 px-1">Упражнения</div>
+            <div id="exercises-container" class="flex overflow-x-auto gap-2 pb-1 snap-x scroll-container">${exercisesHTML}</div>
+        </div>
+
+        <!-- АЧИВКИ ПО УПРАЖНЕНИЮ -->
+        <div id="achievements-container">
+            ${state.selectedExercise ? renderAchievements() : ''}
+        </div>
+    `;
+
+    // Прокрутка к активным чипам
+    setTimeout(() => {
+        document.querySelectorAll('.scroll-container').forEach(container => {
+            const activeChip = container.querySelector('[aria-selected="true"]');
+            if (activeChip) activeChip.scrollIntoView({ behavior: 'auto', inline: 'center', block: 'nearest' });
+        });
+    }, 50);
+
+    // Рисуем график если выбрано упражнение
+    if (state.selectedExercise) renderChart();
+}
+// Переключение панели фильтра (месяцы ↔ периоды)
+function toggleFilterPanel() {
+    const slider = document.getElementById('chart-top-slider');
+    const btn = document.getElementById('filter-toggle-btn');
+    if (!slider) return;
+    
+    slider.classList.toggle('show-filter');
+    if (btn) btn.classList.toggle('active');
+    haptic('light');
+}
+
+// Выбор месяца в верхнем скролле
+function selectMonthFilter(monthIndex) {
+    state.selectedMonthIndex = monthIndex;
+    state.selectedPeriod = 'month'; // автоматически переключаем на "месяц"
+    haptic('light');
+    
+    // Точечно обновляем только кнопки периода и график
+    updatePeriodButtons();
+    updateChartAndAchievements();
+}
+
+// Выбор периода (Неделя/Месяц/3мес/Всё)
+function selectPeriod(period) {
+    state.selectedPeriod = period;
+    state.selectedMonthIndex = null; // сбрасываем выбор конкретного месяца
+    haptic('light');
+    
+    updatePeriodButtons();
+    updateChartAndAchievements();
+}
+
+// Точечное обновление кнопок периода (без перерисовки всего экрана)
+function updatePeriodButtons() {
+    document.querySelectorAll('.period-btn').forEach(btn => {
+        const text = btn.textContent.trim();
+        const periodMap = { 'Неделя': 'week', 'Месяц': 'month', '3 месяца': 'quarter', 'Всё': 'all' };
+        btn.classList.toggle('active', periodMap[text] === state.selectedPeriod);
+    });
+    
+    // Если выбран конкретный месяц — подсветим его
+    if (state.selectedMonthIndex !== null) {
+        const monthsContainer = document.getElementById('months-scroll');
+        if (monthsContainer) {
+            const buttons = monthsContainer.querySelectorAll('.period-btn');
+            buttons.forEach((btn, idx) => {
+                btn.classList.toggle('active', idx === state.selectedMonthIndex);
+            });
         }
+    }
+}
 
+// Точечное обновление только графика и ачивок (без перерисовки чипов)
+function updateChartAndAchievements() {
+    // Обновляем график
+    if (state.selectedExercise) {
+        renderChart();
+    } else {
+        // Показываем пустое состояние
+        const empty = document.getElementById('chart-empty-state');
+        if (empty) empty.style.display = 'flex';
+        const canvas = document.getElementById('progressChart');
+        if (canvas) {
+            const existing = Chart.getChart(canvas);
+            if (existing) existing.destroy();
+        }
+    }
+    
+    // Обновляем ачивки
+    const achContainer = document.getElementById('achievements-container');
+    if (achContainer) {
+        achContainer.innerHTML = state.selectedExercise ? renderAchievements() : '';
+        achContainer.classList.add('chip-update');
+        setTimeout(() => achContainer.classList.remove('chip-update'), 250);
+    }
+}
+
+// Выбор группы мышц — обновляем ТОЛЬКО список упражнений
+function selectMuscleGroup(group) {
+    state.selectedMuscleGroup = group;
+    state.selectedExercise = null;
+    haptic('light');
+    
+    // Точечно обновляем только чипы упражнений
+    const exercises = DataAPI.getUserExercises();
+    const filtered = exercises.filter(ex => ex.muscleGroup === group);
+    const container = document.getElementById('exercises-container');
+    
+    if (container) {
+        container.innerHTML = filtered.length
+            ? filtered.map(ex => `
+                <button onclick="selectExercise('${esc(ex.name)}')" role="tab" aria-selected="false"
+                    class="stat-chip snap-center min-w-[110px] px-3 py-2 rounded-xl text-xs font-medium text-center inactive chip-update">${esc(ex.name)}</button>
+            `).join('')
+            : '<p class="text-tgHint text-xs px-4 py-2">Нет упражнений в этой группе</p>';
+        
+        // Скрываем график и ачивки
+        const empty = document.getElementById('chart-empty-state');
+        if (empty) empty.style.display = 'flex';
+        const canvas = document.getElementById('progressChart');
+        if (canvas) {
+            const existing = Chart.getChart(canvas);
+            if (existing) existing.destroy();
+        }
+        const achContainer = document.getElementById('achievements-container');
+        if (achContainer) achContainer.innerHTML = '';
+    } else {
+        // Fallback — полная перерисовка
+        renderStats();
+    }
+}
+
+// Выбор упражнения — обновляем график и ачивки
+function selectExercise(name) {
+    const wasSelected = state.selectedExercise === name;
+    state.selectedExercise = wasSelected ? null : name;
+    haptic('light');
+    
+    // Точечно обновляем чипы упражнений (подсветка)
+    const container = document.getElementById('exercises-container');
+    if (container) {
+        container.querySelectorAll('.stat-chip').forEach(btn => {
+            const isActive = btn.textContent.trim() === state.selectedExercise;
+            btn.classList.toggle('active', isActive);
+            btn.classList.toggle('inactive', !isActive);
+            btn.setAttribute('aria-selected', isActive ? 'true' : 'false');
+        });
+    }
+    
+    // Обновляем график и ачивки
+    updateChartAndAchievements();
+}
+
+// Рендер ачивок по выбранному упражнению
+function renderAchievements() {
+    const history = DataAPI.getExerciseHistory(state.selectedExercise);
+    const filtered = getFilteredHistory(history, state.selectedPeriod);
+    
+    if (filtered.length === 0) {
+        return `
+            <div class="chart-card rounded-2xl p-6 text-center card-enter" style="animation-delay: 0.2s">
+                <i class="fa-solid fa-trophy text-2xl text-tgHint mb-2"></i>
+                <div class="text-tgHint text-sm">Нет данных за выбранный период</div>
+            </div>
+        `;
+    }
+
+    // Считаем метрики
+    const maxWeight = Math.max(...filtered.map(h => h.weight));
+    const maxWeightDate = filtered.find(h => h.weight === maxWeight)?.date;
+    const avgWeight = (filtered.reduce((s, h) => s + h.weight, 0) / filtered.length).toFixed(1);
+    const totalSets = filtered.length;
+    const totalVolume = filtered.reduce((s, h) => s + h.weight * h.reps, 0);
+    const avgReps = (filtered.reduce((s, h) => s + h.reps, 0) / filtered.length).toFixed(0);
+    
+    // Серия прогресса (подряд идущие тренировки с ростом веса)
+    let bestStreak = 0;
+    let currentStreak = 0;
+    let prevWeight = 0;
+    const sortedByDate = [...filtered].sort((a, b) => new Date(a.date) - new Date(b.date));
+    sortedByDate.forEach(h => {
+        if (h.weight > prevWeight) {
+            currentStreak++;
+            bestStreak = Math.max(bestStreak, currentStreak);
+        } else {
+            currentStreak = 0;
+        }
+        prevWeight = h.weight;
+    });
+
+    const achievements = [
+        {
+            icon: 'fa-crown',
+            color: 'gold',
+            label: 'Личный рекорд',
+            value: `${maxWeight} кг`,
+            sub: maxWeightDate ? new Date(maxWeightDate).toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' }) : ''
+        },
+        {
+            icon: 'fa-chart-line',
+            color: 'blue',
+            label: 'Средний вес',
+            value: `${avgWeight} кг`,
+            sub: `${avgReps} повт в среднем`
+        },
+        {
+            icon: 'fa-fire',
+            color: 'green',
+            label: 'Серия роста',
+            value: `${bestStreak} тр.`,
+            sub: 'подряд с прогрессом'
+        },
+        {
+            icon: 'fa-dumbbell',
+            color: 'purple',
+            label: 'Всего подходов',
+            value: totalSets,
+            sub: `${(totalVolume / 1000).toFixed(1)}т тоннаж`
+        }
+    ];
+
+    return `
+        <div class="mb-4 card-enter" style="animation-delay: 0.2s">
+            <div class="text-xs font-semibold text-tgHint uppercase tracking-wide mb-2 px-1">Достижения</div>
+            <div class="grid grid-cols-2 gap-2">
+                ${achievements.map(a => `
+                    <div class="achievement-card">
+                        <div class="flex items-start gap-3">
+                            <div class="achievement-icon ${a.color}">
+                                <i class="fa-solid ${a.icon}"></i>
+                            </div>
+                            <div class="min-w-0 flex-1">
+                                <div class="text-[10px] text-tgHint uppercase tracking-wide leading-tight">${a.label}</div>
+                                <div class="text-base font-bold mt-0.5 leading-tight">${a.value}</div>
+                                ${a.sub ? `<div class="text-[10px] text-tgHint mt-0.5 leading-tight">${a.sub}</div>` : ''}
+                            </div>
+                        </div>
+                    </div>
+                `).join('')}
+            </div>
+        </div>
+    `;
+}
         function renderOverallStats() {
             const history = DataAPI.getHistory();
             const filteredHistory = getFilteredHistory(history, state.selectedPeriod);
