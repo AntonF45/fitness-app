@@ -364,16 +364,47 @@
         }
 
         function selectMuscleGroup(group) {
-            state.selectedMuscleGroup = group; state.selectedExercise = null; state.selectedMonthIndex = null; haptic('light');
-            const exercises = DataAPI.getUserExercises(); const filtered = exercises.filter(ex => ex.muscleGroup === group);
-            const container = document.getElementById('exercises-container');
-            if (container) {
-                container.innerHTML = filtered.length ? filtered.map(ex => `<button onclick="selectExercise('${esc(ex.name)}')" role="tab" aria-selected="false" class="stat-chip snap-center min-w-[110px] px-3 py-2 rounded-xl text-xs font-medium text-center inactive chip-update">${esc(ex.name)}</button>`).join('') : '<p class="text-tgHint text-xs px-4 py-2">Нет упражнений</p>';
-                const empty = document.getElementById('chart-empty-state'); if (empty) empty.style.display = 'flex';
-                const canvas = document.getElementById('progressChart'); if (canvas) { const existing = Chart.getChart(canvas); if (existing) existing.destroy(); }
-                const achContainer = document.getElementById('achievements-container'); if (achContainer) achContainer.innerHTML = '';
-            } else renderStats();
-        }
+    state.selectedMuscleGroup = group;
+    state.selectedExercise = null;
+    state.selectedMonthIndex = null;
+    haptic('light');
+    
+    // 1. Обновляем визуальную подсветку кнопок групп мышц
+    const mgContainer = document.getElementById('muscle-groups-container');
+    if (mgContainer) {
+        mgContainer.querySelectorAll('.stat-chip').forEach(btn => {
+            const isActive = btn.textContent.trim() === group;
+            btn.classList.toggle('active', isActive);
+            btn.classList.toggle('inactive', !isActive);
+            btn.setAttribute('aria-selected', isActive ? 'true' : 'false');
+        });
+    }
+
+    // 2. Обновляем список упражнений
+    const exercises = DataAPI.getUserExercises();
+    const filtered = exercises.filter(ex => ex.muscleGroup === group);
+    const exContainer = document.getElementById('exercises-container');
+    
+    if (exContainer) {
+        exContainer.innerHTML = filtered.length
+            ? filtered.map(ex => `
+                <button onclick="selectExercise('${esc(ex.name)}')" role="tab" aria-selected="false"
+                    class="stat-chip snap-center min-w-[110px] px-3 py-2 rounded-xl text-xs font-medium text-center inactive chip-update">${esc(ex.name)}</button>
+            `).join('')
+            : '<p class="text-tgHint text-xs px-4 py-2">Нет упражнений</p>';
+    }
+    
+    // 3. Очищаем график и ачивки
+    const empty = document.getElementById('chart-empty-state');
+    if (empty) empty.style.display = 'flex';
+    const canvas = document.getElementById('progressChart');
+    if (canvas) {
+        const existing = Chart.getChart(canvas);
+        if (existing) existing.destroy();
+    }
+    const achContainer = document.getElementById('achievements-container');
+    if (achContainer) achContainer.innerHTML = '';
+}
 
         function selectExercise(name) {
             const wasSelected = state.selectedExercise === name; state.selectedExercise = wasSelected ? null : name; state.selectedMonthIndex = null; haptic('light');
@@ -391,32 +422,93 @@
         }
 
         function renderAchievements() {
-            const history = DataAPI.getExerciseHistory(state.selectedExercise); const filtered = getFilteredHistory(history, state.selectedPeriod);
-            if (filtered.length === 0) return `<div class="chart-card rounded-2xl p-6 text-center card-enter" style="animation-delay: 0.2s"><i class="fa-solid fa-trophy text-2xl text-tgHint mb-2"></i><div class="text-tgHint text-sm">Нет данных за период</div></div>`;
-            const maxWeight = Math.max(...filtered.map(h => h.weight)); const maxWeightDate = filtered.find(h => h.weight === maxWeight)?.date;
-            const avgWeight = (filtered.reduce((s, h) => s + h.weight, 0) / filtered.length).toFixed(1);
-            const totalSets = filtered.length; const totalVolume = filtered.reduce((s, h) => s + h.weight * h.reps, 0);
-            const avgReps = (filtered.reduce((s, h) => s + h.reps, 0) / filtered.length).toFixed(0);
-            let bestStreak = 0, currentStreak = 0, prevWeight = 0;
-            [...filtered].sort((a, b) => new Date(a.date) - new Date(b.date)).forEach(h => { if (h.weight > prevWeight) { currentStreak++; bestStreak = Math.max(bestStreak, currentStreak); } else currentStreak = 0; prevWeight = h.weight; });
-            const achievements = [
-                { icon: 'fa-crown', color: 'gold', label: 'Личный рекорд', value: `${maxWeight} кг`, sub: maxWeightDate ? new Date(maxWeightDate).toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' }) : '' },
-                { icon: 'fa-chart-line', color: 'blue', label: 'Средний вес', value: `${avgWeight} кг`, sub: `${avgReps} повт. в среднем` },
-                { icon: 'fa-fire', color: 'green', label: 'Серия роста', value: `${bestStreak} тр.`, sub: 'подряд с прогрессом' },
-                { icon: 'fa-dumbbell', color: 'purple', label: 'Всего подходов', value: totalSets, sub: `${(totalVolume / 1000).toFixed(1)}т тоннаж` }
-            ];
-            return `<div class="mb-4 card-enter" style="animation-delay: 0.2s"><div class="text-xs font-semibold text-tgHint uppercase tracking-wide mb-2 px-1">Достижения</div><div class="grid grid-cols-2 gap-2">${achievements.map(a => `<div class="achievement-card"><div class="flex items-start gap-3"><div class="achievement-icon ${a.color}"><i class="fa-solid ${a.icon}"></i></div><div class="min-w-0 flex-1"><div class="text-[10px] text-tgHint uppercase tracking-wide leading-tight">${a.label}</div><div class="text-base font-bold mt-0.5 leading-tight">${a.value}</div>${a.sub ? `<div class="text-[10px] text-tgHint mt-0.5 leading-tight">${a.sub}</div>` : ''}</div></div></div>`).join('')}</div></div>`;
-        }
+    // Берем ВСЮ историю по упражнению, без фильтрации по периоду
+    const history = DataAPI.getExerciseHistory(state.selectedExercise);
+    
+    if (history.length === 0) {
+        return `<div class="chart-card rounded-2xl p-6 text-center card-enter" style="animation-delay: 0.2s">
+                    <i class="fa-solid fa-trophy text-2xl text-tgHint mb-2"></i>
+                    <div class="text-tgHint text-sm">Нет данных</div>
+                </div>`;
+    }
 
-        const crosshairPlugin = {
-            id: 'crosshair', afterDraw(chart) {
-                if (chart._active && chart._active.length) {
-                    const activePoint = chart._active[0]; const ctx = chart.ctx; const x = activePoint.element.x;
-                    ctx.save(); ctx.beginPath(); ctx.moveTo(x, chart.scales.y.top); ctx.lineTo(x, chart.scales.y.bottom); ctx.lineWidth = 1; ctx.strokeStyle = 'rgba(255, 255, 255, 0.15)'; ctx.setLineDash([4, 4]); ctx.stroke(); ctx.restore();
-                    ctx.save(); ctx.beginPath(); ctx.arc(x, activePoint.element.y, 6, 0, 2 * Math.PI); ctx.fillStyle = '#ffffff'; ctx.fill(); ctx.beginPath(); ctx.arc(x, activePoint.element.y, 4, 0, 2 * Math.PI); ctx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue('--tg-theme-link-color') || '#3b82f6'; ctx.fill(); ctx.restore();
-                }
+    // 1. Личный рекорд веса
+    const maxWeight = Math.max(...history.map(h => h.weight));
+    const maxWeightDate = history.find(h => h.weight === maxWeight)?.date;
+
+    // 2. Расчетный 1ПМ (формула Ипли: Weight * (1 + Reps / 30))
+    let max1RM = 0;
+    let max1RMDate = '';
+    history.forEach(h => {
+        if (h.weight > 0) {
+            const estimated1RM = h.weight * (1 + h.reps / 30);
+            if (estimated1RM > max1RM) {
+                max1RM = estimated1RM;
+                max1RMDate = h.date;
             }
-        };
+        }
+    });
+
+    // 3. Всего уникальных тренировок (дней) с этим упражнением
+    const uniqueDates = new Set(history.map(h => new Date(h.date).toISOString().slice(0, 10)));
+    const totalWorkouts = uniqueDates.size;
+
+    // 4. Общий тоннаж за всё время
+    const totalVolume = history.reduce((sum, h) => sum + (h.weight * h.reps), 0);
+
+    const achievements = [
+        {
+            icon: 'fa-crown',
+            color: 'gold',
+            label: 'Макс. вес',
+            value: `${maxWeight} кг`,
+            sub: maxWeightDate ? new Date(maxWeightDate).toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' }) : ''
+        },
+        {
+            icon: 'fa-dumbbell',
+            color: 'blue',
+            label: 'Расчетный 1ПМ',
+            value: `${Math.round(max1RM)} кг`,
+            sub: max1RMDate ? new Date(max1RMDate).toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' }) : 'Только для >0 кг'
+        },
+        {
+            icon: 'fa-calendar-check',
+            color: 'green',
+            label: 'Всего тренировок',
+            value: totalWorkouts,
+            sub: 'уникальных дней'
+        },
+        {
+            icon: 'fa-weight-hanging',
+            color: 'purple',
+            label: 'Общий тоннаж',
+            value: `${(totalVolume / 1000).toFixed(1)}т`,
+            sub: 'за всё время'
+        }
+    ];
+
+    return `
+        <div class="mb-4 card-enter" style="animation-delay: 0.2s">
+            <div class="text-xs font-semibold text-tgHint uppercase tracking-wide mb-2 px-1">Достижения (за всё время)</div>
+            <div class="grid grid-cols-2 gap-2">
+                ${achievements.map(a => `
+                    <div class="achievement-card">
+                        <div class="flex items-start gap-3">
+                            <div class="achievement-icon ${a.color}">
+                                <i class="fa-solid ${a.icon}"></i>
+                            </div>
+                            <div class="min-w-0 flex-1">
+                                <div class="text-[10px] text-tgHint uppercase tracking-wide leading-tight">${a.label}</div>
+                                <div class="text-base font-bold mt-0.5 leading-tight">${a.value}</div>
+                                ${a.sub ? `<div class="text-[10px] text-tgHint mt-0.5 leading-tight">${a.sub}</div>` : ''}
+                            </div>
+                        </div>
+                    </div>
+                `).join('')}
+            </div>
+        </div>
+    `;
+};
 
         function renderChart() {
             const ctx = document.getElementById('progressChart'); if (!ctx) return;
@@ -430,7 +522,36 @@
             gradient.addColorStop(0, linkColor + '30'); gradient.addColorStop(1, linkColor + '00');
             new Chart(ctx, {
                 type: 'line', data: { labels, datasets: [{ data, borderColor: linkColor, backgroundColor: gradient, borderWidth: 2, tension: 0.4, fill: true, pointRadius: 0, pointHoverRadius: 6, pointHoverBackgroundColor: '#ffffff', pointHoverBorderColor: linkColor, pointHoverBorderWidth: 3 }] },
-                options: { responsive: true, maintainAspectRatio: false, interaction: { mode: 'index', intersect: false }, plugins: { legend: { display: false }, tooltip: { backgroundColor: 'rgba(30, 30, 32, 0.95)', titleColor: '#8e8e93', bodyColor: '#ffffff', bodyFont: { size: 14, weight: 'bold' }, padding: 10, cornerRadius: 10, displayColors: false, callbacks: { title: (items) => { const d = dates[items[0].dataIndex]; return `${d.getDate()} ${MONTHS_RU[d.getMonth()]}, ${WEEKDAYS_RU[d.getDay()]}`; }, label: (item) => `${item.raw} кг` } } }, scales: { y: { display: false, beginAtZero: false, grace: '10%' }, x: { grid: { display: false }, ticks: { color: '#8e8e93', font: { size: 10 }, padding: 6, callback: (value, index) => { const d = dates[index]; if (!d) return ''; return `${d.getDate()} ${WEEKDAYS_RU[d.getDay()]}`; }, maxRotation: 0, autoSkip: true, maxTicksLimit: 7 }, border: { display: false } } }, animation: { duration: 400, easing: 'easeOutQuart' } }, plugins: [crosshairPlugin]
+                options: { responsive: true, maintainAspectRatio: false, interaction: { mode: 'index', intersect: false }, plugins: { legend: { display: false }, tooltip: { backgroundColor: 'rgba(30, 30, 32, 0.95)', titleColor: '#8e8e93', bodyColor: '#ffffff', bodyFont: { size: 14, weight: 'bold' }, padding: 10, cornerRadius: 10, displayColors: false, callbacks: { title: (items) => { const d = dates[items[0].dataIndex]; return `${d.getDate()} ${MONTHS_RU[d.getMonth()]}, ${WEEKDAYS_RU[d.getDay()]}`; }, label: (item) => `${item.raw} кг` } } }, scales: {
+    y: { display: false, beginAtZero: false, grace: '10%' },
+    x: {
+        grid: { display: false },
+        ticks: {
+            color: '#8e8e93',
+            font: { size: 10 },
+            padding: 6,
+            callback: (value, index) => {
+                const d = dates[index];
+                if (!d) return '';
+                const day = d.getDate();
+                const month = MONTHS_RU[d.getMonth()];
+                const weekday = WEEKDAYS_RU[d.getDay()];
+                
+                // Умное форматирование: если диапазон > 30 дней, добавляем месяц
+                const spanDays = dates.length > 1 ? (dates[dates.length - 1] - dates[0]) / (1000 * 60 * 60 * 24) : 0;
+                if (spanDays > 30) {
+                    return `${day} ${month}`; // Например: "15 Окт"
+                } else {
+                    return `${day} ${weekday}`; // Например: "15 Пн"
+                }
+            },
+            maxRotation: 0,
+            autoSkip: true,
+            maxTicksLimit: 10 // Гарантирует отображение до 10 точек (включая ~7 основных)
+        },
+        border: { display: false }
+    }
+}, animation: { duration: 400, easing: 'easeOutQuart' } }, plugins: [crosshairPlugin]
             });
         }
 
