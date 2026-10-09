@@ -219,14 +219,14 @@
         class="fixed bottom-0 left-0 right-0 bg-tgBg border-t border-tgSecondaryBg flex justify-around z-20 transition-all duration-200"
         style="padding-bottom: max(12px, var(--safe-bottom));">
 
-        <button onclick="switchTab('stats')" id="tab-stats" role="tab" aria-selected="true"
-            class="flex flex-col items-center justify-center min-h-[56px] min-w-[64px] text-tgLink">
+        <button onclick="switchTab('stats')" id="tab-stats" role="tab" aria-selected="false"
+            class="flex flex-col items-center justify-center min-h-[56px] min-w-[64px] text-tgHint">
             <i class="fa-solid fa-chart-line text-xl mb-1"></i>
             <span class="text-xs font-medium">Статистика</span>
         </button>
 
-        <button onclick="switchTab('programs')" id="tab-programs" role="tab" aria-selected="false"
-            class="flex flex-col items-center justify-center min-h-[56px] min-w-[64px] text-tgHint">
+        <button onclick="switchTab('programs')" id="tab-programs" role="tab" aria-selected="true"
+            class="flex flex-col items-center justify-center min-h-[56px] min-w-[64px] text-tgLink">
             <i class="fa-solid fa-list-check text-xl mb-1"></i>
             <span class="text-xs font-medium">Программы</span>
         </button>
@@ -377,8 +377,8 @@
         }
 
         let state = {
-            currentScreen: 'stats',
-            currentTab: 'stats',
+            currentScreen: 'programs',
+            currentTab: 'programs',
             activeWorkout: null,
             editingProgram: null,
             workoutTimer: null,
@@ -434,7 +434,7 @@
             }
             haptic('light');
             const tabMap = { program_edit: 'programs', history_detail: 'history', workout: 'programs' };
-            const target = tabMap[state.currentScreen] || state.currentTab || 'stats';
+            const target = tabMap[state.currentScreen] || state.currentTab || 'programs';
             navigateToTab(target);
         }
 
@@ -1607,17 +1607,14 @@
                 const fileName = `fitnary_backup_${new Date().toISOString().slice(0, 10)}.json`;
                 const file = new File([blob], fileName, { type: 'application/json' });
 
-                // 1. Нативный способ для iOS (открывает меню "Поделиться" -> "Сохранить в Файлы")
                 if (navigator.canShare && navigator.canShare({ files: [file] })) {
-                    // Передаем ТОЛЬКО files. Без title и text, чтобы iOS не создавала дубликаты
                     await navigator.share({
                         files: [file]
                     });
                     haptic('success');
-                    return; // Успешно завершили, выходим из функции
+                    return;
                 }
 
-                // 2. Запасной вариант для компьютеров и некоторых Android-браузеров
                 const url = URL.createObjectURL(blob);
                 const a = document.createElement('a');
                 a.href = url;
@@ -1629,7 +1626,6 @@
                 haptic('success');
 
             } catch (e) {
-                // Если пользователь просто закрыл окно "Поделиться", это не ошибка (AbortError)
                 if (e.name !== 'AbortError') {
                     console.error('Export error:', e);
                     showAlert('Не удалось экспортировать данные. Попробуйте открыть приложение в браузере Safari.');
@@ -1646,7 +1642,7 @@
                 localStorage.removeItem(`twa_fitness_muscle_groups_${USER_ID}`);
                 state.activeWorkout = null;
                 haptic('warning');
-                renderHistory();
+                navigateToTab('programs');
             });
         }
 
@@ -1891,7 +1887,7 @@
         if (restoreActiveWorkout()) {
             navigate('workout');
         } else {
-            navigateToTab('stats');
+            navigateToTab('programs');
         }
     </script>
 </body>
