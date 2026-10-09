@@ -1594,7 +1594,7 @@
             input.click();
         }
 
-                        async function exportData() {
+        async function exportData() {
             try {
                 const data = {
                     programs: DataAPI.getPrograms(),
@@ -1609,13 +1609,12 @@
 
                 // 1. Нативный способ для iOS (открывает меню "Поделиться" -> "Сохранить в Файлы")
                 if (navigator.canShare && navigator.canShare({ files: [file] })) {
+                    // Передаем ТОЛЬКО files. Без title и text, чтобы iOS не создавала дубликаты
                     await navigator.share({
-                        files: [file],
-                        title: 'Fitnary Бэкап' 
-                        // Свойство text удалено, чтобы iOS не создавала второй текстовый файл
+                        files: [file]
                     });
                     haptic('success');
-                    return; 
+                    return; // Успешно завершили, выходим из функции
                 }
 
                 // 2. Запасной вариант для компьютеров и некоторых Android-браузеров
