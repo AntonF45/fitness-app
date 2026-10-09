@@ -8,8 +8,6 @@
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/hammerjs@2.0.8"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom@2.0.1/dist/chartjs-plugin-zoom.min.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
     <script>
@@ -97,41 +95,50 @@
             to { opacity: 1; transform: translateY(0); }
         }
 
+        /* НОВЫЙ СТИЛЬ ГРАФИКА */
+        .chart-card {
+            background: linear-gradient(180deg, rgba(59, 130, 246, 0.08) 0%, rgba(59, 130, 246, 0.02) 100%);
+            border: 1px solid rgba(59, 130, 246, 0.15);
+        }
+
         .chart-wrapper {
             position: relative;
-            height: 220px;
-            touch-action: pan-y pinch-zoom;
+            height: 240px;
+            width: 100%;
         }
 
         .chart-wrapper canvas {
-            touch-action: none;
+            touch-action: pan-x;
         }
 
-        .modal-backdrop {
-            position: fixed;
-            inset: 0;
-            z-index: 100;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            background: rgba(0, 0, 0, 0.65);
-            padding: 16px;
+        .month-selector {
+            scrollbar-width: none;
+            -ms-overflow-style: none;
+        }
+        .month-selector::-webkit-scrollbar {
+            display: none;
         }
 
-        .modal-sheet {
-            width: 100%;
-            max-width: 480px;
-            background: var(--tg-theme-secondary-bg-color, #2c2c2e);
-            color: var(--tg-theme-text-color, #ffffff);
-            border-radius: 24px;
-            padding: 20px;
-            padding-bottom: calc(20px + env(safe-area-inset-bottom, 0px));
-            animation: modalIn 0.2s ease-out;
+        .month-chip {
+            transition: all 0.2s ease;
+            white-space: nowrap;
         }
 
-        @keyframes modalIn {
-            from { opacity: 0; transform: scale(0.95); }
-            to { opacity: 1; transform: scale(1); }
+        .month-chip.active {
+            color: #ffffff;
+            font-weight: 700;
+            font-size: 1.25rem;
+        }
+
+        .month-chip.inactive {
+            color: var(--tg-theme-hint-color, #8e8e93);
+            font-size: 1rem;
+        }
+
+        .chart-info-label {
+            font-size: 11px;
+            letter-spacing: 0.5px;
+            text-transform: uppercase;
         }
 
         .set-drop {
@@ -209,6 +216,33 @@
         .autocomplete-item:hover, .autocomplete-item:active {
             background: rgba(255,255,255,0.08);
         }
+
+        .modal-backdrop {
+            position: fixed;
+            inset: 0;
+            z-index: 100;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(0, 0, 0, 0.65);
+            padding: 16px;
+        }
+
+        .modal-sheet {
+            width: 100%;
+            max-width: 480px;
+            background: var(--tg-theme-secondary-bg-color, #2c2c2e);
+            color: var(--tg-theme-text-color, #ffffff);
+            border-radius: 24px;
+            padding: 20px;
+            padding-bottom: calc(20px + env(safe-area-inset-bottom, 0px));
+            animation: modalIn 0.2s ease-out;
+        }
+
+        @keyframes modalIn {
+            from { opacity: 0; transform: scale(0.95); }
+            to { opacity: 1; transform: scale(1); }
+        }
     </style>
 </head>
 
@@ -253,6 +287,10 @@
                 ? crypto.randomUUID()
                 : Date.now().toString(36) + Math.random().toString(36).slice(2);
         }
+
+        const MONTHS_RU = ['Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь', 'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь'];
+        const WEEKDAYS_RU = ['Вс', 'Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб'];
+        const WEEKDAYS_SHORT = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
         const DEFAULT_MUSCLE_GROUPS = ['Грудь', 'Спина', 'Ноги', 'Плечи', 'Руки'];
         
@@ -384,7 +422,8 @@
             workoutTimer: null,
             selectedMuscleGroup: 'Грудь',
             selectedExercise: null,
-            supersetActiveId: null
+            supersetActiveId: null,
+            selectedMonth: null // НОВОЕ: выбранный месяц для графика
         };
 
         function updateTabUI(activeTab) {
@@ -461,8 +500,66 @@
         }
 
         // ==========================================
-        // ВКЛАДКА СТАТИСТИКА
+        // НОВЫЙ ДИЗАЙН ГРАФИКА
         // ==========================================
+        
+        // Кастомный плагин для вертикальной линии и точки при наведении
+        const crosshairPlugin = {
+            id: 'crosshair',
+            afterDraw(chart) {
+                if (chart._active && chart._active.length) {
+                    const activePoint = chart._active[0];
+                    const ctx = chart.ctx;
+                    const x = activePoint.element.x;
+                    const topY = chart.scales.y.top;
+                    const bottomY = chart.scales.y.bottom;
+
+                    // Вертикальная линия
+                    ctx.save();
+                    ctx.beginPath();
+                    ctx.moveTo(x, topY);
+                    ctx.lineTo(x, bottomY);
+                    ctx.lineWidth = 1;
+                    ctx.strokeStyle = 'rgba(255, 255, 255, 0.15)';
+                    ctx.setLineDash([4, 4]);
+                    ctx.stroke();
+                    ctx.restore();
+
+                    // Точка на линии
+                    ctx.save();
+                    ctx.beginPath();
+                    ctx.arc(x, activePoint.element.y, 6, 0, 2 * Math.PI);
+                    ctx.fillStyle = '#ffffff';
+                    ctx.fill();
+                    ctx.beginPath();
+                    ctx.arc(x, activePoint.element.y, 4, 0, 2 * Math.PI);
+                    ctx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue('--tg-theme-link-color') || '#3b82f6';
+                    ctx.fill();
+                    ctx.restore();
+                }
+            }
+        };
+
+        function getAvailableMonths(history) {
+            const months = new Set();
+            history.forEach(item => {
+                const d = new Date(item.date);
+                const key = `${d.getFullYear()}-${d.getMonth()}`;
+                months.add(key);
+            });
+            return Array.from(months).sort();
+        }
+
+        function formatMonthKey(key) {
+            const [year, month] = key.split('-').map(Number);
+            return { year, month, label: MONTHS_RU[month] };
+        }
+
+        function selectMonth(monthKey) {
+            state.selectedMonth = monthKey;
+            renderStats();
+        }
+
         function renderStats() {
             const exercises = DataAPI.getUserExercises();
             const muscleGroups = getMuscleGroups();
@@ -484,8 +581,11 @@
                 : '<p class="text-tgHint text-sm px-4 py-3">Нет упражнений в этой группе</p>';
 
             document.getElementById('app-content').innerHTML = `
-                <div class="bg-tgSecondaryBg p-4 rounded-2xl mb-6 card-enter" style="animation-delay: 0.05s">
-                    <div class="chart-wrapper"><canvas id="progressChart"></canvas></div>
+                <div class="chart-card rounded-3xl p-5 mb-6 card-enter" style="animation-delay: 0.05s">
+                    ${state.selectedExercise ? renderChartHeader() : '<div class="text-center text-tgHint text-sm py-8">Выберите упражнение ниже для отображения графика</div>'}
+                    <div class="chart-wrapper">
+                        <canvas id="progressChart"></canvas>
+                    </div>
                 </div>
                 <div class="mb-4 card-enter" style="animation-delay: 0.1s">
                     <h3 class="text-sm font-semibold mb-2 text-tgHint px-1">Группа мышц</h3>
@@ -503,7 +603,60 @@
                     if (activeChip) activeChip.scrollIntoView({ behavior: 'auto', inline: 'center', block: 'nearest' });
                 });
             }, 50);
-            renderChart();
+            
+            if (state.selectedExercise) renderChart();
+        }
+
+        function renderChartHeader() {
+            const history = DataAPI.getExerciseHistory(state.selectedExercise);
+            if (history.length === 0) return '';
+            
+            const months = getAvailableMonths(history);
+            if (months.length === 0) return '';
+            
+            // Если месяц не выбран, выбираем последний
+            if (!state.selectedMonth || !months.includes(state.selectedMonth)) {
+                state.selectedMonth = months[months.length - 1];
+            }
+            
+            const currentMonthInfo = formatMonthKey(state.selectedMonth);
+            
+            // Статистика за выбранный месяц
+            const monthHistory = history.filter(item => {
+                const d = new Date(item.date);
+                return `${d.getFullYear()}-${d.getMonth()}` === state.selectedMonth;
+            });
+            
+            const maxWeight = monthHistory.length > 0 ? Math.max(...monthHistory.map(h => h.weight)) : 0;
+            const avgWeight = monthHistory.length > 0 
+                ? (monthHistory.reduce((sum, h) => sum + h.weight, 0) / monthHistory.length).toFixed(1)
+                : 0;
+            
+            const monthsHTML = months.map(key => {
+                const info = formatMonthKey(key);
+                const isActive = key === state.selectedMonth;
+                return `
+                    <button onclick="selectMonth('${key}')" class="month-chip px-3 py-1 rounded-lg ${isActive ? 'active' : 'inactive'}">
+                        ${info.label}
+                    </button>
+                `;
+            }).join('');
+
+            return `
+                <div class="mb-4">
+                    <div class="flex overflow-x-auto gap-2 month-selector pb-2 -mx-1 px-1">
+                        ${monthsHTML}
+                    </div>
+                </div>
+                <div class="mb-4">
+                    <h2 class="text-xl font-bold mb-1">${esc(state.selectedExercise)}</h2>
+                    <div class="flex items-baseline gap-2">
+                        <span class="text-3xl font-bold text-tgLink">${maxWeight}</span>
+                        <span class="text-tgHint text-sm">кг макс.</span>
+                    </div>
+                    <div class="text-tgHint text-xs mt-1">Средний вес: ${avgWeight} кг · ${monthHistory.length} подх. за месяц</div>
+                </div>
+            `;
         }
 
         function renderChart() {
@@ -516,57 +669,133 @@
             const history = DataAPI.getExerciseHistory(state.selectedExercise);
             if (history.length === 0) return;
 
-            const dataByDate = {};
-            history.forEach(item => {
-                const key = new Date(item.date).toISOString().slice(0, 10);
-                const label = new Date(item.date).toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit' });
-                if (!dataByDate[key] || item.weight > dataByDate[key].weight) {
-                    dataByDate[key] = { weight: item.weight, label: label };
+            // Фильтруем по выбранному месяцу
+            const monthHistory = history.filter(item => {
+                const d = new Date(item.date);
+                return `${d.getFullYear()}-${d.getMonth()}` === state.selectedMonth;
+            });
+
+            if (monthHistory.length === 0) {
+                // Если нет данных за месяц, показываем все
+                monthHistory.push(...history);
+            }
+
+            // Группируем по дням (берем максимальный вес за день)
+            const dataByDay = {};
+            monthHistory.forEach(item => {
+                const d = new Date(item.date);
+                const key = d.toISOString().slice(0, 10);
+                if (!dataByDay[key] || item.weight > dataByDay[key].weight) {
+                    dataByDay[key] = {
+                        weight: item.weight,
+                        date: d,
+                        label: d.getDate().toString()
+                    };
                 }
             });
 
-            const sortedKeys = Object.keys(dataByDate).sort();
+            const sortedDays = Object.keys(dataByDay).sort();
+            const labels = sortedDays.map(key => dataByDay[key].label);
+            const data = sortedDays.map(key => dataByDay[key].weight);
+            const dates = sortedDays.map(key => dataByDay[key].date);
+
+            // Создаем градиент
+            const gradient = ctx.getContext('2d').createLinearGradient(0, 0, 0, 240);
+            const linkColor = getComputedStyle(document.documentElement).getPropertyValue('--tg-theme-link-color') || '#3b82f6';
+            gradient.addColorStop(0, linkColor + '40');
+            gradient.addColorStop(1, linkColor + '00');
+
+            const chartColor = linkColor;
+
             new Chart(ctx, {
                 type: 'line',
                 data: {
-                    labels: sortedKeys.map(key => dataByDate[key].label),
+                    labels: labels,
                     datasets: [{
-                        label: 'Вес (кг)',
-                        data: sortedKeys.map(key => dataByDate[key].weight),
-                        borderColor: getComputedStyle(document.documentElement).getPropertyValue('--tg-theme-link-color') || '#3b82f6',
-                        backgroundColor: 'rgba(59, 130, 246, 0.1)',
-                        tension: 0.3,
+                        data: data,
+                        borderColor: chartColor,
+                        backgroundColor: gradient,
+                        borderWidth: 2.5,
+                        tension: 0.4,
                         fill: true,
-                        pointRadius: 4,
-                        pointHoverRadius: 6
+                        pointRadius: 0,
+                        pointHoverRadius: 6,
+                        pointHoverBackgroundColor: '#ffffff',
+                        pointHoverBorderColor: chartColor,
+                        pointHoverBorderWidth: 3
                     }]
                 },
                 options: {
                     responsive: true,
                     maintainAspectRatio: false,
+                    interaction: {
+                        mode: 'index',
+                        intersect: false
+                    },
                     plugins: {
                         legend: { display: false },
-                        zoom: {
-                            pan: { enabled: true, mode: 'x' },
-                            zoom: { pinch: { enabled: true }, mode: 'x', limits: { x: { min: 'original', max: 'original' } } }
+                        tooltip: {
+                            enabled: true,
+                            backgroundColor: 'rgba(30, 30, 32, 0.95)',
+                            titleColor: '#8e8e93',
+                            bodyColor: '#ffffff',
+                            bodyFont: { size: 16, weight: 'bold' },
+                            padding: 12,
+                            cornerRadius: 12,
+                            displayColors: false,
+                            callbacks: {
+                                title: (items) => {
+                                    const idx = items[0].dataIndex;
+                                    const d = dates[idx];
+                                    return `${d.getDate()} ${MONTHS_RU[d.getMonth()].slice(0, 3)}, ${WEEKDAYS_RU[d.getDay()]}`;
+                                },
+                                label: (item) => `${item.raw} кг`
+                            }
                         }
                     },
                     scales: {
-                        y: { beginAtZero: false, ticks: { color: getComputedStyle(document.documentElement).getPropertyValue('--tg-theme-hint-color') || '#8e8e93' } },
-                        x: { ticks: { color: getComputedStyle(document.documentElement).getPropertyValue('--tg-theme-hint-color') || '#8e8e93' } }
+                        y: {
+                            display: false,
+                            beginAtZero: false,
+                            grace: '10%'
+                        },
+                        x: {
+                            grid: { display: false },
+                            ticks: {
+                                color: '#8e8e93',
+                                font: { size: 11 },
+                                padding: 8,
+                                callback: function(value, index) {
+                                    const d = dates[index];
+                                    if (!d) return '';
+                                    // Показываем день недели и дату
+                                    return `${d.getDate()}\n${WEEKDAYS_SHORT[d.getDay()]}`;
+                                },
+                                maxRotation: 0,
+                                autoSkip: false
+                            },
+                            border: { display: false }
+                        }
+                    },
+                    animation: {
+                        duration: 600,
+                        easing: 'easeOutQuart'
                     }
-                }
+                },
+                plugins: [crosshairPlugin]
             });
         }
 
         function selectMuscleGroup(group) {
             state.selectedMuscleGroup = group;
             state.selectedExercise = null;
+            state.selectedMonth = null;
             renderStats();
         }
 
         function selectExercise(name) {
             state.selectedExercise = state.selectedExercise === name ? null : name;
+            state.selectedMonth = null;
             renderStats();
         }
 
@@ -785,9 +1014,6 @@
                 }
 
                 const currentMuscle = exercise.muscleGroup;
-                const filteredExercises = currentMuscle 
-                    ? allSavedExercises.filter(e => e.muscleGroup === currentMuscle)
-                    : allSavedExercises;
                 
                 const exerciseDropdownId = `autocomplete-exercise-${index}`;
                 const muscleDropdownId = `autocomplete-muscle-${index}`;
@@ -1608,9 +1834,7 @@
                 const file = new File([blob], fileName, { type: 'application/json' });
 
                 if (navigator.canShare && navigator.canShare({ files: [file] })) {
-                    await navigator.share({
-                        files: [file]
-                    });
+                    await navigator.share({ files: [file] });
                     haptic('success');
                     return;
                 }
@@ -1628,7 +1852,7 @@
             } catch (e) {
                 if (e.name !== 'AbortError') {
                     console.error('Export error:', e);
-                    showAlert('Не удалось экспортировать данные. Попробуйте открыть приложение в браузере Safari.');
+                    showAlert('Не удалось экспортировать данные.');
                 }
             }
         }
