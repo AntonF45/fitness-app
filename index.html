@@ -1594,7 +1594,7 @@
             input.click();
         }
 
-        function exportData() {
+                async function exportData() {
             try {
                 const data = {
                     programs: DataAPI.getPrograms(),
@@ -1602,18 +1602,44 @@
                     muscleGroups: getMuscleGroups(),
                     exportDate: new Date().toISOString()
                 };
-                const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+                const jsonString = JSON.stringify(data, null, 2);
+                const blob = new Blob([jsonString], { type: 'application/json' });
+                const fileName = `fitnary_backup_${new Date().toISOString().slice(0, 10)}.json`;
+                const file = new File([blob], fileName, { type: 'application/json' });
+
+                // 1. Нативный способ для iOS (открывает меню "Поделиться" -> "Сохранить в Файлы")
+                if (navigator.canShare && navigator.canShare({ files: [file] })) {
+                    await navigator.share({
+                        files: [file],
+                        title: 'Fitnary Бэкап',
+                        text: 'Резервная копия данных приложения'
+                    });
+                    haptic('success');
+                    return; // Успешно завершили, выходим
+                }
+
+                // 2. Запасной вариант для компьютеров и некоторых Android-браузеров
                 const url = URL.createObjectURL(blob);
                 const a = document.createElement('a');
                 a.href = url;
-                a.download = `fitnary_backup_${new Date().toISOString().slice(0, 10)}.json`;
+                a.download = fileName;
                 document.body.appendChild(a);
                 a.click();
                 document.body.removeChild(a);
                 URL.revokeObjectURL(url);
                 haptic('success');
+                
+                // На всякий случай информируем пользователя, если фоллбэк не сработал как ожидается
+                setTimeout(() => {
+                    showAlert('Файл сформирован. Если скачивание не началось, попробуйте открыть приложение в Safari.');
+                }, 300);
+
             } catch (e) {
-                showAlert('Ошибка при экспорте данных');
+                // Если пользователь просто закрыл окно "Поделиться", это не ошибка (AbortError)
+                if (e.name !== 'AbortError') {
+                    console.error('Export error:', e);
+                    showAlert('Не удалось экспортировать данные. Попробуйте открыть приложение в браузере Safari.');
+                }
             }
         }
 
