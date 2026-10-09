@@ -1594,7 +1594,7 @@
             input.click();
         }
 
-                async function exportData() {
+                        async function exportData() {
             try {
                 const data = {
                     programs: DataAPI.getPrograms(),
@@ -1611,11 +1611,11 @@
                 if (navigator.canShare && navigator.canShare({ files: [file] })) {
                     await navigator.share({
                         files: [file],
-                        title: 'Fitnary Бэкап',
-                        text: 'Резервная копия данных приложения'
+                        title: 'Fitnary Бэкап' 
+                        // Свойство text удалено, чтобы iOS не создавала второй текстовый файл
                     });
                     haptic('success');
-                    return; // Успешно завершили, выходим
+                    return; 
                 }
 
                 // 2. Запасной вариант для компьютеров и некоторых Android-браузеров
@@ -1628,11 +1628,6 @@
                 document.body.removeChild(a);
                 URL.revokeObjectURL(url);
                 haptic('success');
-                
-                // На всякий случай информируем пользователя, если фоллбэк не сработал как ожидается
-                setTimeout(() => {
-                    showAlert('Файл сформирован. Если скачивание не началось, попробуйте открыть приложение в Safari.');
-                }, 300);
 
             } catch (e) {
                 // Если пользователь просто закрыл окно "Поделиться", это не ошибка (AbortError)
