@@ -644,12 +644,22 @@
             }
         }
 
-        // ==========================================
+                // ==========================================
         // НОВАЯ ВКЛАДКА СТАТИСТИКА
         // ==========================================
         
         function getFilteredHistory(history, period) {
             if (period === 'all') return history;
+            
+            if (state.selectedMonthIndex !== null) {
+                const year = new Date().getFullYear();
+                const month = state.selectedMonthIndex;
+                return history.filter(item => {
+                    const d = new Date(item.date);
+                    return d.getFullYear() === year && d.getMonth() === month;
+                });
+            }
+            
             const now = new Date();
             let cutoff;
             if (period === 'week') cutoff = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
@@ -658,475 +668,335 @@
             return history.filter(item => new Date(item.date) >= cutoff);
         }
 
-        function renderStats() {
-    const exercises = DataAPI.getUserExercises();
-    const muscleGroups = getMuscleGroups();
-
-    // Чипы групп мышц
-    const muscleGroupsHTML = muscleGroups.map(group => `
-        <button onclick="selectMuscleGroup('${group}')" role="tab" aria-selected="${state.selectedMuscleGroup === group}"
-            class="stat-chip snap-center min-w-[80px] px-3 py-2 rounded-xl text-xs font-medium whitespace-nowrap ${
-                state.selectedMuscleGroup === group ? 'active' : 'inactive'
-            }">${group}</button>
-    `).join('');
-
-    // Чипы упражнений
-    const filteredExercises = exercises.filter(ex => ex.muscleGroup === state.selectedMuscleGroup);
-    const exercisesHTML = filteredExercises.length
-        ? filteredExercises.map(ex => `
-            <button onclick="selectExercise('${esc(ex.name)}')" role="tab" aria-selected="${state.selectedExercise === ex.name}"
-                class="stat-chip snap-center min-w-[110px] px-3 py-2 rounded-xl text-xs font-medium text-center ${
-                    state.selectedExercise === ex.name ? 'active' : 'inactive'
-                }">${esc(ex.name)}</button>
-        `).join('')
-        : '<p class="text-tgHint text-xs px-4 py-2">Нет упражнений в этой группе</p>';
-
-    // Месяцы для фильтра
-    const monthsHTML = MONTHS_FULL.map((m, i) => `
-        <button onclick="selectMonthFilter(${i})" class="period-btn ${state.selectedMonthIndex === i ? 'active' : ''}">${m}</button>
-    `).join('');
-
-    document.getElementById('app-content').innerHTML = `
-        <!-- БЛОК ГРАФИКА (фиксированный размер) -->
-        <div class="chart-card rounded-2xl p-4 mb-3 card-enter" style="animation-delay: 0.05s">
-            <!-- Верхняя панель: месяцы / фильтр -->
-            <div class="chart-top-bar">
-                <div id="chart-top-slider" class="chart-top-slider">
-                    <!-- Левая половина: месяцы + кнопка фильтра -->
-                    <div class="flex items-center justify-between gap-2 pr-1">
-                        <div id="months-scroll" class="flex-1 overflow-x-auto scroll-container flex gap-1.5">
-                            ${monthsHTML}
-                        </div>
-                        <button id="filter-toggle-btn" onclick="toggleFilterPanel()" class="filter-toggle-btn" aria-label="Фильтр периода">
-                            <i class="fa-solid fa-sliders"></i>
-                        </button>
-                    </div>
-                    <!-- Правая половина: фильтр периодов -->
-                    <div class="flex items-center pl-1">
-                        <div class="period-filter flex-1">
-                            <button onclick="selectPeriod('week')" class="period-btn ${state.selectedPeriod === 'week' ? 'active' : ''}">Неделя</button>
-                            <button onclick="selectPeriod('month')" class="period-btn ${state.selectedPeriod === 'month' ? 'active' : ''}">Месяц</button>
-                            <button onclick="selectPeriod('quarter')" class="period-btn ${state.selectedPeriod === 'quarter' ? 'active' : ''}">3 месяца</button>
-                            <button onclick="selectPeriod('all')" class="period-btn ${state.selectedPeriod === 'all' ? 'active' : ''}">Всё</button>
-                        </div>
-                        <button onclick="toggleFilterPanel()" class="filter-toggle-btn ml-2" aria-label="Закрыть фильтр">
-                            <i class="fa-solid fa-xmark"></i>
-                        </button>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Сам график (фиксированная высота) -->
-            <div class="chart-container-fixed">
-                <div class="chart-wrapper-fixed">
-                    <canvas id="progressChart"></canvas>
-                </div>
-                <div id="chart-empty-state" class="chart-empty-state" style="display: ${state.selectedExercise ? 'none' : 'flex'}">
-                    <i class="fa-solid fa-chart-line text-2xl"></i>
-                    <div class="text-xs">Выберите упражнение</div>
-                </div>
-            </div>
-        </div>
-
-        <!-- ГРУППЫ МЫШЦ -->
-        <div class="mb-3 card-enter" style="animation-delay: 0.1s">
-            <div class="text-xs font-semibold text-tgHint uppercase tracking-wide mb-2 px-1">Группа мышц</div>
-            <div id="muscle-groups-container" class="flex overflow-x-auto gap-2 pb-1 snap-x scroll-container">${muscleGroupsHTML}</div>
-        </div>
-
-        <!-- УПРАЖНЕНИЯ -->
-        <div class="mb-4 card-enter" style="animation-delay: 0.15s">
-            <div class="text-xs font-semibold text-tgHint uppercase tracking-wide mb-2 px-1">Упражнения</div>
-            <div id="exercises-container" class="flex overflow-x-auto gap-2 pb-1 snap-x scroll-container">${exercisesHTML}</div>
-        </div>
-
-        <!-- АЧИВКИ ПО УПРАЖНЕНИЮ -->
-        <div id="achievements-container">
-            ${state.selectedExercise ? renderAchievements() : ''}
-        </div>
-    `;
-
-    // Прокрутка к активным чипам
-    setTimeout(() => {
-        document.querySelectorAll('.scroll-container').forEach(container => {
-            const activeChip = container.querySelector('[aria-selected="true"]');
-            if (activeChip) activeChip.scrollIntoView({ behavior: 'auto', inline: 'center', block: 'nearest' });
-        });
-    }, 50);
-
-    // Рисуем график если выбрано упражнение
-    if (state.selectedExercise) renderChart();
-}
-// Переключение панели фильтра (месяцы ↔ периоды)
-function toggleFilterPanel() {
-    const slider = document.getElementById('chart-top-slider');
-    const btn = document.getElementById('filter-toggle-btn');
-    if (!slider) return;
-    
-    slider.classList.toggle('show-filter');
-    if (btn) btn.classList.toggle('active');
-    haptic('light');
-}
-
-// Выбор месяца в верхнем скролле
-function selectMonthFilter(monthIndex) {
-    state.selectedMonthIndex = monthIndex;
-    state.selectedPeriod = 'month'; // автоматически переключаем на "месяц"
-    haptic('light');
-    
-    // Точечно обновляем только кнопки периода и график
-    updatePeriodButtons();
-    updateChartAndAchievements();
-}
-
-// Выбор периода (Неделя/Месяц/3мес/Всё)
-function selectPeriod(period) {
-    state.selectedPeriod = period;
-    state.selectedMonthIndex = null; // сбрасываем выбор конкретного месяца
-    haptic('light');
-    
-    updatePeriodButtons();
-    updateChartAndAchievements();
-}
-
-// Точечное обновление кнопок периода (без перерисовки всего экрана)
-function updatePeriodButtons() {
-    document.querySelectorAll('.period-btn').forEach(btn => {
-        const text = btn.textContent.trim();
-        const periodMap = { 'Неделя': 'week', 'Месяц': 'month', '3 месяца': 'quarter', 'Всё': 'all' };
-        btn.classList.toggle('active', periodMap[text] === state.selectedPeriod);
-    });
-    
-    // Если выбран конкретный месяц — подсветим его
-    if (state.selectedMonthIndex !== null) {
-        const monthsContainer = document.getElementById('months-scroll');
-        if (monthsContainer) {
-            const buttons = monthsContainer.querySelectorAll('.period-btn');
-            buttons.forEach((btn, idx) => {
-                btn.classList.toggle('active', idx === state.selectedMonthIndex);
-            });
-        }
-    }
-}
-
-// Точечное обновление только графика и ачивок (без перерисовки чипов)
-function updateChartAndAchievements() {
-    // Обновляем график
-    if (state.selectedExercise) {
-        renderChart();
-    } else {
-        // Показываем пустое состояние
-        const empty = document.getElementById('chart-empty-state');
-        if (empty) empty.style.display = 'flex';
-        const canvas = document.getElementById('progressChart');
-        if (canvas) {
-            const existing = Chart.getChart(canvas);
-            if (existing) existing.destroy();
-        }
-    }
-    
-    // Обновляем ачивки
-    const achContainer = document.getElementById('achievements-container');
-    if (achContainer) {
-        achContainer.innerHTML = state.selectedExercise ? renderAchievements() : '';
-        achContainer.classList.add('chip-update');
-        setTimeout(() => achContainer.classList.remove('chip-update'), 250);
-    }
-}
-
-// Выбор группы мышц — обновляем ТОЛЬКО список упражнений
-function selectMuscleGroup(group) {
-    state.selectedMuscleGroup = group;
-    state.selectedExercise = null;
-    haptic('light');
-    
-    // Точечно обновляем только чипы упражнений
-    const exercises = DataAPI.getUserExercises();
-    const filtered = exercises.filter(ex => ex.muscleGroup === group);
-    const container = document.getElementById('exercises-container');
-    
-    if (container) {
-        container.innerHTML = filtered.length
-            ? filtered.map(ex => `
-                <button onclick="selectExercise('${esc(ex.name)}')" role="tab" aria-selected="false"
-                    class="stat-chip snap-center min-w-[110px] px-3 py-2 rounded-xl text-xs font-medium text-center inactive chip-update">${esc(ex.name)}</button>
-            `).join('')
-            : '<p class="text-tgHint text-xs px-4 py-2">Нет упражнений в этой группе</p>';
-        
-        // Скрываем график и ачивки
-        const empty = document.getElementById('chart-empty-state');
-        if (empty) empty.style.display = 'flex';
-        const canvas = document.getElementById('progressChart');
-        if (canvas) {
-            const existing = Chart.getChart(canvas);
-            if (existing) existing.destroy();
-        }
-        const achContainer = document.getElementById('achievements-container');
-        if (achContainer) achContainer.innerHTML = '';
-    } else {
-        // Fallback — полная перерисовка
-        renderStats();
-    }
-}
-
-// Выбор упражнения — обновляем график и ачивки
-function selectExercise(name) {
-    const wasSelected = state.selectedExercise === name;
-    state.selectedExercise = wasSelected ? null : name;
-    haptic('light');
-    
-    // Точечно обновляем чипы упражнений (подсветка)
-    const container = document.getElementById('exercises-container');
-    if (container) {
-        container.querySelectorAll('.stat-chip').forEach(btn => {
-            const isActive = btn.textContent.trim() === state.selectedExercise;
-            btn.classList.toggle('active', isActive);
-            btn.classList.toggle('inactive', !isActive);
-            btn.setAttribute('aria-selected', isActive ? 'true' : 'false');
-        });
-    }
-    
-    // Обновляем график и ачивки
-    updateChartAndAchievements();
-}
-
-// Рендер ачивок по выбранному упражнению
-function renderAchievements() {
-    const history = DataAPI.getExerciseHistory(state.selectedExercise);
-    const filtered = getFilteredHistory(history, state.selectedPeriod);
-    
-    if (filtered.length === 0) {
-        return `
-            <div class="chart-card rounded-2xl p-6 text-center card-enter" style="animation-delay: 0.2s">
-                <i class="fa-solid fa-trophy text-2xl text-tgHint mb-2"></i>
-                <div class="text-tgHint text-sm">Нет данных за выбранный период</div>
-            </div>
-        `;
-    }
-
-    // Считаем метрики
-    const maxWeight = Math.max(...filtered.map(h => h.weight));
-    const maxWeightDate = filtered.find(h => h.weight === maxWeight)?.date;
-    const avgWeight = (filtered.reduce((s, h) => s + h.weight, 0) / filtered.length).toFixed(1);
-    const totalSets = filtered.length;
-    const totalVolume = filtered.reduce((s, h) => s + h.weight * h.reps, 0);
-    const avgReps = (filtered.reduce((s, h) => s + h.reps, 0) / filtered.length).toFixed(0);
-    
-    // Серия прогресса (подряд идущие тренировки с ростом веса)
-    let bestStreak = 0;
-    let currentStreak = 0;
-    let prevWeight = 0;
-    const sortedByDate = [...filtered].sort((a, b) => new Date(a.date) - new Date(b.date));
-    sortedByDate.forEach(h => {
-        if (h.weight > prevWeight) {
-            currentStreak++;
-            bestStreak = Math.max(bestStreak, currentStreak);
-        } else {
-            currentStreak = 0;
-        }
-        prevWeight = h.weight;
-    });
-
-    const achievements = [
-        {
-            icon: 'fa-crown',
-            color: 'gold',
-            label: 'Личный рекорд',
-            value: `${maxWeight} кг`,
-            sub: maxWeightDate ? new Date(maxWeightDate).toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' }) : ''
-        },
-        {
-            icon: 'fa-chart-line',
-            color: 'blue',
-            label: 'Средний вес',
-            value: `${avgWeight} кг`,
-            sub: `${avgReps} повт в среднем`
-        },
-        {
-            icon: 'fa-fire',
-            color: 'green',
-            label: 'Серия роста',
-            value: `${bestStreak} тр.`,
-            sub: 'подряд с прогрессом'
-        },
-        {
-            icon: 'fa-dumbbell',
-            color: 'purple',
-            label: 'Всего подходов',
-            value: totalSets,
-            sub: `${(totalVolume / 1000).toFixed(1)}т тоннаж`
-        }
-    ];
-
-    return `
-        <div class="mb-4 card-enter" style="animation-delay: 0.2s">
-            <div class="text-xs font-semibold text-tgHint uppercase tracking-wide mb-2 px-1">Достижения</div>
-            <div class="grid grid-cols-2 gap-2">
-                ${achievements.map(a => `
-                    <div class="achievement-card">
-                        <div class="flex items-start gap-3">
-                            <div class="achievement-icon ${a.color}">
-                                <i class="fa-solid ${a.icon}"></i>
-                            </div>
-                            <div class="min-w-0 flex-1">
-                                <div class="text-[10px] text-tgHint uppercase tracking-wide leading-tight">${a.label}</div>
-                                <div class="text-base font-bold mt-0.5 leading-tight">${a.value}</div>
-                                ${a.sub ? `<div class="text-[10px] text-tgHint mt-0.5 leading-tight">${a.sub}</div>` : ''}
-                            </div>
-                        </div>
-                    </div>
-                `).join('')}
-            </div>
-        </div>
-    `;
-}
-        function renderOverallStats() {
-            const history = DataAPI.getHistory();
-            const filteredHistory = getFilteredHistory(history, state.selectedPeriod);
-            
-            if (filteredHistory.length === 0) {
-                return `
-                    <div class="chart-card rounded-2xl p-6 mb-3 card-enter text-center" style="animation-delay: 0.25s">
-                        <div class="text-tgHint text-sm">Нет тренировок за выбранный период</div>
-                    </div>
-                `;
+        function getAvailableMonthsForExercise(exerciseName) {
+            if (!exerciseName) {
+                const now = new Date();
+                const months = [];
+                for (let i = 5; i >= 0; i--) {
+                    const m = new Date(now.getFullYear(), now.getMonth() - i, 1).getMonth();
+                    months.push({ index: m, label: MONTHS_FULL[m] });
+                }
+                return months;
             }
-
-            // Общая статистика
-            let totalTonnage = 0;
-            let totalDuration = 0;
-            let totalExercises = 0;
-            let totalSets = 0;
-            const exerciseVolume = {};
-
-            filteredHistory.forEach(entry => {
-                totalDuration += entry.duration || 0;
-                (entry.exercises || []).forEach(ex => {
-                    totalExercises++;
-                    (ex.sets || []).forEach(set => {
-                        totalSets++;
-                        const vol = (Number(set.weight) || 0) * (Number(set.reps) || 0);
-                        totalTonnage += vol;
-                        exerciseVolume[ex.name] = (exerciseVolume[ex.name] || 0) + vol;
-                    });
-                });
+            
+            const history = DataAPI.getExerciseHistory(exerciseName);
+            const monthSet = new Set();
+            history.forEach(h => {
+                const d = new Date(h.date);
+                if (d.getFullYear() === new Date().getFullYear()) {
+                    monthSet.add(d.getMonth());
+                }
             });
+            
+            if (monthSet.size === 0) {
+                const now = new Date();
+                for (let i = 5; i >= 0; i--) {
+                    monthSet.add(new Date(now.getFullYear(), now.getMonth() - i, 1).getMonth());
+                }
+            }
+            
+            return Array.from(monthSet).sort((a, b) => a - b).map(idx => ({ index: idx, label: MONTHS_FULL[idx] }));
+        }
 
-            const avgDuration = Math.round(totalDuration / filteredHistory.length / 60);
-            const topExercise = Object.entries(exerciseVolume).sort((a, b) => b[1] - a[1])[0];
+        function renderStats() {
+            const exercises = DataAPI.getUserExercises();
+            const muscleGroups = getMuscleGroups();
 
-            // Тепловая карта активности (последние 12 недель)
-            const heatmapData = generateHeatmapData(filteredHistory);
+            const muscleGroupsHTML = muscleGroups.map(group => `
+                <button onclick="selectMuscleGroup('${group}')" role="tab" aria-selected="${state.selectedMuscleGroup === group}"
+                    class="stat-chip snap-center min-w-[80px] px-3 py-2 rounded-xl text-xs font-medium whitespace-nowrap ${
+                        state.selectedMuscleGroup === group ? 'active' : 'inactive'
+                    }">${group}</button>
+            `).join('');
 
-            return `
-                <!-- Общая статистика за период -->
-                <div class="chart-card rounded-2xl p-4 mb-3 card-enter" style="animation-delay: 0.25s">
-                    <div class="text-xs font-semibold text-tgHint uppercase tracking-wide mb-3">Обзор за период</div>
-                    <div class="grid grid-cols-2 gap-3">
-                        <div class="bg-tgBg/40 rounded-xl p-3">
-                            <div class="text-tgHint text-[10px] uppercase tracking-wide mb-1">Тренировок</div>
-                            <div class="text-xl font-bold">${filteredHistory.length}</div>
-                        </div>
-                        <div class="bg-tgBg/40 rounded-xl p-3">
-                            <div class="text-tgHint text-[10px] uppercase tracking-wide mb-1">Время</div>
-                            <div class="text-xl font-bold">${avgDuration} <span class="text-xs font-normal text-tgHint">мин</span></div>
-                        </div>
-                        <div class="bg-tgBg/40 rounded-xl p-3">
-                            <div class="text-tgHint text-[10px] uppercase tracking-wide mb-1">Тоннаж</div>
-                            <div class="text-xl font-bold">${(totalTonnage / 1000).toFixed(1)} <span class="text-xs font-normal text-tgHint">т</span></div>
-                        </div>
-                        <div class="bg-tgBg/40 rounded-xl p-3">
-                            <div class="text-tgHint text-[10px] uppercase tracking-wide mb-1">Подходов</div>
-                            <div class="text-xl font-bold">${totalSets}</div>
-                        </div>
-                    </div>
-                </div>
+            const filteredExercises = exercises.filter(ex => ex.muscleGroup === state.selectedMuscleGroup);
+            const exercisesHTML = filteredExercises.length
+                ? filteredExercises.map(ex => `
+                    <button onclick="selectExercise('${esc(ex.name)}')" role="tab" aria-selected="${state.selectedExercise === ex.name}"
+                        class="stat-chip snap-center min-w-[110px] px-3 py-2 rounded-xl text-xs font-medium text-center ${
+                            state.selectedExercise === ex.name ? 'active' : 'inactive'
+                        }">${esc(ex.name)}</button>
+                `).join('')
+                : '<p class="text-tgHint text-xs px-4 py-2">Нет упражнений в этой группе</p>';
 
-                <!-- Топ упражнение по объему -->
-                ${topExercise ? `
-                <div class="chart-card rounded-2xl p-4 mb-3 card-enter" style="animation-delay: 0.3s">
-                    <div class="text-xs font-semibold text-tgHint uppercase tracking-wide mb-2">Топ упражнение по объему</div>
-                    <div class="flex items-center justify-between">
-                        <div class="font-semibold text-sm">${esc(topExercise[0])}</div>
-                        <div class="text-tgLink font-bold">${(topExercise[1] / 1000).toFixed(1)}т</div>
-                    </div>
-                </div>
-                ` : ''}
+            const availableMonths = getAvailableMonthsForExercise(state.selectedExercise);
+            const monthsHTML = availableMonths.map(m => `
+                <button onclick="selectMonthFilter(${m.index})" class="period-btn ${state.selectedMonthIndex === m.index ? 'active' : ''}">${m.label}</button>
+            `).join('');
 
-                <!-- Тепловая карта активности -->
-                <div class="chart-card rounded-2xl p-4 mb-3 card-enter" style="animation-delay: 0.35s">
-                    <div class="flex items-center justify-between mb-3">
-                        <div class="text-xs font-semibold text-tgHint uppercase tracking-wide">Активность</div>
-                        <div class="text-[10px] text-tgHint">Последние 12 недель</div>
-                    </div>
-                    <div class="flex gap-1 overflow-x-auto pb-2">
-                        ${heatmapData.map(week => `
-                            <div class="flex flex-col gap-1">
-                                ${week.map(day => `
-                                    <div class="heatmap-cell ${day.level}" title="${day.count} тренировок"></div>
-                                `).join('')}
+            document.getElementById('app-content').innerHTML = `
+                <div class="chart-card rounded-2xl p-4 mb-3 card-enter" style="animation-delay: 0.05s">
+                    <div class="chart-top-bar">
+                        <div id="chart-top-slider" class="chart-top-slider">
+                            <div class="flex items-center justify-between gap-2 pr-1">
+                                <div id="months-scroll" class="flex-1 overflow-x-auto scroll-container flex gap-1.5">
+                                    ${monthsHTML}
+                                </div>
+                                <button id="filter-toggle-btn" onclick="toggleFilterPanel()" class="filter-toggle-btn" aria-label="Фильтр периода">
+                                    <i class="fa-solid fa-sliders"></i>
+                                </button>
                             </div>
-                        `).join('')}
-                    </div>
-                    <div class="flex items-center justify-between mt-2 text-[10px] text-tgHint">
-                        <span>Меньше</span>
-                        <div class="flex gap-1">
-                            <div class="heatmap-cell"></div>
-                            <div class="heatmap-cell level-1"></div>
-                            <div class="heatmap-cell level-2"></div>
-                            <div class="heatmap-cell level-3"></div>
-                            <div class="heatmap-cell level-4"></div>
+                            <div class="flex items-center pl-1">
+                                <div class="period-filter flex-1">
+                                    <button onclick="selectPeriod('week')" class="period-btn ${state.selectedPeriod === 'week' ? 'active' : ''}">Неделя</button>
+                                    <button onclick="selectPeriod('month')" class="period-btn ${state.selectedPeriod === 'month' ? 'active' : ''}">Месяц</button>
+                                    <button onclick="selectPeriod('quarter')" class="period-btn ${state.selectedPeriod === 'quarter' ? 'active' : ''}">3 мес</button>
+                                    <button onclick="selectPeriod('all')" class="period-btn ${state.selectedPeriod === 'all' ? 'active' : ''}">Всё</button>
+                                </div>
+                                <button onclick="toggleFilterPanel()" class="filter-toggle-btn ml-2" aria-label="Закрыть фильтр">
+                                    <i class="fa-solid fa-xmark"></i>
+                                </button>
+                            </div>
                         </div>
-                        <span>Больше</span>
                     </div>
+
+                    <div class="chart-container-fixed">
+                        <div class="chart-wrapper-fixed">
+                            <canvas id="progressChart"></canvas>
+                        </div>
+                        <div id="chart-empty-state" class="chart-empty-state" style="display: ${state.selectedExercise ? 'none' : 'flex'}">
+                            <i class="fa-solid fa-chart-line text-2xl"></i>
+                            <div class="text-xs">Выберите упражнение</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mb-3 card-enter" style="animation-delay: 0.1s">
+                    <div class="text-xs font-semibold text-tgHint uppercase tracking-wide mb-2 px-1">Группа мышц</div>
+                    <div id="muscle-groups-container" class="flex overflow-x-auto gap-2 pb-1 snap-x scroll-container">${muscleGroupsHTML}</div>
+                </div>
+
+                <div class="mb-4 card-enter" style="animation-delay: 0.15s">
+                    <div class="text-xs font-semibold text-tgHint uppercase tracking-wide mb-2 px-1">Упражнения</div>
+                    <div id="exercises-container" class="flex overflow-x-auto gap-2 pb-1 snap-x scroll-container">${exercisesHTML}</div>
+                </div>
+
+                <div id="achievements-container">
+                    ${state.selectedExercise ? renderAchievements() : ''}
                 </div>
             `;
+
+            setTimeout(() => {
+                document.querySelectorAll('.scroll-container').forEach(container => {
+                    const activeChip = container.querySelector('[aria-selected="true"]');
+                    if (activeChip) activeChip.scrollIntoView({ behavior: 'auto', inline: 'center', block: 'nearest' });
+                });
+            }, 50);
+
+            if (state.selectedExercise) renderChart();
         }
 
-        function generateHeatmapData(history) {
-            const weeks = 12;
-            const daysPerWeek = 7;
-            const now = new Date();
-            const data = [];
+        function toggleFilterPanel() {
+            const slider = document.getElementById('chart-top-slider');
+            const btn = document.getElementById('filter-toggle-btn');
+            if (!slider) return;
+            slider.classList.toggle('show-filter');
+            if (btn) btn.classList.toggle('active');
+            haptic('light');
+        }
 
-            for (let w = weeks - 1; w >= 0; w--) {
-                const week = [];
-                for (let d = 0; d < daysPerWeek; d++) {
-                    const date = new Date(now.getTime() - (w * 7 + (6 - d)) * 24 * 60 * 60 * 1000);
-                    const dateStr = date.toISOString().slice(0, 10);
-                    const count = history.filter(h => h.date.slice(0, 10) === dateStr).length;
-                    
-                    let level = 0;
-                    if (count === 1) level = 1;
-                    else if (count === 2) level = 2;
-                    else if (count === 3) level = 3;
-                    else if (count >= 4) level = 4;
-                    
-                    week.push({ count, level });
-                }
-                data.push(week);
-            }
-            return data;
+        function selectMonthFilter(monthIndex) {
+            state.selectedMonthIndex = monthIndex;
+            state.selectedPeriod = 'month';
+            haptic('light');
+            updatePeriodButtons();
+            updateChartAndAchievements();
         }
 
         function selectPeriod(period) {
             state.selectedPeriod = period;
+            state.selectedMonthIndex = null;
             haptic('light');
-            renderStats();
+            updatePeriodButtons();
+            updateChartAndAchievements();
+        }
+
+        function updatePeriodButtons() {
+            document.querySelectorAll('.period-btn').forEach(btn => {
+                const text = btn.textContent.trim();
+                const periodMap = { 'Неделя': 'week', 'Месяц': 'month', '3 мес': 'quarter', 'Всё': 'all' };
+                
+                // Проверка для кнопок периода
+                let isActive = periodMap[text] === state.selectedPeriod;
+                
+                // Проверка для кнопок месяцев (если они есть в этом блоке)
+                if (state.selectedMonthIndex !== null && !periodMap[text]) {
+                    const monthName = btn.textContent.trim();
+                    isActive = MONTHS_FULL[state.selectedMonthIndex] === monthName;
+                }
+                
+                btn.classList.toggle('active', isActive);
+            });
+        }
+
+        function updateChartAndAchievements() {
+            if (state.selectedExercise) {
+                renderChart();
+            } else {
+                const empty = document.getElementById('chart-empty-state');
+                if (empty) empty.style.display = 'flex';
+                const canvas = document.getElementById('progressChart');
+                if (canvas) {
+                    const existing = Chart.getChart(canvas);
+                    if (existing) existing.destroy();
+                }
+            }
+            
+            const achContainer = document.getElementById('achievements-container');
+            if (achContainer) {
+                achContainer.innerHTML = state.selectedExercise ? renderAchievements() : '';
+                achContainer.classList.add('chip-update');
+                setTimeout(() => achContainer.classList.remove('chip-update'), 250);
+            }
         }
 
         function selectMuscleGroup(group) {
             state.selectedMuscleGroup = group;
             state.selectedExercise = null;
-            renderStats();
+            state.selectedMonthIndex = null;
+            haptic('light');
+            
+            const exercises = DataAPI.getUserExercises();
+            const filtered = exercises.filter(ex => ex.muscleGroup === group);
+            const container = document.getElementById('exercises-container');
+            
+            if (container) {
+                container.innerHTML = filtered.length
+                    ? filtered.map(ex => `
+                        <button onclick="selectExercise('${esc(ex.name)}')" role="tab" aria-selected="false"
+                            class="stat-chip snap-center min-w-[110px] px-3 py-2 rounded-xl text-xs font-medium text-center inactive chip-update">${esc(ex.name)}</button>
+                    `).join('')
+                    : '<p class="text-tgHint text-xs px-4 py-2">Нет упражнений в этой группе</p>';
+                
+                const empty = document.getElementById('chart-empty-state');
+                if (empty) empty.style.display = 'flex';
+                const canvas = document.getElementById('progressChart');
+                if (canvas) {
+                    const existing = Chart.getChart(canvas);
+                    if (existing) existing.destroy();
+                }
+                const achContainer = document.getElementById('achievements-container');
+                if (achContainer) achContainer.innerHTML = '';
+            } else {
+                renderStats();
+            }
         }
 
         function selectExercise(name) {
-            state.selectedExercise = state.selectedExercise === name ? null : name;
-            renderStats();
+            const wasSelected = state.selectedExercise === name;
+            state.selectedExercise = wasSelected ? null : name;
+            state.selectedMonthIndex = null;
+            haptic('light');
+            
+            const container = document.getElementById('exercises-container');
+            if (container) {
+                container.querySelectorAll('.stat-chip').forEach(btn => {
+                    const isActive = btn.textContent.trim() === state.selectedExercise;
+                    btn.classList.toggle('active', isActive);
+                    btn.classList.toggle('inactive', !isActive);
+                    btn.setAttribute('aria-selected', isActive ? 'true' : 'false');
+                });
+            }
+            
+            // Обновляем список месяцев для нового упражнения
+            const availableMonths = getAvailableMonthsForExercise(state.selectedExercise);
+            const monthsHTML = availableMonths.map(m => `
+                <button onclick="selectMonthFilter(${m.index})" class="period-btn ${state.selectedMonthIndex === m.index ? 'active' : ''}">${m.label}</button>
+            `).join('');
+            const monthsContainer = document.getElementById('months-scroll');
+            if (monthsContainer) monthsContainer.innerHTML = monthsHTML;
+
+            updateChartAndAchievements();
         }
 
-        // Кастомный плагин для вертикальной линии и точки при наведении
+        function renderAchievements() {
+            const history = DataAPI.getExerciseHistory(state.selectedExercise);
+            const filtered = getFilteredHistory(history, state.selectedPeriod);
+            
+            if (filtered.length === 0) {
+                return `
+                    <div class="chart-card rounded-2xl p-6 text-center card-enter" style="animation-delay: 0.2s">
+                        <i class="fa-solid fa-trophy text-2xl text-tgHint mb-2"></i>
+                        <div class="text-tgHint text-sm">Нет данных за выбранный период</div>
+                    </div>
+                `;
+            }
+
+            const maxWeight = Math.max(...filtered.map(h => h.weight));
+            const maxWeightDate = filtered.find(h => h.weight === maxWeight)?.date;
+            const avgWeight = (filtered.reduce((s, h) => s + h.weight, 0) / filtered.length).toFixed(1);
+            const totalSets = filtered.length;
+            const totalVolume = filtered.reduce((s, h) => s + h.weight * h.reps, 0);
+            const avgReps = (filtered.reduce((s, h) => s + h.reps, 0) / filtered.length).toFixed(0);
+            
+            let bestStreak = 0;
+            let currentStreak = 0;
+            let prevWeight = 0;
+            const sortedByDate = [...filtered].sort((a, b) => new Date(a.date) - new Date(b.date));
+            sortedByDate.forEach(h => {
+                if (h.weight > prevWeight) {
+                    currentStreak++;
+                    bestStreak = Math.max(bestStreak, currentStreak);
+                } else {
+                    currentStreak = 0;
+                }
+                prevWeight = h.weight;
+            });
+
+            const achievements = [
+                {
+                    icon: 'fa-crown',
+                    color: 'gold',
+                    label: 'Личный рекорд',
+                    value: `${maxWeight} кг`,
+                    sub: maxWeightDate ? new Date(maxWeightDate).toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' }) : ''
+                },
+                {
+                    icon: 'fa-chart-line',
+                    color: 'blue',
+                    label: 'Средний вес',
+                    value: `${avgWeight} кг`,
+                    sub: `${avgReps} повт. в среднем`
+                },
+                {
+                    icon: 'fa-fire',
+                    color: 'green',
+                    label: 'Серия роста',
+                    value: `${bestStreak} тр.`,
+                    sub: 'подряд с прогрессом'
+                },
+                {
+                    icon: 'fa-dumbbell',
+                    color: 'purple',
+                    label: 'Всего подходов',
+                    value: totalSets,
+                    sub: `${(totalVolume / 1000).toFixed(1)}т тоннаж`
+                }
+            ];
+
+            return `
+                <div class="mb-4 card-enter" style="animation-delay: 0.2s">
+                    <div class="text-xs font-semibold text-tgHint uppercase tracking-wide mb-2 px-1">Достижения</div>
+                    <div class="grid grid-cols-2 gap-2">
+                        ${achievements.map(a => `
+                            <div class="achievement-card">
+                                <div class="flex items-start gap-3">
+                                    <div class="achievement-icon ${a.color}">
+                                        <i class="fa-solid ${a.icon}"></i>
+                                    </div>
+                                    <div class="min-w-0 flex-1">
+                                        <div class="text-[10px] text-tgHint uppercase tracking-wide leading-tight">${a.label}</div>
+                                        <div class="text-base font-bold mt-0.5 leading-tight">${a.value}</div>
+                                        ${a.sub ? `<div class="text-[10px] text-tgHint mt-0.5 leading-tight">${a.sub}</div>` : ''}
+                                    </div>
+                                </div>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+            `;
+        }
+
         const crosshairPlugin = {
             id: 'crosshair',
             afterDraw(chart) {
@@ -1164,41 +1034,37 @@ function renderAchievements() {
         function renderChart() {
             const ctx = document.getElementById('progressChart');
             if (!ctx) return;
+            
             const existingChart = Chart.getChart(ctx);
             if (existingChart) existingChart.destroy();
             if (!state.selectedExercise) return;
 
             const history = DataAPI.getExerciseHistory(state.selectedExercise);
-            const filteredHistory = getFilteredHistory(history, state.selectedPeriod);
+            const filtered = getFilteredHistory(history, state.selectedPeriod);
 
-            if (filteredHistory.length === 0) {
-                const c = ctx.getContext('2d');
-                c.clearRect(0, 0, ctx.width, ctx.height);
-                c.font = '13px sans-serif';
-                c.fillStyle = '#8e8e93';
-                c.textAlign = 'center';
-                c.fillText('Нет данных за период', ctx.width / 2, ctx.height / 2);
+            const emptyEl = document.getElementById('chart-empty-state');
+            if (filtered.length === 0) {
+                if (emptyEl) emptyEl.style.display = 'flex';
                 return;
             }
+            if (emptyEl) emptyEl.style.display = 'none';
 
-            // Группируем по дням (берем максимальный вес за день)
             const dataByDay = {};
-            filteredHistory.forEach(item => {
-                const d = new Date(item.date);
-                const key = d.toISOString().slice(0, 10);
+            filtered.forEach(item => {
+                const key = new Date(item.date).toISOString().slice(0, 10);
                 if (!dataByDay[key] || item.weight > dataByDay[key].weight) {
                     dataByDay[key] = {
                         weight: item.weight,
-                        date: d,
-                        label: d.getDate().toString()
+                        date: new Date(item.date),
+                        label: new Date(item.date).getDate().toString()
                     };
                 }
             });
 
-            const sortedDays = Object.keys(dataByDay).sort();
-            const labels = sortedDays.map(key => dataByDay[key].label);
-            const data = sortedDays.map(key => dataByDay[key].weight);
-            const dates = sortedDays.map(key => dataByDay[key].date);
+            const sorted = Object.keys(dataByDay).sort();
+            const labels = sorted.map(k => dataByDay[k].label);
+            const data = sorted.map(k => dataByDay[k].weight);
+            const dates = sorted.map(k => dataByDay[k].date);
 
             const gradient = ctx.getContext('2d').createLinearGradient(0, 0, 0, 220);
             const linkColor = getComputedStyle(document.documentElement).getPropertyValue('--tg-theme-link-color') || '#3b82f6';
@@ -1208,9 +1074,9 @@ function renderAchievements() {
             new Chart(ctx, {
                 type: 'line',
                 data: {
-                    labels: labels,
+                    labels,
                     datasets: [{
-                        data: data,
+                        data,
                         borderColor: linkColor,
                         backgroundColor: gradient,
                         borderWidth: 2,
@@ -1226,14 +1092,10 @@ function renderAchievements() {
                 options: {
                     responsive: true,
                     maintainAspectRatio: false,
-                    interaction: {
-                        mode: 'index',
-                        intersect: false
-                    },
+                    interaction: { mode: 'index', intersect: false },
                     plugins: {
                         legend: { display: false },
                         tooltip: {
-                            enabled: true,
                             backgroundColor: 'rgba(30, 30, 32, 0.95)',
                             titleColor: '#8e8e93',
                             bodyColor: '#ffffff',
@@ -1243,8 +1105,7 @@ function renderAchievements() {
                             displayColors: false,
                             callbacks: {
                                 title: (items) => {
-                                    const idx = items[0].dataIndex;
-                                    const d = dates[idx];
+                                    const d = dates[items[0].dataIndex];
                                     return `${d.getDate()} ${MONTHS_RU[d.getMonth()]}, ${WEEKDAYS_RU[d.getDay()]}`;
                                 },
                                 label: (item) => `${item.raw} кг`
@@ -1252,21 +1113,17 @@ function renderAchievements() {
                         }
                     },
                     scales: {
-                        y: {
-                            display: false,
-                            beginAtZero: false,
-                            grace: '10%'
-                        },
+                        y: { display: false, beginAtZero: false, grace: '10%' },
                         x: {
                             grid: { display: false },
                             ticks: {
                                 color: '#8e8e93',
                                 font: { size: 10 },
                                 padding: 6,
-                                callback: function(value, index) {
+                                callback: (value, index) => {
                                     const d = dates[index];
                                     if (!d) return '';
-                                    return `${d.getDate()} ${WEEKDAYS_SHORT[d.getDay()]}`;
+                                    return `${d.getDate()} ${WEEKDAYS_RU[d.getDay()]}`;
                                 },
                                 maxRotation: 0,
                                 autoSkip: true,
@@ -1275,37 +1132,11 @@ function renderAchievements() {
                             border: { display: false }
                         }
                     },
-                    animation: {
-                        duration: 500,
-                        easing: 'easeOutQuart'
-                    }
+                    animation: { duration: 400, easing: 'easeOutQuart' }
                 },
                 plugins: [crosshairPlugin]
             });
         }
-
-        const SUPERSET_COLORS = [
-            { border: '#a855f7', bg: 'rgba(168, 85, 247, 0.08)', badgeBg: 'rgba(168, 85, 247, 0.25)', text: '#c084fc' },
-            { border: '#3b82f6', bg: 'rgba(59, 130, 246, 0.08)', badgeBg: 'rgba(59, 130, 246, 0.25)', text: '#60a5fa' },
-            { border: '#10b981', bg: 'rgba(16, 185, 129, 0.08)', badgeBg: 'rgba(16, 185, 129, 0.25)', text: '#34d399' },
-            { border: '#f59e0b', bg: 'rgba(245, 158, 11, 0.08)', badgeBg: 'rgba(245, 158, 11, 0.25)', text: '#fbbf24' },
-            { border: '#ec4899', bg: 'rgba(236, 72, 153, 0.08)', badgeBg: 'rgba(236, 72, 153, 0.25)', text: '#f472b6' }
-        ];
-
-        function getSupersetStyle(supersetId, allSupersetIds) {
-            if (!supersetId) return { borderClass: '', styleAttr: '', badgeStyle: '', text: '#c084fc', border: '#a855f7' };
-            const uniqueIds = Array.from(new Set(allSupersetIds.filter(Boolean)));
-            const colorIndex = uniqueIds.indexOf(supersetId) % SUPERSET_COLORS.length;
-            const c = SUPERSET_COLORS[colorIndex >= 0 ? colorIndex : 0];
-            return {
-                borderClass: '',
-                styleAttr: `border-left: 4px solid ${c.border}; background: linear-gradient(90deg, ${c.bg}, transparent);`,
-                badgeStyle: `background: ${c.badgeBg}; color: ${c.text};`,
-                text: c.text,
-                border: c.border
-            };
-        }
-
         // ==========================================
         // ВКЛАДКА ПРОГРАММЫ
         // ==========================================
