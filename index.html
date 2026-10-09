@@ -33,12 +33,12 @@ input[type=number] { -moz-appearance: textfield; }
 .chart-container-fixed { height: 260px; position: relative; overflow: hidden; }
 .chart-wrapper-fixed { position: absolute; top: 0; left: 0; right: 0; bottom: 0; }
 
-/* Закреплённый заголовок статистики */
+/* ИСПРАВЛЕНИЕ 1: Полупрозрачная шапка */
 .stats-header { 
     position: sticky; top: 0; z-index: 10; 
-    background: rgba(28, 28, 30, 0.95); /* tgBg fallback */
-    backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
-    border-bottom: 1px solid var(--tg-theme-secondary-bg-color, #2c2c2e);
+    background: rgba(28, 28, 30, 0.85);
+    backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+    border-bottom: 1px solid rgba(142, 142, 147, 0.15);
     margin-left: -16px; margin-right: -16px; padding: 12px 16px 16px;
 }
 .stats-title { font-size: 20px; font-weight: 800; letter-spacing: -0.3px; line-height: 1.2; }
@@ -47,13 +47,20 @@ input[type=number] { -moz-appearance: textfield; }
 .summary-cell { background: var(--card-bg); border: 1px solid var(--card-border); border-radius: 14px; padding: 10px 8px; text-align: center; min-width: 0; }
 .summary-value { font-size: 18px; font-weight: 700; line-height: 1.2; }
 .summary-label { font-size: 9px; text-transform: uppercase; letter-spacing: 0.5px; color: var(--tg-theme-hint-color, #8e8e93); margin-top: 2px; line-height: 1.2; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.activity-chart { display: flex; align-items: flex-end; gap: 4px; height: 90px; padding: 8px 4px 4px; }
-.activity-bar-wrap { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 4px; min-width: 0; }
-.activity-bar { width: 100%; max-width: 28px; border-radius: 4px 4px 0 0; background: linear-gradient(180deg, rgba(59, 130, 246, 0.7), rgba(59, 130, 246, 0.3)); min-height: 2px; transition: height 0.3s ease; }
-.activity-bar.empty { background: rgba(142, 142, 147, 0.15); }
+
+/* ИСПРАВЛЕНИЕ 3: Улучшенный график активности */
+.activity-chart { display: flex; align-items: flex-end; gap: 6px; height: 120px; padding: 12px 4px 4px; }
+.activity-bar-wrap { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 4px; min-width: 0; position: relative; }
+.activity-bar { width: 100%; max-width: 32px; border-radius: 4px 4px 0 0; background: linear-gradient(180deg, rgba(59, 130, 246, 0.8), rgba(59, 130, 246, 0.4)); min-height: 2px; transition: height 0.3s ease; }
+.activity-bar.empty { background: rgba(142, 142, 147, 0.2); }
+.activity-bar-count { 
+    position: absolute; top: -18px; left: 50%; transform: translateX(-50%);
+    font-size: 9px; font-weight: 600; color: var(--tg-theme-text-color, #fff);
+    opacity: 0; transition: opacity 0.2s;
+}
+.activity-bar-wrap:hover .activity-bar-count { opacity: 1; }
 .activity-label { font-size: 9px; color: var(--tg-theme-hint-color, #8e8e93); white-space: nowrap; }
 
-/* Обновлённый стиль переключателя метрик */
 .metric-switcher { display: flex; gap: 4px; background: var(--card-bg); border: 1px solid var(--card-border); padding: 4px; border-radius: 12px; margin-bottom: 12px; }
 .metric-btn { flex: 1; padding: 8px 4px; border-radius: 8px; font-size: 12px; font-weight: 600; text-align: center; color: var(--tg-theme-hint-color, #8e8e93); transition: all 0.2s ease; }
 .metric-btn.active { background: rgba(59, 130, 246, 0.15); color: #ffffff; border: 1px solid rgba(59, 130, 246, 0.4); }
@@ -81,10 +88,10 @@ input[type=number] { -moz-appearance: textfield; }
 .modal-sheet { width: 100%; max-width: 480px; background: var(--tg-theme-secondary-bg-color, #2c2c2e); color: var(--tg-theme-text-color, #ffffff); border-radius: 24px; padding: 20px; padding-bottom: calc(20px + env(safe-area-inset-bottom, 0px)); animation: modalIn 0.2s ease-out; }
 @keyframes modalIn { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
 
-.chart-top-bar { position: relative; height: 40px; overflow: hidden; margin-top: 8px; }
-.chart-top-slider { display: flex; width: 200%; height: 100%; transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1); }
-.chart-top-slider.show-filter { transform: translateX(-50%); }
-.chart-top-slider > div { width: 50%; height: 100%; flex-shrink: 0; }
+/* ИСПРАВЛЕНИЕ 2: Фильтры в одну строку с анимацией */
+.chart-top-bar { position: relative; height: 0; overflow: hidden; transition: height 0.35s cubic-bezier(0.4, 0, 0.2, 1); }
+.chart-top-bar.expanded { height: 52px; margin-top: 8px; }
+.chart-top-slider { display: flex; width: 100%; height: 100%; }
 .filter-toggle-btn { width: 36px; height: 36px; border-radius: 10px; background: rgba(59, 130, 246, 0.12); border: 1px solid rgba(59, 130, 246, 0.25); display: flex; align-items: center; justify-content: center; color: var(--tg-theme-link-color, #3b82f6); transition: all 0.2s ease; flex-shrink: 0; }
 .filter-toggle-btn:active { transform: scale(0.92); background: rgba(59, 130, 246, 0.2); }
 .filter-toggle-btn.active { background: rgba(59, 130, 246, 0.25); }
@@ -169,7 +176,6 @@ function switchTab(tab) { if (state.currentScreen === 'workout' && state.activeW
 function navigateBack() { if (state.currentScreen === 'workout' && state.activeWorkout) { promptWorkoutExit('programs'); return; } haptic('light'); const tabMap = { program_edit: 'programs', history_detail: 'history', workout: 'programs' }; navigateToTab(tabMap[state.currentScreen] || state.currentTab || 'programs'); }
 function navigate(screen, data = {}) { haptic('light'); stopWorkoutTimer(); state.currentScreen = screen; state.supersetActiveId = null; if (data.programId !== undefined) state.editingProgram = data.programId ? DataAPI.getProgramById(data.programId) : { name: '', exercises: [] }; updateBackButton(['program_edit', 'history_detail', 'workout'].includes(screen)); clearMainButton(); switch (screen) { case 'stats': renderStats(); break; case 'programs': renderPrograms(); break; case 'program_edit': renderProgramEdit(); break; case 'workout': renderWorkout(); break; case 'history': renderHistory(); break; case 'history_detail': renderHistoryDetail(data.entryId); break; } }
 
-// --- ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ ---
 function formatLocalDateKey(date) {
     const d = date instanceof Date ? date : new Date(date);
     if (isNaN(d.getTime())) return null;
@@ -217,7 +223,6 @@ function getPeriodLabel() {
     return { week: '7 дней', month: '30 дней', quarter: '90 дней', all: 'всё время' }[state.selectedPeriod] || 'всё время';
 }
 
-// --- СТАТИСТИКА ---
 function getFilteredHistory(history, period) {
     if (state.selectedMonthKey) {
         return history.filter(item => formatLocalMonthKey(item.date) === state.selectedMonthKey);
@@ -266,6 +271,7 @@ function renderGeneralSummary(filteredHistory) {
     return `<div class="mb-3 card-enter" style="animation-delay: 0.08s"><div class="text-xs font-semibold text-tgHint uppercase tracking-wide mb-2 px-1">Сводка · ${periodLabel}</div><div class="summary-grid"><div class="summary-cell"><div class="summary-value">${workoutsCount}</div><div class="summary-label">Тренировок</div></div><div class="summary-cell"><div class="summary-value">${workingSets}</div><div class="summary-label">Подходов</div></div><div class="summary-cell"><div class="summary-value">${totalVolume >= 1000 ? (totalVolume / 1000).toFixed(1) + 'т' : totalVolume + ' кг'}</div><div class="summary-label">Объём</div></div></div></div>`;
 }
 
+// ИСПРАВЛЕНИЕ 3: Информативный график активности
 function renderActivitySection(historyData) {
     const now = new Date(); const thisWeekStart = getWeekStart(now); 
     const weeks = [];
@@ -275,7 +281,6 @@ function renderActivitySection(historyData) {
         weeks.push({ start, end, uniqueDates: new Set() });
     }
     
-    // Считаем уникальные дни тренировок за каждую неделю
     historyData.forEach(entry => {
         const d = new Date(entry.date); if (isNaN(d.getTime())) return;
         const dateKey = formatLocalDateKey(d);
@@ -292,10 +297,17 @@ function renderActivitySection(historyData) {
         const count = w.uniqueDates.size;
         const heightPct = (count / maxCount) * 100;
         const label = `${w.start.getDate()}.${String(w.start.getMonth() + 1).padStart(2, '0')}`;
-        return `<div class="activity-bar-wrap" title="${count} тренир. · неделя от ${label}"><div class="activity-bar ${count === 0 ? 'empty' : ''}" style="height: ${count === 0 ? 4 : Math.max(8, heightPct)}%" role="img" aria-label="${count} тренировок"></div><div class="activity-label">${label}</div></div>`;
+        return `<div class="activity-bar-wrap" title="${count} тренир. · неделя от ${label}">
+            <div class="activity-bar-count">${count > 0 ? count : ''}</div>
+            <div class="activity-bar ${count === 0 ? 'empty' : ''}" style="height: ${count === 0 ? 4 : Math.max(12, heightPct)}%" role="img" aria-label="${count} тренировок"></div>
+            <div class="activity-label">${label}</div>
+        </div>`;
     }).join('');
     
-    return `<div class="chart-card rounded-2xl p-4 mb-3 card-enter" style="animation-delay: 0.1s"><div class="text-xs font-semibold text-tgHint uppercase tracking-wide mb-2">Активность · 12 недель</div><div class="activity-chart" role="img" aria-label="График тренировок по неделям">${barsHTML}</div></div>`;
+    return `<div class="chart-card rounded-2xl p-4 mb-3 card-enter" style="animation-delay: 0.1s">
+        <div class="text-xs font-semibold text-tgHint uppercase tracking-wide mb-2">Активность · 12 недель</div>
+        <div class="activity-chart" role="img" aria-label="График тренировок по неделям">${barsHTML}</div>
+    </div>`;
 }
 
 function renderMuscleGroupSetsChart(filteredHistory) {
@@ -315,7 +327,6 @@ function renderMuscleGroupSetsChart(filteredHistory) {
     
     if (labels.length === 0) return '';
 
-    // Генерируем уникальный ID для canvas, чтобы не было конфликтов
     const canvasId = 'mgSetsChart_' + Date.now();
     
     setTimeout(() => {
@@ -368,7 +379,6 @@ function selectExerciseMetric(metric) {
     if (!['weight', 'volume', '1rm'].includes(metric)) return;
     state.selectedExerciseMetric = metric; 
     haptic('light'); 
-    // Полная перерисовка гарантирует отсутствие дублирования подписей
     renderStats(); 
 }
 
@@ -407,17 +417,12 @@ function renderStats() {
                 <div id="months-scroll" class="flex-1 overflow-x-auto scroll-container flex gap-1.5">${monthsHTML}</div>
                 <button id="filter-toggle-btn" onclick="toggleFilterPanel()" class="filter-toggle-btn shrink-0" aria-label="Фильтр периода"><i class="fa-solid fa-sliders"></i></button>
             </div>
-            <div class="chart-top-bar">
-                <div id="chart-top-slider" class="chart-top-slider">
-                    <div class="flex items-center pl-1 w-full">
-                        <div class="period-filter flex-1">
-                            <button onclick="selectPeriod('week')" class="period-btn ${state.selectedPeriod === 'week' ? 'active' : ''}">7 дней</button>
-                            <button onclick="selectPeriod('month')" class="period-btn ${state.selectedPeriod === 'month' ? 'active' : ''}">30 дней</button>
-                            <button onclick="selectPeriod('quarter')" class="period-btn ${state.selectedPeriod === 'quarter' ? 'active' : ''}">90 дней</button>
-                            <button onclick="selectPeriod('all')" class="period-btn ${state.selectedPeriod === 'all' ? 'active' : ''}">Всё</button>
-                        </div>
-                        <button onclick="toggleFilterPanel()" class="filter-toggle-btn ml-2" aria-label="Закрыть фильтр"><i class="fa-solid fa-xmark"></i></button>
-                    </div>
+            <div id="chart-top-bar" class="chart-top-bar">
+                <div class="period-filter flex-1">
+                    <button onclick="selectPeriod('week')" class="period-btn ${state.selectedPeriod === 'week' ? 'active' : ''}">7 дней</button>
+                    <button onclick="selectPeriod('month')" class="period-btn ${state.selectedPeriod === 'month' ? 'active' : ''}">30 дней</button>
+                    <button onclick="selectPeriod('quarter')" class="period-btn ${state.selectedPeriod === 'quarter' ? 'active' : ''}">90 дней</button>
+                    <button onclick="selectPeriod('all')" class="period-btn ${state.selectedPeriod === 'all' ? 'active' : ''}">Всё</button>
                 </div>
             </div>
         </div>
@@ -441,7 +446,14 @@ function renderStats() {
     if (state.selectedExercise) renderChart();
 }
 
-function toggleFilterPanel() { const slider = document.getElementById('chart-top-slider'); const btn = document.getElementById('filter-toggle-btn'); if (!slider) return; slider.classList.toggle('show-filter'); if (btn) btn.classList.toggle('active'); haptic('light'); }
+function toggleFilterPanel() { 
+    const bar = document.getElementById('chart-top-bar'); 
+    const btn = document.getElementById('filter-toggle-btn'); 
+    if (!bar) return; 
+    bar.classList.toggle('expanded'); 
+    if (btn) btn.classList.toggle('active'); 
+    haptic('light'); 
+}
 function selectMonthFilter(monthKey) { state.selectedMonthKey = state.selectedMonthKey === monthKey ? null : monthKey; if (state.selectedMonthKey) state.selectedPeriod = 'month'; haptic('light'); updatePeriodButtons(); renderStats(); }
 function selectPeriod(period) { state.selectedPeriod = period; state.selectedMonthKey = null; haptic('light'); updatePeriodButtons(); renderStats(); }
 function updatePeriodButtons() {
@@ -530,7 +542,6 @@ function renderChart() {
     });
 }
 
-// --- ПРОГРАММЫ ---
 const SUPERSET_COLORS = [{ border: '#a855f7', bg: 'rgba(168, 85, 247, 0.08)', badgeBg: 'rgba(168, 85, 247, 0.25)', text: '#c084fc' }, { border: '#3b82f6', bg: 'rgba(59, 130, 246, 0.08)', badgeBg: 'rgba(59, 130, 246, 0.25)', text: '#60a5fa' }, { border: '#10b981', bg: 'rgba(16, 185, 129, 0.08)', badgeBg: 'rgba(16, 185, 129, 0.25)', text: '#34d399' }, { border: '#f59e0b', bg: 'rgba(245, 158, 11, 0.08)', badgeBg: 'rgba(245, 158, 11, 0.25)', text: '#fbbf24' }, { border: '#ec4899', bg: 'rgba(236, 72, 153, 0.08)', badgeBg: 'rgba(236, 72, 153, 0.25)', text: '#f472b6' }];
 function getSupersetStyle(supersetId, allSupersetIds) { if (!supersetId) return { styleAttr: '', badgeStyle: '', text: '#c084fc', border: '#a855f7' }; const uniqueIds = Array.from(new Set(allSupersetIds.filter(Boolean))); const c = SUPERSET_COLORS[uniqueIds.indexOf(supersetId) % SUPERSET_COLORS.length]; return { styleAttr: `border-left: 4px solid ${c.border}; background: linear-gradient(90deg, ${c.bg}, transparent);`, badgeStyle: `background: ${c.badgeBg}; color: ${c.text};`, text: c.text, border: c.border }; }
 function renderPrograms() {
@@ -567,7 +578,6 @@ function toggleSupersetClick(index) { const exercises = state.editingProgram.exe
 function saveProgram() { const name = document.getElementById('prog-name')?.value.trim(); if (!name) { showAlert('Введите название'); return; } if (!state.editingProgram || state.editingProgram.exercises.length === 0) { showAlert('Добавьте упражнение'); return; } for (const ex of state.editingProgram.exercises) { if (!ex.name?.trim()) { showAlert('Заполните названия'); return; } if (!ex.muscleGroup) { showAlert(`Выберите группу для «${ex.name}»`); return; } } state.editingProgram.name = name; const programs = DataAPI.getPrograms(); const idx = programs.findIndex(p => p.id === state.editingProgram.id); if (idx > -1) programs[idx] = state.editingProgram; else { state.editingProgram.id = createId(); programs.push(state.editingProgram); } DataAPI.savePrograms(programs); haptic('success'); state.editingProgram = null; state.supersetActiveId = null; openProgramsScreen(); }
 function deleteProgram(id) { showConfirm('Удалить программу?', ok => { if (ok) { DataAPI.savePrograms(DataAPI.getPrograms().filter(p => p.id !== id)); renderPrograms(); } }); }
 
-// --- ТРЕНИРОВКА ---
 function generateSetHTML(exIdx, setIdx, set, exType) { const isBw = exType === 'bodyweight'; const wHeader = isBw ? 'Доп. вес (кг)' : 'Вес (кг)'; const isDrop = set.setType === 'drop'; return `<div id="set-row-${exIdx}-${setIdx}" class="bg-tgBg rounded-xl p-3 mb-2 card-enter ${isDrop ? 'set-drop' : ''}" style="animation-delay: 0.03s"><div class="flex items-center justify-between mb-2"><div class="flex items-center gap-2 flex-wrap"><span class="text-tgHint text-sm font-medium">Подход ${setIdx + 1}</span>${isDrop ? '<span class="drop-badge"><i class="fa-solid fa-fire"></i> ДРОП-СЕТ</span>' : ''}</div><button onclick="removeSet(${exIdx}, ${setIdx})" class="w-8 h-8 flex items-center justify-center rounded-full text-red-500 active:opacity-70"><i class="fa-solid fa-trash-can text-sm"></i></button></div><div class="flex items-center gap-2"><div class="flex-1"><div class="text-[11px] text-tgHint mb-1 font-medium">${wHeader}</div><div class="flex items-center bg-tgSecondaryBg rounded-xl p-1" style="border:none!important"><button onclick="adjustSet(${exIdx}, ${setIdx}, 'weight', -2.5)" class="w-7 h-9 rounded-lg bg-tgBg text-lg flex items-center justify-center active:opacity-70 font-bold shrink-0">−</button><input type="number" id="set-${exIdx}-${setIdx}-weight" inputmode="decimal" value="${set.weight}" onchange="updateSet(${exIdx}, ${setIdx}, 'weight', parseFloat(this.value)||0)" class="w-full h-9 text-center bg-transparent text-lg font-semibold min-w-0" style="border:none!important;outline:none!important"><button onclick="adjustSet(${exIdx}, ${setIdx}, 'weight', 2.5)" class="w-7 h-9 rounded-lg bg-tgBg text-lg flex items-center justify-center active:opacity-70 font-bold shrink-0">+</button></div></div><div class="flex-1"><div class="text-[11px] text-tgHint mb-1 font-medium">Повторения</div><div class="flex items-center bg-tgSecondaryBg rounded-xl p-1" style="border:none!important"><button onclick="adjustSet(${exIdx}, ${setIdx}, 'reps', -1)" class="w-7 h-9 rounded-lg bg-tgBg text-lg flex items-center justify-center active:opacity-70 font-bold shrink-0">−</button><input type="number" id="set-${exIdx}-${setIdx}-reps" inputmode="numeric" value="${set.reps}" onchange="updateSet(${exIdx}, ${setIdx}, 'reps', parseInt(this.value)||0)" class="w-full h-9 text-center bg-transparent text-lg font-semibold min-w-0" style="border:none!important;outline:none!important"><button onclick="adjustSet(${exIdx}, ${setIdx}, 'reps', 1)" class="w-7 h-9 rounded-lg bg-tgBg text-lg flex items-center justify-center active:opacity-70 font-bold shrink-0">+</button></div></div></div></div>`; }
 function generateExerciseCardHTML(exIdx, ex, allSsIds) { const sets = ex.sets || []; const completed = sets.filter(s => s.weight > 0 && s.reps > 0).length; const target = ex.targetSets ?? 3; const isComplete = completed >= target; return `<div id="exercise-card-${exIdx}" class="bg-tgSecondaryBg p-4 rounded-2xl mb-4 card-enter"><div class="flex justify-between items-center mb-3 gap-2"><div class="flex items-center gap-2 flex-1 min-w-0 flex-wrap"><h3 class="font-bold text-sm leading-snug break-words flex-1">${esc(ex.name)}</h3>${ex.exerciseType === 'bodyweight' ? '<span class="bodyweight-badge shrink-0">Собственный вес</span>' : ''}</div><div class="flex items-center gap-2 shrink-0"><span id="badge-${exIdx}" class="text-xs font-medium px-2 py-1 rounded-md ${isComplete ? 'bg-green-500/20 text-green-500' : 'bg-tgBg text-tgHint'}">${isComplete ? '✓ Готово' : `${completed}/${target}`}</span><button onclick="removeWorkoutExercise(${exIdx})" class="w-8 h-8 flex items-center justify-center rounded-full text-red-500 bg-tgBg active:opacity-70"><i class="fa-solid fa-times text-sm"></i></button></div></div><div id="sets-container-${exIdx}">${sets.map((s, i) => generateSetHTML(exIdx, i, s, ex.exerciseType)).join('')}</div><div class="flex gap-2 mt-2"><button onclick="tryAddSet(${exIdx})" class="flex-1 py-3 bg-tgBg rounded-xl text-tgLink text-sm font-semibold active:opacity-70">+ Подход</button><button onclick="tryAddDropSet(${exIdx})" class="flex-1 py-3 bg-orange-500/15 rounded-xl text-orange-400 text-sm font-semibold active:opacity-70"><i class="fa-solid fa-fire mr-1"></i> Дроп-сет</button></div></div>`; }
 function updateExerciseCardInDOM(exIdx, ex) { const cardHTML = generateExerciseCardHTML(exIdx, ex, state.activeWorkout.exercises.map(e => e.supersetId)); const existing = document.getElementById(`exercise-card-${exIdx}`); if (existing) existing.outerHTML = cardHTML; }
@@ -585,7 +595,6 @@ function startTimer() { stopWorkoutTimer(); const update = () => { if (!state.ac
 function stopWorkoutTimer() { if (state.workoutTimer) { clearInterval(state.workoutTimer); state.workoutTimer = null; } }
 function clearWorkoutState() { stopWorkoutTimer(); state.activeWorkout = null; saveActiveWorkout(); clearMainButton(); }
 
-// --- ИСТОРИЯ ---
 function openDataMenuModal() { const modal = document.createElement('div'); modal.id = 'data-menu-modal'; modal.className = 'modal-backdrop'; modal.innerHTML = `<div class="modal-sheet"><div class="w-10 h-1 bg-tgHint/40 rounded-full mx-auto mb-5"></div><h2 class="text-xl font-bold mb-4">Управление данными</h2><div class="space-y-3 mb-4"><button onclick="document.getElementById('data-menu-modal').remove(); exportData();" class="w-full py-3.5 px-4 rounded-xl bg-tgBg text-tgLink font-medium text-sm flex items-center justify-between active:opacity-80"><span><i class="fa-solid fa-download mr-2"></i> Экспорт (бэкап)</span><i class="fa-solid fa-chevron-right text-xs text-tgHint"></i></button><button onclick="document.getElementById('data-menu-modal').remove(); triggerImportFile();" class="w-full py-3.5 px-4 rounded-xl bg-tgBg text-tgLink font-medium text-sm flex items-center justify-between active:opacity-80"><span><i class="fa-solid fa-upload mr-2"></i> Импорт</span><i class="fa-solid fa-chevron-right text-xs text-tgHint"></i></button><button onclick="document.getElementById('data-menu-modal').remove(); resetAllData();" class="w-full py-3.5 px-4 rounded-xl bg-red-500/10 text-red-500 font-medium text-sm flex items-center justify-between active:opacity-80"><span><i class="fa-solid fa-trash-can mr-2"></i> Сбросить всё</span><i class="fa-solid fa-chevron-right text-xs text-red-500/50"></i></button></div><button onclick="document.getElementById('data-menu-modal').remove();" class="w-full py-3 bg-tgBg rounded-2xl font-semibold active:opacity-80">Закрыть</button></div>`; document.body.appendChild(modal); modal.addEventListener('click', e => { if (e.target === modal) modal.remove(); }); }
 function triggerImportFile() { const input = document.createElement('input'); input.type = 'file'; input.accept = '.json'; input.onchange = e => { const file = e.target.files[0]; if (!file) return; const reader = new FileReader(); reader.onload = event => { try { const imp = JSON.parse(event.target.result); if (imp.programs && imp.history) { DataAPI.savePrograms(imp.programs); DataAPI.saveHistory(imp.history); if (imp.muscleGroups) saveMuscleGroups(imp.muscleGroups); haptic('success'); showAlert('Восстановлено!'); renderHistory(); } else showAlert('Неверный формат'); } catch (err) { showAlert('Ошибка чтения'); } }; reader.readAsText(file); }; input.click(); }
 async function exportData() { try { const data = { programs: DataAPI.getPrograms(), history: DataAPI.getHistory(), muscleGroups: getMuscleGroups(), exportDate: new Date().toISOString() }; const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' }); const file = new File([blob], `fitnary_backup_${new Date().toISOString().slice(0, 10)}.json`, { type: 'application/json' }); if (navigator.canShare && navigator.canShare({ files: [file] })) { await navigator.share({ files: [file] }); haptic('success'); return; } const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = `fitnary_backup_${new Date().toISOString().slice(0, 10)}.json`; document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url); haptic('success'); } catch (e) { if (e.name !== 'AbortError') showAlert('Ошибка экспорта'); } }
