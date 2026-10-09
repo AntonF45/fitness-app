@@ -43,16 +43,22 @@ input[type=number] { -moz-appearance: textfield; }
 
 /* ШАПКА СТАТИСТИКИ: fallback ПЕРВЫМ, color-mix ВТОРЫМ (иначе прозрачность не работает) */
 .stats-header {
-    position: sticky; top: 0; z-index: 10;
-    background-color: rgba(28, 28, 30, 0.92);
-    background-color: color-mix(in srgb, var(--tg-theme-bg-color, #1c1c1e) 92%, transparent);
-    backdrop-filter: blur(20px) saturate(180%);
-    -webkit-backdrop-filter: blur(20px) saturate(180%);
+    position: sticky;
+    top: 0;
+    z-index: 10;
     border-bottom: 1px solid rgba(142, 142, 147, 0.15);
-    margin-left: -16px; margin-right: -16px; padding: 12px 16px 16px;
+    margin-left: -16px;
+    margin-right: -16px;
+    padding: 12px 16px 16px;
 }
-.stats-title { font-size: 20px; font-weight: 800; letter-spacing: -0.3px; line-height: 1.2; color: var(--tg-theme-text-color, #ffffff); }
-
+.stats-title {
+    font-size: 20px;
+    font-weight: 800;
+    letter-spacing: -0.3px;
+    line-height: 1.2;
+    text-align: center;
+    color: var(--tg-theme-hint-color, #8e8e93);
+}
 .summary-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
 .summary-cell { background: var(--card-bg); border: 1px solid var(--card-border); border-radius: 14px; padding: 10px 8px; text-align: center; min-width: 0; }
 .summary-value { font-size: 18px; font-weight: 700; line-height: 1.2; }
@@ -67,9 +73,28 @@ input[type=number] { -moz-appearance: textfield; }
 .filter-toggle-btn { width: 36px; height: 36px; border-radius: 10px; background: rgba(59, 130, 246, 0.12); border: 1px solid rgba(59, 130, 246, 0.25); display: flex; align-items: center; justify-content: center; color: var(--tg-theme-link-color, #3b82f6); transition: all 0.2s ease; flex-shrink: 0; }
 .filter-toggle-btn:active { transform: scale(0.92); background: rgba(59, 130, 246, 0.2); }
 .filter-toggle-btn.active { background: rgba(59, 130, 246, 0.25); }
-.period-filter { display: flex; gap: 6px; background: rgba(0, 0, 0, 0.2); padding: 4px; border-radius: 12px; }
-.period-btn { padding: 6px 12px; border-radius: 8px; font-size: 12px; font-weight: 600; color: var(--tg-theme-hint-color, #8e8e93); transition: all 0.2s ease; white-space: nowrap; }
-.period-btn.active { background: rgba(59, 130, 246, 0.25); color: #ffffff; }
+.period-filter {
+    display: flex;
+    gap: 6px;
+    background: var(--card-bg);
+    border: 1px solid var(--card-border);
+    padding: 4px;
+    border-radius: 12px;
+}
+.period-btn {
+    padding: 6px 12px;
+    border-radius: 8px;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--tg-theme-hint-color, #8e8e93);
+    transition: all 0.2s ease;
+    white-space: nowrap;
+}
+.period-btn.active {
+    background: rgba(59, 130, 246, 0.15);
+    border: 1px solid rgba(59, 130, 246, 0.4);
+    color: #ffffff;
+}
 .period-btn:active { transform: scale(0.95); }
 
 .metric-switcher { display: flex; gap: 4px; background: var(--card-bg); border: 1px solid var(--card-border); padding: 4px; border-radius: 12px; margin-bottom: 12px; }
@@ -333,7 +358,7 @@ function renderStats() {
     const monthsHTML = getAvailableMonthsForExercise(state.selectedExercise).map(function (m) { return '<button data-action="select-month" data-payload="' + escAttr(m.key) + '" class="period-btn ' + (state.selectedMonthKey === m.key ? 'active' : '') + '">' + escHtml(m.label) + '</button>'; }).join('');
 
     document.getElementById('app-content').innerHTML =
-        '<div class="stats-header card-enter">' +
+        '<div class="stats-header bg-tgBg/95 backdrop-blur-md card-enter">' +
             '<h1 id="stats-title" class="stats-title">Статистика: ' + escHtml(getPeriodLabel()) + '</h1>' +
             '<div class="flex items-center gap-2 mt-3">' +
                 '<div id="months-scroll" class="flex-1 overflow-x-auto scroll-container flex gap-1.5">' + monthsHTML + '</div>' +
