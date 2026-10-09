@@ -21,7 +21,7 @@ input[type=number] { -moz-appearance: textfield; }
 .scroll-container::-webkit-scrollbar { display: none; }
 .snap-x { scroll-snap-type: x mandatory; }
 .snap-center { scroll-snap-align: center; }
-.stat-chip { background: var(--card-bg); border: 1px solid var(--card-border); transition: all 0.2s ease; }
+.stat-chip { background: var(--card-bg); border: 1px solid var(--card-border); transition: all 0.2s ease; min-width: 0; max-width: 180px; white-space: normal; text-align: left; line-height: 1.25; word-break: break-word; }
 .stat-chip:active { transform: scale(0.96); }
 .stat-chip.active { background: rgba(59, 130, 246, 0.15); border-color: rgba(59, 130, 246, 0.4); color: #ffffff; }
 .stat-chip.inactive { color: var(--tg-theme-hint-color, #8e8e93); }
@@ -32,8 +32,7 @@ input[type=number] { -moz-appearance: textfield; }
 .chart-card { background: var(--card-bg); border: 1px solid var(--card-border); }
 .chart-container-fixed { height: 260px; position: relative; overflow: hidden; }
 .chart-wrapper-fixed { position: absolute; top: 0; left: 0; right: 0; bottom: 0; }
-.chart-empty-state { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; color: var(--tg-theme-hint-color, #8e8e93); gap: 8px; }
-.chart-top-bar { position: relative; height: 40px; overflow: hidden; margin-bottom: 8px; }
+.chart-top-bar { position: relative; height: 40px; overflow: hidden; margin-top: 12px; margin-bottom: 0; }
 .chart-top-slider { display: flex; width: 200%; height: 100%; transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1); }
 .chart-top-slider.show-filter { transform: translateX(-50%); }
 .chart-top-slider > div { width: 50%; height: 100%; flex-shrink: 0; }
@@ -44,6 +43,27 @@ input[type=number] { -moz-appearance: textfield; }
 .period-btn { padding: 6px 12px; border-radius: 8px; font-size: 12px; font-weight: 600; color: var(--tg-theme-hint-color, #8e8e93); transition: all 0.2s ease; white-space: nowrap; }
 .period-btn.active { background: rgba(59, 130, 246, 0.25); color: #ffffff; }
 .period-btn:active { transform: scale(0.95); }
+.stats-header { padding: 4px 0 0; }
+.stats-title { font-size: 28px; font-weight: 800; letter-spacing: -0.5px; line-height: 1.1; }
+.summary-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.summary-cell { background: var(--card-bg); border: 1px solid var(--card-border); border-radius: 14px; padding: 10px 8px; text-align: center; min-width: 0; }
+.summary-value { font-size: 18px; font-weight: 700; line-height: 1.2; }
+.summary-label { font-size: 9px; text-transform: uppercase; letter-spacing: 0.5px; color: var(--tg-theme-hint-color, #8e8e93); margin-top: 2px; line-height: 1.2; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.activity-chart { display: flex; align-items: flex-end; gap: 4px; height: 90px; padding: 8px 4px 4px; }
+.activity-bar-wrap { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 4px; min-width: 0; }
+.activity-bar { width: 100%; max-width: 28px; border-radius: 4px 4px 0 0; background: linear-gradient(180deg, rgba(59, 130, 246, 0.7), rgba(59, 130, 246, 0.3)); min-height: 2px; transition: height 0.3s ease; }
+.activity-bar.empty { background: rgba(142, 142, 147, 0.15); }
+.activity-label { font-size: 9px; color: var(--tg-theme-hint-color, #8e8e93); white-space: nowrap; }
+.metric-switcher { display: flex; gap: 4px; background: rgba(0, 0, 0, 0.2); padding: 4px; border-radius: 12px; margin-bottom: 12px; }
+.metric-btn { flex: 1; padding: 7px 6px; border-radius: 8px; font-size: 11px; font-weight: 600; text-align: center; color: var(--tg-theme-hint-color, #8e8e93); transition: all 0.2s ease; white-space: nowrap; }
+.metric-btn.active { background: rgba(59, 130, 246, 0.25); color: #ffffff; }
+.metric-btn:active { transform: scale(0.96); }
+.empty-state-block { background: var(--card-bg); border: 1px solid var(--card-border); border-radius: 16px; padding: 24px 16px; text-align: center; color: var(--tg-theme-hint-color, #8e8e93); }
+.empty-state-block i { font-size: 24px; margin-bottom: 8px; opacity: 0.6; }
+.empty-state-block .title { font-size: 13px; font-weight: 600; margin-bottom: 4px; color: var(--tg-theme-text-color, #fff); }
+.empty-state-block .desc { font-size: 11px; line-height: 1.4; }
+.metric-note { font-size: 10px; color: var(--tg-theme-hint-color, #8e8e93); margin-top: 4px; font-style: italic; }
+.estimated-badge { display: inline-block; font-size: 9px; padding: 1px 6px; background: rgba(142, 142, 147, 0.15); color: var(--tg-theme-hint-color, #8e8e93); border-radius: 6px; margin-left: 4px; font-weight: 500; letter-spacing: 0.3px; vertical-align: middle; }
 .achievement-card { background: var(--card-bg); border: 1px solid var(--card-border); border-radius: 16px; padding: 14px; transition: all 0.2s ease; }
 .achievement-icon { width: 40px; height: 40px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 18px; flex-shrink: 0; }
 .achievement-icon.gold { background: rgba(251, 191, 36, 0.15); color: #fbbf24; }
@@ -75,200 +95,369 @@ const MONTHS_RU = ['Янв', 'Фев', 'Мар', 'Апр', 'Май', 'Июн', '
 const MONTHS_FULL = ['Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь', 'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь'];
 const WEEKDAYS_RU = ['Вс', 'Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб'];
 const DEFAULT_MUSCLE_GROUPS = ['Грудь', 'Спина', 'Ноги', 'Плечи', 'Руки'];
+
 function getMuscleGroups() { try { const saved = localStorage.getItem(`twa_fitness_muscle_groups_${USER_ID}`); return saved ? JSON.parse(saved) : [...DEFAULT_MUSCLE_GROUPS]; } catch (e) { return [...DEFAULT_MUSCLE_GROUPS]; } }
 function saveMuscleGroups(groups) { localStorage.setItem(`twa_fitness_muscle_groups_${USER_ID}`, JSON.stringify(groups)); }
+
 const tg = window.Telegram.WebApp;
 try { tg.ready(); tg.expand(); } catch (error) { console.warn('Telegram init error:', error); }
 const USER_ID = tg.initDataUnsafe?.user?.id || 'local_test_user_' + Math.random().toString(36).substr(2, 9);
+
 function haptic(type = 'light') { try { if (type === 'success' || type === 'error' || type === 'warning') tg.HapticFeedback?.notificationOccurred(type); else tg.HapticFeedback?.impactOccurred(type); } catch (error) {} }
 function showAlert(message) { try { tg.showAlert(message); } catch (error) { alert(message); } }
 function showConfirm(message, callback) { try { tg.showConfirm(message, callback); } catch (error) { callback(confirm(message)); } }
 try { tg.BackButton.onClick(() => navigateBack()); } catch (error) {}
 function updateBackButton(isSubScreen) { try { if (isSubScreen) tg.BackButton.show(); else tg.BackButton.hide(); } catch (error) {} }
 function clearMainButton() { try { tg.MainButton.hide(); } catch (e) {} }
+
 const DataAPI = {
-_key(type) { return `twa_fitness_${type}_${USER_ID}`; },
-getPrograms() { try { const data = JSON.parse(localStorage.getItem(this._key('programs')) || '[]'); return data.map(p => ({ ...p, exercises: (p.exercises || []).map(ex => ({ ...ex, exerciseType: ex.exerciseType || 'weighted', supersetId: ex.supersetId || null })) })); } catch (error) { return []; } },
-savePrograms(data) { localStorage.setItem(this._key('programs'), JSON.stringify(data)); },
-getHistory() { try { return JSON.parse(localStorage.getItem(this._key('history')) || '[]'); } catch (error) { return []; } },
-saveHistory(data) { localStorage.setItem(this._key('history'), JSON.stringify(data)); },
-getProgramById(id) { return this.getPrograms().find(program => program.id === id); },
-getHistoryEntryById(id) { return this.getHistory().find(entry => entry.id === id); },
-getUserExercises() {
-const exerciseMap = new Map();
-const addExercise = exercise => { if (!exercise || !exercise.name) return; if (!exerciseMap.has(exercise.name)) exerciseMap.set(exercise.name, { name: exercise.name, muscleGroup: exercise.muscleGroup || 'Другое', exerciseType: exercise.exerciseType || 'weighted' }); };
-this.getPrograms().forEach(program => (program.exercises || []).forEach(addExercise));
-this.getHistory().forEach(entry => (entry.exercises || []).forEach(addExercise));
-return Array.from(exerciseMap.values());
-},
-getExerciseHistory(exerciseName) {
-const results = [];
-this.getHistory().forEach(entry => { (entry.exercises || []).forEach(exercise => { if (exercise.name === exerciseName) (exercise.sets || []).forEach(set => results.push({ date: entry.date, weight: set.weight, reps: set.reps })); }); });
-return results.sort((a, b) => new Date(a.date) - new Date(b.date));
-}
+    _key(type) { return `twa_fitness_${type}_${USER_ID}`; },
+    getPrograms() { try { const data = JSON.parse(localStorage.getItem(this._key('programs')) || '[]'); return data.map(p => ({ ...p, exercises: (p.exercises || []).map(ex => ({ ...ex, exerciseType: ex.exerciseType || 'weighted', supersetId: ex.supersetId || null })) })); } catch (error) { return []; } },
+    savePrograms(data) { localStorage.setItem(this._key('programs'), JSON.stringify(data)); },
+    getHistory() { try { return JSON.parse(localStorage.getItem(this._key('history')) || '[]'); } catch (error) { return []; } },
+    saveHistory(data) { localStorage.setItem(this._key('history'), JSON.stringify(data)); },
+    getProgramById(id) { return this.getPrograms().find(program => program.id === id); },
+    getHistoryEntryById(id) { return this.getHistory().find(entry => entry.id === id); },
+    getUserExercises() {
+        const exerciseMap = new Map();
+        const addExercise = exercise => { if (!exercise || !exercise.name) return; if (!exerciseMap.has(exercise.name)) exerciseMap.set(exercise.name, { name: exercise.name, muscleGroup: exercise.muscleGroup || 'Другое', exerciseType: exercise.exerciseType || 'weighted' }); };
+        this.getPrograms().forEach(program => (program.exercises || []).forEach(addExercise));
+        this.getHistory().forEach(entry => (entry.exercises || []).forEach(addExercise));
+        return Array.from(exerciseMap.values());
+    },
+    getExerciseHistory(exerciseName) {
+        const results = [];
+        this.getHistory().forEach(entry => { (entry.exercises || []).forEach(exercise => { if (exercise.name === exerciseName) (exercise.sets || []).forEach(set => results.push({ date: entry.date, weight: set.weight, reps: set.reps })); }); });
+        return results.sort((a, b) => new Date(a.date) - new Date(b.date));
+    }
 };
+
 const ACTIVE_KEY = `twa_fitness_active_workout_${USER_ID}`;
 function saveActiveWorkout() { if (state.activeWorkout) localStorage.setItem(ACTIVE_KEY, JSON.stringify(state.activeWorkout)); else localStorage.removeItem(ACTIVE_KEY); }
 function restoreActiveWorkout() { const saved = localStorage.getItem(ACTIVE_KEY); if (!saved) return false; try { state.activeWorkout = JSON.parse(saved); return true; } catch (error) { localStorage.removeItem(ACTIVE_KEY); return false; } }
-let state = { currentScreen: 'programs', currentTab: 'programs', activeWorkout: null, editingProgram: null, workoutTimer: null, selectedMuscleGroup: 'Грудь', selectedExercise: null, supersetActiveId: null, selectedPeriod: 'all', selectedMonthIndex: null };
-function updateTabUI(activeTab) { ['stats', 'programs', 'history'].forEach(tab => { const button = document.getElementById(`tab-${tab}`); if (!button) return; if (tab === activeTab) { button.classList.remove('text-tgHint'); button.classList.add('text-tgLink'); button.setAttribute('aria-selected', 'true'); } else { button.classList.remove('text-tgLink'); button.classList.add('text-tgHint'); button.setAttribute('aria-selected', 'false'); } }); }
+
+let state = { 
+    currentScreen: 'programs', currentTab: 'programs', activeWorkout: null, editingProgram: null, workoutTimer: null, 
+    selectedMuscleGroup: 'Грудь', selectedExercise: null, supersetActiveId: null, 
+    selectedPeriod: 'all', selectedMonthKey: null, selectedExerciseMetric: 'weight' 
+};
+
+function updateTabUI(activeTab) { 
+    ['stats', 'programs', 'history'].forEach(tab => { 
+        const button = document.getElementById(`tab-${tab}`); 
+        if (!button) return; 
+        if (tab === activeTab) { button.classList.remove('text-tgHint'); button.classList.add('text-tgLink'); button.setAttribute('aria-selected', 'true'); } 
+        else { button.classList.remove('text-tgLink'); button.classList.add('text-tgHint'); button.setAttribute('aria-selected', 'false'); } 
+    }); 
+}
 function openProgramsScreen() { state.currentTab = 'programs'; state.currentScreen = 'programs'; updateTabUI('programs'); updateBackButton(false); clearMainButton(); renderPrograms(); }
 function navigateToTab(tab) { state.currentTab = tab; updateTabUI(tab); navigate(tab); }
 function switchTab(tab) { if (state.currentScreen === 'workout' && state.activeWorkout && tab !== 'workout') { promptWorkoutExit(tab); return; } haptic('light'); navigateToTab(tab); }
 function navigateBack() { if (state.currentScreen === 'workout' && state.activeWorkout) { promptWorkoutExit('programs'); return; } haptic('light'); const tabMap = { program_edit: 'programs', history_detail: 'history', workout: 'programs' }; navigateToTab(tabMap[state.currentScreen] || state.currentTab || 'programs'); }
 function navigate(screen, data = {}) { haptic('light'); stopWorkoutTimer(); state.currentScreen = screen; state.supersetActiveId = null; if (data.programId !== undefined) state.editingProgram = data.programId ? DataAPI.getProgramById(data.programId) : { name: '', exercises: [] }; updateBackButton(['program_edit', 'history_detail', 'workout'].includes(screen)); clearMainButton(); switch (screen) { case 'stats': renderStats(); break; case 'programs': renderPrograms(); break; case 'program_edit': renderProgramEdit(); break; case 'workout': renderWorkout(); break; case 'history': renderHistory(); break; case 'history_detail': renderHistoryDetail(data.entryId); break; } }
 
-// СТАТИСТИКА
+// --- ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ ДЛЯ ДАТ И РАСЧЁТОВ ---
+function formatLocalDateKey(date) {
+    const d = date instanceof Date ? date : new Date(date);
+    if (isNaN(d.getTime())) return null;
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+function formatLocalMonthKey(date) {
+    const d = date instanceof Date ? date : new Date(date);
+    if (isNaN(d.getTime())) return null;
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+}
+function getWeekStart(date) {
+    const d = new Date(date);
+    const day = d.getDay();
+    const diff = (day === 0 ? -6 : 1 - day);
+    d.setDate(d.getDate() + diff);
+    d.setHours(0, 0, 0, 0);
+    return d;
+}
+function isValidSetRecord(rec) {
+    if (!rec) return false;
+    const w = Number(rec.weight), r = Number(rec.reps);
+    if (!isFinite(w) || !isFinite(r) || w < 0 || r < 0) return false;
+    return w > 0 && r > 0;
+}
+function estimate1RM(weight, reps) {
+    const w = Number(weight), r = Number(reps);
+    if (!isFinite(w) || !isFinite(r) || w <= 0 || r <= 0) return 0;
+    if (r === 1) return w;
+    if (r <= 10) return w * (1 + r / 30);
+    if (r <= 20) return w * (36 / (37 - r));
+    return 0;
+}
+function getExerciseTypeByName(name) {
+    const programs = DataAPI.getPrograms();
+    for (const p of programs) { const ex = (p.exercises || []).find(e => e.name === name); if (ex) return ex.exerciseType || 'weighted'; }
+    const history = DataAPI.getHistory();
+    for (const entry of history) { const ex = (entry.exercises || []).find(e => e.name === name); if (ex) return ex.exerciseType || 'weighted'; }
+    return 'weighted';
+}
+
+// --- СТАТИСТИКА ---
 function getFilteredHistory(history, period) {
-if (period === 'all') return history;
-if (state.selectedMonthIndex !== null) { const year = new Date().getFullYear(); return history.filter(item => { const d = new Date(item.date); return d.getFullYear() === year && d.getMonth() === state.selectedMonthIndex; }); }
-const now = new Date(); let cutoff;
-if (period === 'week') cutoff = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-else if (period === 'month') cutoff = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
-else if (period === 'quarter') cutoff = new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000);
-return history.filter(item => new Date(item.date) >= cutoff);
+    if (state.selectedMonthKey) {
+        return history.filter(item => formatLocalMonthKey(item.date) === state.selectedMonthKey);
+    }
+    if (period === 'all') return history;
+    const now = new Date(); now.setHours(23, 59, 59, 999);
+    let cutoff;
+    if (period === 'week') cutoff = getWeekStart(now);
+    else if (period === 'month') cutoff = new Date(now.getFullYear(), now.getMonth(), 1, 0, 0, 0, 0);
+    else if (period === 'quarter') cutoff = new Date(now.getFullYear(), now.getMonth() - 3, 1, 0, 0, 0, 0);
+    else return history;
+    return history.filter(item => new Date(item.date) >= cutoff);
 }
 
 function getAvailableMonthsForExercise(exerciseName) {
-if (!exerciseName) { const now = new Date(); const months = []; for (let i = 5; i >= 0; i--) months.push({ index: new Date(now.getFullYear(), now.getMonth() - i, 1).getMonth(), label: MONTHS_FULL[new Date(now.getFullYear(), now.getMonth() - i, 1).getMonth()] }); return months; }
-const history = DataAPI.getExerciseHistory(exerciseName); const monthSet = new Set();
-history.forEach(h => { const d = new Date(h.date); if (d.getFullYear() === new Date().getFullYear()) monthSet.add(d.getMonth()); });
-if (monthSet.size === 0) { const now = new Date(); for (let i = 5; i >= 0; i--) monthSet.add(new Date(now.getFullYear(), now.getMonth() - i, 1).getMonth()); }
-return Array.from(monthSet).sort((a, b) => a - b).map(idx => ({ index: idx, label: MONTHS_FULL[idx] }));
+    const monthSet = new Set();
+    if (exerciseName) {
+        DataAPI.getExerciseHistory(exerciseName).forEach(h => { const key = formatLocalMonthKey(h.date); if (key) monthSet.add(key); });
+    }
+    if (monthSet.size === 0) {
+        const now = new Date();
+        for (let i = 0; i < 6; i++) { const d = new Date(now.getFullYear(), now.getMonth() - i, 1); monthSet.add(formatLocalMonthKey(d)); }
+    }
+    return Array.from(monthSet).sort((a, b) => b.localeCompare(a)).map(key => {
+        const [y, m] = key.split('-').map(Number);
+        return { key, label: `${MONTHS_RU[m - 1]} ${y}` };
+    });
+}
+
+function renderGeneralSummary(filteredHistory) {
+    const validEntries = (filteredHistory || []).filter(e => (e.exercises || []).flatMap(ex => ex.sets || []).some(isValidSetRecord));
+    const workoutsCount = validEntries.length;
+    let workingSets = 0, totalVolume = 0;
+    validEntries.forEach(entry => {
+        (entry.exercises || []).forEach(ex => {
+            (ex.sets || []).forEach(s => {
+                if (isValidSetRecord(s)) { workingSets++; totalVolume += Number(s.weight) * Number(s.reps); }
+            });
+        });
+    });
+    const periodLabel = state.selectedMonthKey 
+        ? (getAvailableMonthsForExercise(null).find(x => x.key === state.selectedMonthKey)?.label || 'месяц')
+        : ({ week: '7 дней', month: '30 дней', quarter: '90 дней', all: 'всё время' }[state.selectedPeriod] || 'период');
+
+    if (workoutsCount === 0) {
+        return `<div class="empty-state-block mb-3 card-enter" style="animation-delay: 0.08s"><i class="fa-solid fa-calendar-xmark"></i><div class="title">Нет тренировок за ${periodLabel}</div><div class="desc">Завершите тренировку — и здесь появится сводка.</div></div>`;
+    }
+    return `<div class="mb-3 card-enter" style="animation-delay: 0.08s"><div class="text-xs font-semibold text-tgHint uppercase tracking-wide mb-2 px-1">Сводка · ${periodLabel}</div><div class="summary-grid"><div class="summary-cell"><div class="summary-value">${workoutsCount}</div><div class="summary-label">Тренировок</div></div><div class="summary-cell"><div class="summary-value">${workingSets}</div><div class="summary-label">Подходов</div></div><div class="summary-cell"><div class="summary-value">${totalVolume >= 1000 ? (totalVolume / 1000).toFixed(1) + 'т' : totalVolume + ' кг'}</div><div class="summary-label">Объём</div></div></div></div>`;
+}
+
+function renderActivitySection(allHistory) {
+    const now = new Date(); const thisWeekStart = getWeekStart(now); const weeks = [];
+    for (let i = 11; i >= 0; i--) {
+        const start = new Date(thisWeekStart); start.setDate(start.getDate() - i * 7);
+        const end = new Date(start); end.setDate(end.getDate() + 7);
+        weeks.push({ start, end, count: 0 });
+    }
+    allHistory.forEach(entry => {
+        const d = new Date(entry.date); if (isNaN(d.getTime())) return;
+        for (const w of weeks) { if (d >= w.start && d < w.end) { w.count++; break; } }
+    });
+    const maxCount = Math.max(1, ...weeks.map(w => w.count));
+    const barsHTML = weeks.map(w => {
+        const heightPct = (w.count / maxCount) * 100;
+        const label = `${w.start.getDate()}.${String(w.start.getMonth() + 1).padStart(2, '0')}`;
+        return `<div class="activity-bar-wrap" title="${w.count} тренир. · неделя от ${label}"><div class="activity-bar ${w.count === 0 ? 'empty' : ''}" style="height: ${w.count === 0 ? 4 : Math.max(8, heightPct)}%" role="img" aria-label="${w.count} тренировок"></div><div class="activity-label">${label}</div></div>`;
+    }).join('');
+    return `<div class="chart-card rounded-2xl p-4 mb-3 card-enter" style="animation-delay: 0.1s"><div class="text-xs font-semibold text-tgHint uppercase tracking-wide mb-2">Активность · 12 недель</div><div class="activity-chart" role="img" aria-label="График тренировок по неделям">${barsHTML}</div></div>`;
+}
+
+function renderExerciseMetricSwitcher() {
+    const metrics = [{ key: 'weight', label: 'Вес' }, { key: 'volume', label: 'Тоннаж' }, { key: '1rm', label: '1ПМ*' }];
+    return `<div class="metric-switcher" role="tablist" aria-label="Метрика графика">${metrics.map(m => `<button onclick="selectExerciseMetric('${m.key}')" role="tab" aria-selected="${state.selectedExerciseMetric === m.key}" class="metric-btn ${state.selectedExerciseMetric === m.key ? 'active' : ''}">${m.label}</button>`).join('')}</div>${state.selectedExerciseMetric === '1rm' ? '<div class="metric-note">* Расчётный 1ПМ по формулам Epley/Brzycki.</div>' : ''}`;
+}
+
+function selectExerciseMetric(metric) {
+    if (!['weight', 'volume', '1rm'].includes(metric)) return;
+    state.selectedExerciseMetric = metric; haptic('light'); renderChart();
+    const container = document.getElementById('exercise-block-container');
+    if (container && state.selectedExercise) {
+        const switcher = container.querySelector('.metric-switcher');
+        if (switcher) switcher.outerHTML = renderExerciseMetricSwitcher();
+    }
 }
 
 function renderStats() {
-const exercises = DataAPI.getUserExercises(); const muscleGroups = getMuscleGroups();
-const muscleGroupsHTML = muscleGroups.map(group => `<button onclick="selectMuscleGroup('${group}')" role="tab" aria-selected="${state.selectedMuscleGroup === group}" class="stat-chip snap-center min-w-[80px] px-3 py-2 rounded-xl text-xs font-medium whitespace-nowrap ${state.selectedMuscleGroup === group ? 'active' : 'inactive'}">${group}</button>`).join('');
-const filteredExercises = exercises.filter(ex => ex.muscleGroup === state.selectedMuscleGroup);
-const exercisesHTML = filteredExercises.length ? filteredExercises.map(ex => `<button onclick="selectExercise('${esc(ex.name)}')" role="tab" aria-selected="${state.selectedExercise === ex.name}" class="stat-chip snap-center min-w-[110px] px-3 py-2 rounded-xl text-xs font-medium text-center ${state.selectedExercise === ex.name ? 'active' : 'inactive'}">${esc(ex.name)}</button>`).join('') : '<p class="text-tgHint text-xs px-4 py-2">Нет упражнений</p>';
-const availableMonths = getAvailableMonthsForExercise(state.selectedExercise);
-const monthsHTML = availableMonths.map(m => `<button onclick="selectMonthFilter(${m.index})" class="period-btn ${state.selectedMonthIndex === m.index ? 'active' : ''}">${m.label}</button>`).join('');
-document.getElementById('app-content').innerHTML = `
-<div class="chart-card rounded-2xl p-4 mb-3 card-enter" style="animation-delay: 0.05s">
-<div class="chart-top-bar"><div id="chart-top-slider" class="chart-top-slider">
-<div class="flex items-center justify-between gap-2 pr-1"><div id="months-scroll" class="flex-1 overflow-x-auto scroll-container flex gap-1.5">${monthsHTML}</div><button id="filter-toggle-btn" onclick="toggleFilterPanel()" class="filter-toggle-btn"><i class="fa-solid fa-sliders"></i></button></div>
-<div class="flex items-center pl-1"><div class="period-filter flex-1">
-<button onclick="selectPeriod('week')" class="period-btn ${state.selectedPeriod === 'week' ? 'active' : ''}">Неделя</button>
-<button onclick="selectPeriod('month')" class="period-btn ${state.selectedPeriod === 'month' ? 'active' : ''}">Месяц</button>
-<button onclick="selectPeriod('quarter')" class="period-btn ${state.selectedPeriod === 'quarter' ? 'active' : ''}">3 мес</button>
-<button onclick="selectPeriod('all')" class="period-btn ${state.selectedPeriod === 'all' ? 'active' : ''}">Всё</button>
-</div><button onclick="toggleFilterPanel()" class="filter-toggle-btn ml-2"><i class="fa-solid fa-xmark"></i></button></div>
-</div></div>
-<div class="chart-container-fixed"><div class="chart-wrapper-fixed"><canvas id="progressChart"></canvas></div><div id="chart-empty-state" class="chart-empty-state" style="display: ${state.selectedExercise ? 'none' : 'flex'}"><i class="fa-solid fa-chart-line text-2xl"></i><div class="text-xs">Выберите упражнение</div></div></div>
-</div>
-<div class="mb-3 card-enter" style="animation-delay: 0.1s"><div class="text-xs font-semibold text-tgHint uppercase tracking-wide mb-2 px-1">Группа мышц</div><div id="muscle-groups-container" class="flex overflow-x-auto gap-2 pb-1 snap-x scroll-container">${muscleGroupsHTML}</div></div>
-<div class="mb-4 card-enter" style="animation-delay: 0.15s"><div class="text-xs font-semibold text-tgHint uppercase tracking-wide mb-2 px-1">Упражнения</div><div id="exercises-container" class="flex overflow-x-auto gap-2 pb-1 snap-x scroll-container">${exercisesHTML}</div></div>
-<div id="achievements-container">${state.selectedExercise ? renderAchievements() : ''}</div>`;
-setTimeout(() => { document.querySelectorAll('.scroll-container').forEach(container => { const activeChip = container.querySelector('[aria-selected="true"]'); if (activeChip) activeChip.scrollIntoView({ behavior: 'auto', inline: 'center', block: 'nearest' }); }); }, 50);
-if (state.selectedExercise) renderChart();
+    const history = DataAPI.getHistory();
+    const filteredHistory = getFilteredHistory(history, state.selectedPeriod);
+    const exercises = DataAPI.getUserExercises();
+    const muscleGroups = getMuscleGroups();
+
+    const muscleGroupsHTML = muscleGroups.map(group => `<button onclick="selectMuscleGroup('${esc(group)}')" role="tab" aria-selected="${state.selectedMuscleGroup === group}" aria-label="Группа мышц: ${esc(group)}" class="stat-chip snap-center px-3 py-2 rounded-xl text-xs font-medium ${state.selectedMuscleGroup === group ? 'active' : 'inactive'}">${esc(group)}</button>`).join('');
+    const filteredExercises = exercises.filter(ex => ex.muscleGroup === state.selectedMuscleGroup);
+    const exercisesHTML = filteredExercises.length ? filteredExercises.map(ex => `<button onclick="selectExercise('${esc(ex.name)}')" role="tab" aria-selected="${state.selectedExercise === ex.name}" aria-label="Упражнение: ${esc(ex.name)}" class="stat-chip snap-center px-3 py-2 rounded-xl text-xs font-medium ${state.selectedExercise === ex.name ? 'active' : 'inactive'}">${esc(ex.name)}</button>`).join('') : `<div class="empty-state-block"><i class="fa-solid fa-dumbbell"></i><div class="title">Нет упражнений</div><div class="desc">В группе «${esc(state.selectedMuscleGroup)}» пока нет упражнений.</div></div>`;
+    
+    const availableMonths = getAvailableMonthsForExercise(state.selectedExercise);
+    const monthsHTML = availableMonths.map(m => `<button onclick="selectMonthFilter('${m.key}')" aria-label="Месяц: ${m.label}" class="period-btn ${state.selectedMonthKey === m.key ? 'active' : ''}">${m.label}</button>`).join('');
+
+    let exerciseBlockHTML = '';
+    if (state.selectedExercise) {
+        const exHistory = DataAPI.getExerciseHistory(state.selectedExercise);
+        const filteredExHistory = getFilteredHistory(exHistory, state.selectedPeriod);
+        const exType = getExerciseTypeByName(state.selectedExercise);
+        const hasData = filteredExHistory.some(isValidSetRecord);
+        if (!hasData) {
+            exerciseBlockHTML = `<div class="chart-card rounded-2xl p-4 mb-3 card-enter" style="animation-delay: 0.2s"><div class="flex items-center justify-between mb-3"><h2 class="text-base font-bold break-words flex-1 min-w-0 pr-2">${esc(state.selectedExercise)}</h2></div><div class="empty-state-block"><i class="fa-solid fa-chart-line"></i><div class="title">Нет данных за период</div><div class="desc">Для этого упражнения нет рабочих подходов в выбранном периоде.</div></div></div>`;
+        } else {
+            exerciseBlockHTML = `<div class="chart-card rounded-2xl p-4 mb-3 card-enter" style="animation-delay: 0.2s"><div class="flex items-center justify-between mb-2 gap-2"><h2 class="text-base font-bold break-words flex-1 min-w-0">${esc(state.selectedExercise)}</h2>${exType === 'bodyweight' ? '<span class="bodyweight-badge shrink-0">Свой вес</span>' : ''}</div>${renderExerciseMetricSwitcher()}<div class="chart-container-fixed"><div class="chart-wrapper-fixed"><canvas id="progressChart" aria-label="График прогресса упражнения"></canvas></div></div>${exType === 'bodyweight' ? '<div class="metric-note">Вес = только дополнительный вес, без массы тела.</div>' : ''}</div>${renderAchievements()}`;
+        }
+    }
+
+    document.getElementById('app-content').innerHTML = `
+        <div class="stats-header card-enter" style="animation-delay: 0.02s">
+            <div class="flex items-start justify-between gap-3"><h1 class="stats-title flex-1 min-w-0">Статистика</h1><button id="filter-toggle-btn" onclick="toggleFilterPanel()" class="filter-toggle-btn" aria-label="Фильтр периода"><i class="fa-solid fa-sliders"></i></button></div>
+            <div class="chart-top-bar">
+                <div id="chart-top-slider" class="chart-top-slider">
+                    <div class="flex items-center justify-between gap-2 pr-1"><div id="months-scroll" class="flex-1 overflow-x-auto scroll-container flex gap-1.5">${monthsHTML}</div></div>
+                    <div class="flex items-center pl-1"><div class="period-filter flex-1">
+                        <button onclick="selectPeriod('week')" class="period-btn ${state.selectedPeriod === 'week' ? 'active' : ''}">7 дней</button>
+                        <button onclick="selectPeriod('month')" class="period-btn ${state.selectedPeriod === 'month' ? 'active' : ''}">30 дней</button>
+                        <button onclick="selectPeriod('quarter')" class="period-btn ${state.selectedPeriod === 'quarter' ? 'active' : ''}">90 дней</button>
+                        <button onclick="selectPeriod('all')" class="period-btn ${state.selectedPeriod === 'all' ? 'active' : ''}">Всё</button>
+                    </div><button onclick="toggleFilterPanel()" class="filter-toggle-btn ml-2" aria-label="Закрыть фильтр"><i class="fa-solid fa-xmark"></i></button></div>
+                </div>
+            </div>
+        </div>
+        ${renderGeneralSummary(filteredHistory)}
+        ${history.length > 0 ? renderActivitySection(history) : ''}
+        <div class="mb-3 card-enter" style="animation-delay: 0.15s"><div class="text-xs font-semibold text-tgHint uppercase tracking-wide mb-2 px-1">Группа мышц</div><div id="muscle-groups-container" class="flex overflow-x-auto gap-2 pb-1 snap-x scroll-container">${muscleGroupsHTML}</div></div>
+        <div class="mb-4 card-enter" style="animation-delay: 0.2s"><div class="text-xs font-semibold text-tgHint uppercase tracking-wide mb-2 px-1">Упражнения</div><div id="exercises-container" class="flex overflow-x-auto gap-2 pb-1 snap-x scroll-container">${exercisesHTML}</div></div>
+        <div id="exercise-block-container">${exerciseBlockHTML}</div>
+    `;
+
+    setTimeout(() => {
+        document.querySelectorAll('.scroll-container').forEach(container => {
+            const activeChip = container.querySelector('[aria-selected="true"]');
+            if (activeChip) activeChip.scrollIntoView({ behavior: 'auto', inline: 'center', block: 'nearest' });
+        });
+    }, 50);
+
+    if (state.selectedExercise) renderChart();
 }
 
 function toggleFilterPanel() { const slider = document.getElementById('chart-top-slider'); const btn = document.getElementById('filter-toggle-btn'); if (!slider) return; slider.classList.toggle('show-filter'); if (btn) btn.classList.toggle('active'); haptic('light'); }
-function selectMonthFilter(monthIndex) { state.selectedMonthIndex = monthIndex; state.selectedPeriod = 'month'; haptic('light'); updatePeriodButtons(); updateChartAndAchievements(); }
-function selectPeriod(period) { state.selectedPeriod = period; state.selectedMonthIndex = null; haptic('light'); updatePeriodButtons(); updateChartAndAchievements(); }
-function updatePeriodButtons() { document.querySelectorAll('.period-btn').forEach(btn => { const text = btn.textContent.trim(); const periodMap = { 'Неделя': 'week', 'Месяц': 'month', '3 мес': 'quarter', 'Всё': 'all' }; let isActive = periodMap[text] === state.selectedPeriod; if (state.selectedMonthIndex !== null && !periodMap[text]) isActive = MONTHS_FULL[state.selectedMonthIndex] === text; btn.classList.toggle('active', isActive); }); }
-function updateChartAndAchievements() {
-if (state.selectedExercise) { renderChart(); }
-else { const empty = document.getElementById('chart-empty-state'); if (empty) empty.style.display = 'flex'; const canvas = document.getElementById('progressChart'); if (canvas) { const existing = Chart.getChart(canvas); if (existing) existing.destroy(); } }
-const achContainer = document.getElementById('achievements-container');
-if (achContainer) { achContainer.innerHTML = state.selectedExercise ? renderAchievements() : ''; achContainer.classList.add('chip-update'); setTimeout(() => achContainer.classList.remove('chip-update'), 250); }
+function selectMonthFilter(monthKey) { state.selectedMonthKey = state.selectedMonthKey === monthKey ? null : monthKey; if (state.selectedMonthKey) state.selectedPeriod = 'month'; haptic('light'); updatePeriodButtons(); updateAllStatsViews(); }
+function selectPeriod(period) { state.selectedPeriod = period; state.selectedMonthKey = null; haptic('light'); updatePeriodButtons(); updateAllStatsViews(); }
+function updatePeriodButtons() {
+    const periodMap = { '7 дней': 'week', '30 дней': 'month', '90 дней': 'quarter', 'Всё': 'all' };
+    document.querySelectorAll('.period-filter .period-btn').forEach(btn => { const text = btn.textContent.trim(); btn.classList.toggle('active', periodMap[text] === state.selectedPeriod && !state.selectedMonthKey); });
+    document.querySelectorAll('#months-scroll .period-btn').forEach(btn => { const label = btn.textContent.trim(); const match = getAvailableMonthsForExercise(state.selectedExercise).find(m => m.label === label); btn.classList.toggle('active', match && match.key === state.selectedMonthKey); });
 }
-
-function selectMuscleGroup(group) {
-state.selectedMuscleGroup = group; state.selectedExercise = null; state.selectedMonthIndex = null; haptic('light');
-const mgContainer = document.getElementById('muscle-groups-container');
-if (mgContainer) { mgContainer.querySelectorAll('.stat-chip').forEach(btn => { const isActive = btn.textContent.trim() === group; btn.classList.toggle('active', isActive); btn.classList.toggle('inactive', !isActive); btn.setAttribute('aria-selected', isActive ? 'true' : 'false'); }); }
-const exercises = DataAPI.getUserExercises(); const filtered = exercises.filter(ex => ex.muscleGroup === group);
-const exContainer = document.getElementById('exercises-container');
-if (exContainer) { exContainer.innerHTML = filtered.length ? filtered.map(ex => `<button onclick="selectExercise('${esc(ex.name)}')" role="tab" aria-selected="false" class="stat-chip snap-center min-w-[110px] px-3 py-2 rounded-xl text-xs font-medium text-center inactive chip-update">${esc(ex.name)}</button>`).join('') : '<p class="text-tgHint text-xs px-4 py-2">Нет упражнений</p>'; }
-const empty = document.getElementById('chart-empty-state'); if (empty) empty.style.display = 'flex';
-const canvas = document.getElementById('progressChart'); if (canvas) { const existing = Chart.getChart(canvas); if (existing) existing.destroy(); }
-const achContainer = document.getElementById('achievements-container'); if (achContainer) achContainer.innerHTML = '';
-}
-
-function selectExercise(name) {
-const wasSelected = state.selectedExercise === name; state.selectedExercise = wasSelected ? null : name; state.selectedMonthIndex = null; haptic('light');
-const container = document.getElementById('exercises-container');
-if (container) { container.querySelectorAll('.stat-chip').forEach(btn => { const isActive = btn.textContent.trim() === state.selectedExercise; btn.classList.toggle('active', isActive); btn.classList.toggle('inactive', !isActive); btn.setAttribute('aria-selected', isActive ? 'true' : 'false'); }); }
-const availableMonths = getAvailableMonthsForExercise(state.selectedExercise);
-const monthsContainer = document.getElementById('months-scroll');
-if (monthsContainer) monthsContainer.innerHTML = availableMonths.map(m => `<button onclick="selectMonthFilter(${m.index})" class="period-btn ${state.selectedMonthIndex === m.index ? 'active' : ''}">${m.label}</button>`).join('');
-updateChartAndAchievements();
-}
+function updateAllStatsViews() { renderStats(); }
+function selectMuscleGroup(group) { state.selectedMuscleGroup = group; state.selectedExercise = null; state.selectedMonthKey = null; haptic('light'); renderStats(); }
+function selectExercise(name) { const wasSelected = state.selectedExercise === name; state.selectedExercise = wasSelected ? null : name; state.selectedMonthKey = null; state.selectedExerciseMetric = 'weight'; haptic('light'); renderStats(); }
 
 function renderAchievements() {
-const history = DataAPI.getExerciseHistory(state.selectedExercise);
-if (history.length === 0) return `<div class="chart-card rounded-2xl p-6 text-center card-enter" style="animation-delay: 0.2s"><i class="fa-solid fa-trophy text-2xl text-tgHint mb-2"></i><div class="text-tgHint text-sm">Нет данных</div></div>`;
-const maxWeight = Math.max(...history.map(h => h.weight));
-const maxWeightDate = history.find(h => h.weight === maxWeight)?.date;
-let max1RM = 0; let max1RMDate = '';
-history.forEach(h => { if (h.weight > 0) { const estimated1RM = h.weight * (1 + h.reps / 30); if (estimated1RM > max1RM) { max1RM = estimated1RM; max1RMDate = h.date; } } });
-const uniqueDates = new Set(history.map(h => new Date(h.date).toISOString().slice(0, 10)));
-const totalWorkouts = uniqueDates.size;
-const totalVolume = history.reduce((sum, h) => sum + (h.weight * h.reps), 0);
-const achievements = [
-{ icon: 'fa-crown', color: 'gold', label: 'Макс. вес', value: `${maxWeight} кг`, sub: maxWeightDate ? new Date(maxWeightDate).toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' }) : '' },
-{ icon: 'fa-dumbbell', color: 'blue', label: 'Расчетный 1ПМ', value: `${Math.round(max1RM)} кг`, sub: max1RMDate ? new Date(max1RMDate).toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' }) : 'Только для >0 кг' },
-{ icon: 'fa-calendar-check', color: 'green', label: 'Всего тренировок', value: totalWorkouts, sub: 'уникальных дней' },
-{ icon: 'fa-weight-hanging', color: 'purple', label: 'Общий тоннаж', value: `${(totalVolume / 1000).toFixed(1)}т`, sub: 'за всё время' }
-];
-return `<div class="mb-4 card-enter" style="animation-delay: 0.2s"><div class="text-xs font-semibold text-tgHint uppercase tracking-wide mb-2 px-1">Достижения (за всё время)</div><div class="grid grid-cols-2 gap-2">${achievements.map(a => `<div class="achievement-card"><div class="flex items-start gap-3"><div class="achievement-icon ${a.color}"><i class="fa-solid ${a.icon}"></i></div><div class="min-w-0 flex-1"><div class="text-[10px] text-tgHint uppercase tracking-wide leading-tight">${a.label}</div><div class="text-base font-bold mt-0.5 leading-tight">${a.value}</div>${a.sub ? `<div class="text-[10px] text-tgHint mt-0.5 leading-tight">${a.sub}</div>` : ''}</div></div></div>`).join('')}</div></div>`;
+    const name = state.selectedExercise; if (!name) return '';
+    const history = DataAPI.getExerciseHistory(name).filter(isValidSetRecord);
+    const exType = getExerciseTypeByName(name);
+    if (history.length === 0) return `<div class="empty-state-block mb-4 card-enter" style="animation-delay: 0.25s"><i class="fa-solid fa-trophy"></i><div class="title">Нет рабочих подходов</div><div class="desc">Для этого упражнения пока нет завершённых подходов с весом и повторениями.</div></div>`;
+
+    const maxWeight = Math.max(...history.map(h => Number(h.weight)));
+    const maxWeightEntry = history.find(h => Number(h.weight) === maxWeight);
+    const maxWeightDate = maxWeightEntry ? formatLocalDateKey(maxWeightEntry.date) : null;
+
+    let max1RM = 0, max1RMEntry = null;
+    history.forEach(h => { const est = estimate1RM(h.weight, h.reps); if (est > max1RM) { max1RM = est; max1RMEntry = h; } });
+    const max1RMDate = max1RMEntry ? formatLocalDateKey(max1RMEntry.date) : null;
+
+    const uniqueDates = new Set(); history.forEach(h => { const key = formatLocalDateKey(h.date); if (key) uniqueDates.add(key); });
+    const totalVolume = history.reduce((sum, h) => sum + Number(h.weight) * Number(h.reps), 0);
+    const fmtDate = (key) => { if (!key) return ''; const [y, m, d] = key.split('-').map(Number); return new Date(y, m - 1, d).toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' }); };
+
+    const achievements = [
+        { icon: 'fa-crown', color: 'gold', label: 'Макс. вес', value: `${maxWeight} кг`, sub: fmtDate(maxWeightDate) },
+        { icon: 'fa-dumbbell', color: 'blue', label: 'Расчётный 1ПМ', value: `${Math.round(max1RM)} кг`, sub: fmtDate(max1RMDate), estimated: true },
+        { icon: 'fa-calendar-check', color: 'green', label: 'Тренировок', value: uniqueDates.size, sub: 'уникальных дней' },
+        { icon: 'fa-weight-hanging', color: 'purple', label: exType === 'bodyweight' ? 'Объём (доп. вес)' : 'Общий объём', value: totalVolume >= 1000 ? `${(totalVolume / 1000).toFixed(1)} т` : `${totalVolume} кг`, sub: 'за всё время' }
+    ];
+
+    return `<div class="mb-4 card-enter" style="animation-delay: 0.25s"><div class="text-xs font-semibold text-tgHint uppercase tracking-wide mb-2 px-1">Рекорды · за всё время</div><div class="summary-grid" style="grid-template-columns: repeat(2, 1fr);">${achievements.map(a => `<div class="achievement-card"><div class="flex items-start gap-3"><div class="achievement-icon ${a.color}"><i class="fa-solid ${a.icon}"></i></div><div class="min-w-0 flex-1"><div class="text-[10px] text-tgHint uppercase tracking-wide leading-tight">${a.label}${a.estimated ? '<span class="estimated-badge">расч.</span>' : ''}</div><div class="text-base font-bold mt-0.5 leading-tight break-words">${a.value}</div>${a.sub ? `<div class="text-[10px] text-tgHint mt-0.5 leading-tight">${a.sub}</div>` : ''}</div></div></div>`).join('')}</div></div>`;
 }
 
 const crosshairPlugin = {
-id: 'crosshair', afterDraw(chart) {
-if (chart._active && chart._active.length) {
-const activePoint = chart._active[0]; const ctx = chart.ctx; const x = activePoint.element.x;
-ctx.save(); ctx.beginPath(); ctx.moveTo(x, chart.scales.y.top); ctx.lineTo(x, chart.scales.y.bottom); ctx.lineWidth = 1; ctx.strokeStyle = 'rgba(255, 255, 255, 0.15)'; ctx.setLineDash([4, 4]); ctx.stroke(); ctx.restore();
-ctx.save(); ctx.beginPath(); ctx.arc(x, activePoint.element.y, 6, 0, 2 * Math.PI); ctx.fillStyle = '#ffffff'; ctx.fill(); ctx.beginPath(); ctx.arc(x, activePoint.element.y, 4, 0, 2 * Math.PI); ctx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue('--tg-theme-link-color') || '#3b82f6'; ctx.fill(); ctx.restore();
-}
-}
+    id: 'crosshair', afterDraw(chart) {
+        if (chart._active && chart._active.length) {
+            const activePoint = chart._active[0]; const ctx = chart.ctx; const x = activePoint.element.x;
+            ctx.save(); ctx.beginPath(); ctx.moveTo(x, chart.scales.y.top); ctx.lineTo(x, chart.scales.y.bottom); ctx.lineWidth = 1; ctx.strokeStyle = 'rgba(255, 255, 255, 0.15)'; ctx.setLineDash([4, 4]); ctx.stroke(); ctx.restore();
+            ctx.save(); ctx.beginPath(); ctx.arc(x, activePoint.element.y, 6, 0, 2 * Math.PI); ctx.fillStyle = '#ffffff'; ctx.fill(); ctx.beginPath(); ctx.arc(x, activePoint.element.y, 4, 0, 2 * Math.PI); ctx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue('--tg-theme-link-color') || '#3b82f6'; ctx.fill(); ctx.restore();
+        }
+    }
 };
 
 function renderChart() {
-const ctx = document.getElementById('progressChart'); if (!ctx) return;
-const existingChart = Chart.getChart(ctx); if (existingChart) existingChart.destroy(); if (!state.selectedExercise) return;
-const history = DataAPI.getExerciseHistory(state.selectedExercise); const filtered = getFilteredHistory(history, state.selectedPeriod);
-const emptyEl = document.getElementById('chart-empty-state'); if (filtered.length === 0) { if (emptyEl) emptyEl.style.display = 'flex'; return; }
-if (emptyEl) emptyEl.style.display = 'none';
-const dataByDay = {}; filtered.forEach(item => { const key = new Date(item.date).toISOString().slice(0, 10); if (!dataByDay[key] || item.weight > dataByDay[key].weight) dataByDay[key] = { weight: item.weight, date: new Date(item.date), label: new Date(item.date).getDate().toString() }; });
-const sorted = Object.keys(dataByDay).sort(); const labels = sorted.map(k => dataByDay[k].label); const data = sorted.map(k => dataByDay[k].weight); const dates = sorted.map(k => dataByDay[k].date);
-const gradient = ctx.getContext('2d').createLinearGradient(0, 0, 0, 220); const linkColor = getComputedStyle(document.documentElement).getPropertyValue('--tg-theme-link-color') || '#3b82f6';
-gradient.addColorStop(0, linkColor + '30'); gradient.addColorStop(1, linkColor + '00');
-new Chart(ctx, {
-type: 'line', data: { labels, datasets: [{ data, borderColor: linkColor, backgroundColor: gradient, borderWidth: 2, tension: 0.4, fill: true, pointRadius: 0, pointHoverRadius: 6, pointHoverBackgroundColor: '#ffffff', pointHoverBorderColor: linkColor, pointHoverBorderWidth: 3 }] },
-options: { responsive: true, maintainAspectRatio: false, interaction: { mode: 'index', intersect: false }, plugins: { legend: { display: false }, tooltip: { backgroundColor: 'rgba(30, 30, 32, 0.95)', titleColor: '#8e8e93', bodyColor: '#ffffff', bodyFont: { size: 14, weight: 'bold' }, padding: 10, cornerRadius: 10, displayColors: false, callbacks: { title: (items) => { const d = dates[items[0].dataIndex]; return `${d.getDate()} ${MONTHS_RU[d.getMonth()]}, ${WEEKDAYS_RU[d.getDay()]}`; }, label: (item) => `${item.raw} кг` } } }, scales: { y: { display: false, beginAtZero: false, grace: '10%' }, x: { grid: { display: false }, ticks: { color: '#8e8e93', font: { size: 10 }, padding: 6, callback: (value, index) => { const d = dates[index]; if (!d) return ''; const day = d.getDate(); const month = MONTHS_RU[d.getMonth()]; const weekday = WEEKDAYS_RU[d.getDay()]; const spanDays = dates.length > 1 ? (dates[dates.length - 1] - dates[0]) / (1000 * 60 * 60 * 24) : 0; if (spanDays > 30) { return `${day} ${month}`; } else { return `${day} ${weekday}`; } }, maxRotation: 0, autoSkip: true, maxTicksLimit: 10 }, border: { display: false } } }, animation: { duration: 400, easing: 'easeOutQuart' } }, plugins: [crosshairPlugin]
-});
+    const ctx = document.getElementById('progressChart'); if (!ctx) return;
+    const existingChart = Chart.getChart(ctx); if (existingChart) existingChart.destroy();
+    if (!state.selectedExercise) return;
+
+    const history = DataAPI.getExerciseHistory(state.selectedExercise).filter(isValidSetRecord);
+    const filtered = getFilteredHistory(history, state.selectedPeriod);
+    if (filtered.length === 0) return;
+
+    const byDay = {};
+    filtered.forEach(item => {
+        const key = formatLocalDateKey(item.date); if (!key) return;
+        if (!byDay[key]) byDay[key] = { date: new Date(item.date), weight: 0, volume: 0, max1RM: 0 };
+        const w = Number(item.weight), r = Number(item.reps);
+        if (w > byDay[key].weight) byDay[key].weight = w;
+        byDay[key].volume += w * r;
+        const est = estimate1RM(w, r); if (est > byDay[key].max1RM) byDay[key].max1RM = est;
+    });
+
+    const sortedKeys = Object.keys(byDay).sort();
+    const labels = sortedKeys.map(k => String(byDay[k].date.getDate()));
+    const dates = sortedKeys.map(k => byDay[k].date);
+    const metric = state.selectedExerciseMetric || 'weight';
+    
+    let data, unit;
+    if (metric === 'volume') { data = sortedKeys.map(k => byDay[k].volume); unit = 'кг'; }
+    else if (metric === '1rm') { data = sortedKeys.map(k => Math.round(byDay[k].max1RM)); unit = 'кг'; }
+    else { data = sortedKeys.map(k => byDay[k].weight); unit = 'кг'; }
+
+    const gradient = ctx.getContext('2d').createLinearGradient(0, 0, 0, 220);
+    const linkColor = getComputedStyle(document.documentElement).getPropertyValue('--tg-theme-link-color') || '#3b82f6';
+    gradient.addColorStop(0, linkColor + '30'); gradient.addColorStop(1, linkColor + '00');
+    const spanDays = dates.length > 1 ? (dates[dates.length - 1] - dates[0]) / (1000 * 60 * 60 * 24) : 0;
+
+    new Chart(ctx, {
+        type: 'line', data: { labels, datasets: [{ data, borderColor: linkColor, backgroundColor: gradient, borderWidth: 2, tension: 0.4, fill: true, pointRadius: 0, pointHoverRadius: 6, pointHoverBackgroundColor: '#ffffff', pointHoverBorderColor: linkColor, pointHoverBorderWidth: 3 }] },
+        options: { responsive: true, maintainAspectRatio: false, interaction: { mode: 'index', intersect: false }, plugins: { legend: { display: false }, tooltip: { backgroundColor: 'rgba(30, 30, 32, 0.95)', titleColor: '#8e8e93', bodyColor: '#ffffff', bodyFont: { size: 14, weight: 'bold' }, padding: 10, cornerRadius: 10, displayColors: false, callbacks: { title: (items) => { const d = dates[items[0].dataIndex]; return `${d.getDate()} ${MONTHS_RU[d.getMonth()]} ${d.getFullYear()}, ${WEEKDAYS_RU[d.getDay()]}`; }, label: (item) => `${item.raw} ${unit}` } } }, scales: { y: { display: false, beginAtZero: metric !== 'weight', grace: '10%' }, x: { grid: { display: false }, ticks: { color: '#8e8e93', font: { size: 10 }, padding: 6, callback: (value, index) => { const d = dates[index]; if (!d) return ''; return spanDays > 60 ? `${d.getDate()} ${MONTHS_RU[d.getMonth()]}` : `${d.getDate()} ${WEEKDAYS_RU[d.getDay()]}`; }, maxRotation: 0, autoSkip: true, maxTicksLimit: 7 }, border: { display: false } } }, animation: { duration: 400, easing: 'easeOutQuart' } }, plugins: [crosshairPlugin]
+    });
 }
 
-// ПРОГРАММЫ
+// --- ПРОГРАММЫ ---
 const SUPERSET_COLORS = [{ border: '#a855f7', bg: 'rgba(168, 85, 247, 0.08)', badgeBg: 'rgba(168, 85, 247, 0.25)', text: '#c084fc' }, { border: '#3b82f6', bg: 'rgba(59, 130, 246, 0.08)', badgeBg: 'rgba(59, 130, 246, 0.25)', text: '#60a5fa' }, { border: '#10b981', bg: 'rgba(16, 185, 129, 0.08)', badgeBg: 'rgba(16, 185, 129, 0.25)', text: '#34d399' }, { border: '#f59e0b', bg: 'rgba(245, 158, 11, 0.08)', badgeBg: 'rgba(245, 158, 11, 0.25)', text: '#fbbf24' }, { border: '#ec4899', bg: 'rgba(236, 72, 153, 0.08)', badgeBg: 'rgba(236, 72, 153, 0.25)', text: '#f472b6' }];
 function getSupersetStyle(supersetId, allSupersetIds) { if (!supersetId) return { styleAttr: '', badgeStyle: '', text: '#c084fc', border: '#a855f7' }; const uniqueIds = Array.from(new Set(allSupersetIds.filter(Boolean))); const c = SUPERSET_COLORS[uniqueIds.indexOf(supersetId) % SUPERSET_COLORS.length]; return { styleAttr: `border-left: 4px solid ${c.border}; background: linear-gradient(90deg, ${c.bg}, transparent);`, badgeStyle: `background: ${c.badgeBg}; color: ${c.text};`, text: c.text, border: c.border }; }
 function renderPrograms() {
-const programs = DataAPI.getPrograms();
-let listHTML = programs.length ? programs.map((program, index) => {
-const exercises = program.exercises || []; const allSsIds = exercises.map(e => e.supersetId); const exerciseBlocks = []; const processed = new Set(); let globalExCounter = 1;
-exercises.forEach((exercise, idx) => {
-if (processed.has(idx)) return;
-if (exercise.supersetId) { const group = exercises.map((e, i) => ({ ...e, originalIndex: i })).filter(e => e.supersetId === exercise.supersetId); group.forEach(e => processed.add(e.originalIndex)); const style = getSupersetStyle(exercise.supersetId, allSsIds); exerciseBlocks.push(`<div class="p-2.5 rounded-xl mb-2 bg-tgBg/30" style="${style.styleAttr}"><div class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold mb-2 uppercase tracking-wide" style="${style.badgeStyle}"><i class="fa-solid fa-bolt"></i> Суперсет</div><div class="divide-y divide-tgSecondaryBg/40">${group.map(e => `<div class="flex items-start gap-2 py-1.5"><span class="text-tgHint font-mono text-xs shrink-0 mt-0.5">${globalExCounter++}.</span><div class="flex-1 min-w-0"><div class="text-sm font-medium leading-snug break-words">${esc(e.name)}</div></div><span class="font-mono text-xs text-tgHint shrink-0 bg-tgBg/60 px-2 py-0.5 rounded-md whitespace-nowrap">${e.targetSets ?? 3} × ${e.targetReps ?? 10}</span></div>`).join('')}</div></div>`); }
-else { processed.add(idx); exerciseBlocks.push(`<div class="flex items-start gap-2 py-1.5 border-b border-tgSecondaryBg/40 last:border-0"><span class="text-tgHint font-mono text-xs shrink-0 mt-0.5">${globalExCounter++}.</span><div class="flex-1 min-w-0"><div class="text-sm font-medium leading-snug break-words">${esc(exercise.name)}</div></div><span class="font-mono text-xs text-tgHint shrink-0 bg-tgBg/60 px-2 py-0.5 rounded-md whitespace-nowrap">${exercise.targetSets ?? 3} × ${exercise.targetReps ?? 10}</span></div>`); }
-});
-return `<div class="bg-tgSecondaryBg p-4 rounded-2xl mb-3 card-enter" style="animation-delay: ${index * 0.05}s"><div class="flex items-start justify-between gap-3 mb-3"><div class="font-semibold text-base break-words flex-1 min-w-0 pt-1">${esc(program.name)}</div><div class="flex items-center gap-1.5 shrink-0"><button onclick="navigate('program_edit', {programId: '${program.id}'})" class="w-9 h-9 flex items-center justify-center rounded-xl bg-tgBg text-tgLink active:opacity-70"><i class="fa-solid fa-pen text-sm"></i></button><button onclick="deleteProgram('${program.id}')" class="w-9 h-9 flex items-center justify-center rounded-xl bg-tgBg text-red-500 active:opacity-70"><i class="fa-solid fa-trash text-sm"></i></button></div></div><div class="space-y-0.5 mb-4">${exerciseBlocks.join('') || '<div class="text-tgHint text-xs italic py-1">Нет упражнений</div>'}</div><button onclick="startWorkout('${program.id}')" class="w-full flex items-center justify-center gap-2 bg-tgButton text-white font-semibold py-3 rounded-xl active:opacity-80"><i class="fa-solid fa-play text-sm"></i> Начать тренировку</button></div>`;
-}).join('') : '<div class="text-center text-tgHint mt-10 card-enter">Нет созданных программ</div>';
-document.getElementById('app-content').innerHTML = `${listHTML}<button onclick="navigate('program_edit', {programId: null})" class="w-full mt-6 bg-tgButton text-white font-semibold py-4 rounded-2xl active:opacity-80 card-enter" style="animation-delay: 0.1s"><i class="fa-solid fa-plus mr-2"></i> Создать программу</button>`;
+    const programs = DataAPI.getPrograms();
+    let listHTML = programs.length ? programs.map((program, index) => {
+        const exercises = program.exercises || []; const allSsIds = exercises.map(e => e.supersetId); const exerciseBlocks = []; const processed = new Set(); let globalExCounter = 1;
+        exercises.forEach((exercise, idx) => {
+            if (processed.has(idx)) return;
+            if (exercise.supersetId) { const group = exercises.map((e, i) => ({ ...e, originalIndex: i })).filter(e => e.supersetId === exercise.supersetId); group.forEach(e => processed.add(e.originalIndex)); const style = getSupersetStyle(exercise.supersetId, allSsIds); exerciseBlocks.push(`<div class="p-2.5 rounded-xl mb-2 bg-tgBg/30" style="${style.styleAttr}"><div class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold mb-2 uppercase tracking-wide" style="${style.badgeStyle}"><i class="fa-solid fa-bolt"></i> Суперсет</div><div class="divide-y divide-tgSecondaryBg/40">${group.map(e => `<div class="flex items-start gap-2 py-1.5"><span class="text-tgHint font-mono text-xs shrink-0 mt-0.5">${globalExCounter++}.</span><div class="flex-1 min-w-0"><div class="text-sm font-medium leading-snug break-words">${esc(e.name)}</div></div><span class="font-mono text-xs text-tgHint shrink-0 bg-tgBg/60 px-2 py-0.5 rounded-md whitespace-nowrap">${e.targetSets ?? 3} × ${e.targetReps ?? 10}</span></div>`).join('')}</div></div>`); }
+            else { processed.add(idx); exerciseBlocks.push(`<div class="flex items-start gap-2 py-1.5 border-b border-tgSecondaryBg/40 last:border-0"><span class="text-tgHint font-mono text-xs shrink-0 mt-0.5">${globalExCounter++}.</span><div class="flex-1 min-w-0"><div class="text-sm font-medium leading-snug break-words">${esc(exercise.name)}</div></div><span class="font-mono text-xs text-tgHint shrink-0 bg-tgBg/60 px-2 py-0.5 rounded-md whitespace-nowrap">${exercise.targetSets ?? 3} × ${exercise.targetReps ?? 10}</span></div>`); }
+        });
+        return `<div class="bg-tgSecondaryBg p-4 rounded-2xl mb-3 card-enter" style="animation-delay: ${index * 0.05}s"><div class="flex items-start justify-between gap-3 mb-3"><div class="font-semibold text-base break-words flex-1 min-w-0 pt-1">${esc(program.name)}</div><div class="flex items-center gap-1.5 shrink-0"><button onclick="navigate('program_edit', {programId: '${program.id}'})" class="w-9 h-9 flex items-center justify-center rounded-xl bg-tgBg text-tgLink active:opacity-70"><i class="fa-solid fa-pen text-sm"></i></button><button onclick="deleteProgram('${program.id}')" class="w-9 h-9 flex items-center justify-center rounded-xl bg-tgBg text-red-500 active:opacity-70"><i class="fa-solid fa-trash text-sm"></i></button></div></div><div class="space-y-0.5 mb-4">${exerciseBlocks.join('') || '<div class="text-tgHint text-xs italic py-1">Нет упражнений</div>'}</div><button onclick="startWorkout('${program.id}')" class="w-full flex items-center justify-center gap-2 bg-tgButton text-white font-semibold py-3 rounded-xl active:opacity-80"><i class="fa-solid fa-play text-sm"></i> Начать тренировку</button></div>`;
+    }).join('') : '<div class="text-center text-tgHint mt-10 card-enter">Нет созданных программ</div>';
+    document.getElementById('app-content').innerHTML = `${listHTML}<button onclick="navigate('program_edit', {programId: null})" class="w-full mt-6 bg-tgButton text-white font-semibold py-4 rounded-2xl active:opacity-80 card-enter" style="animation-delay: 0.1s"><i class="fa-solid fa-plus mr-2"></i> Создать программу</button>`;
 }
 function renderProgramEdit() {
-const program = state.editingProgram || { name: '', exercises: [] }; const exercises = program.exercises || []; const muscleGroups = getMuscleGroups(); const allSsIds = exercises.map(e => e.supersetId); const activeSsId = state.supersetActiveId;
-let exercisesHTML = exercises.map((exercise, index) => {
-const isInThisSuperset = activeSsId && exercise.supersetId === activeSsId; const isBodyweight = exercise.exerciseType === 'bodyweight'; const style = getSupersetStyle(exercise.supersetId, allSsIds);
-let btnStyle = '', btnClass = 'text-tgHint bg-tgBg', btnTitle = 'Объединить в суперсет';
-if (activeSsId) { if (isInThisSuperset) { btnStyle = `background: ${style.border}; color: #ffffff; box-shadow: 0 0 12px ${style.border};`; btnTitle = 'В активном суперсете'; } else { btnStyle = `border: 2px dashed ${style.border}; color: ${style.text};`; btnClass = 'animate-pulse'; btnTitle = 'Добавить в суперсет'; } }
-else if (exercise.supersetId) { btnStyle = `background: ${style.badgeStyle}; color: ${style.text}; border: 1px solid ${style.border};`; }
-return `<div class="bg-tgSecondaryBg p-4 rounded-2xl mb-3 card-enter" style="animation-delay: ${index * 0.05}s; ${exercise.supersetId ? style.styleAttr : ''}"><div class="flex justify-between items-center mb-3"><span class="font-medium text-sm text-tgHint">Упражнение ${index + 1}</span><div class="flex gap-1"><button onclick="toggleSupersetClick(${index})" title="${btnTitle}" class="w-9 h-9 flex items-center justify-center rounded-full ${btnClass} active:opacity-70 transition-all" style="${btnStyle}"><i class="fa-solid fa-link"></i></button><button onclick="removeExercise(${index})" class="w-9 h-9 flex items-center justify-center rounded-full text-red-500 active:opacity-70"><i class="fa-solid fa-times"></i></button></div></div><input type="text" placeholder="Название" value="${esc(exercise.name)}" oninput="updateExercise(${index}, 'name', this.value)" class="w-full p-3 rounded-xl mb-3 text-sm font-medium"><label class="checkbox-label mb-3 p-3 rounded-xl bg-tgBg"><input type="checkbox" ${isBodyweight ? 'checked' : ''} onchange="updateExercise(${index}, 'exerciseType', this.checked ? 'bodyweight' : 'weighted')"><span class="text-sm font-medium">Собственный вес</span></label><select onchange="updateExercise(${index}, 'muscleGroup', this.value)" class="w-full p-3 rounded-xl mb-3 text-sm"><option value="">Группа мышц</option>${muscleGroups.map(g => `<option value="${g}" ${exercise.muscleGroup === g ? 'selected' : ''}>${g}</option>`).join('')}</select><div class="flex gap-3"><div class="flex-1"><label class="text-xs text-tgHint mb-1 block">Подходы</label><div class="flex items-center gap-1"><button onclick="adjustProgramParam(${index}, 'targetSets', -1)" class="w-10 h-10 rounded-xl bg-tgBg font-bold active:opacity-70 shrink-0">−</button><input type="number" id="sets-${index}" inputmode="numeric" value="${exercise.targetSets ?? 3}" onchange="updateExercise(${index}, 'targetSets', parseInt(this.value) || 3)" class="w-full h-10 rounded-xl text-sm text-center font-semibold"><button onclick="adjustProgramParam(${index}, 'targetSets', 1)" class="w-10 h-10 rounded-xl bg-tgBg font-bold active:opacity-70 shrink-0">+</button></div></div><div class="flex-1"><label class="text-xs text-tgHint mb-1 block">Повторения</label><div class="flex items-center gap-1"><button onclick="adjustProgramParam(${index}, 'targetReps', -1)" class="w-10 h-10 rounded-xl bg-tgBg font-bold active:opacity-70 shrink-0">−</button><input type="number" id="reps-${index}" inputmode="numeric" value="${exercise.targetReps ?? 10}" onchange="updateExercise(${index}, 'targetReps', parseInt(this.value) || 10)" class="w-full h-10 rounded-xl text-sm text-center font-semibold"><button onclick="adjustProgramParam(${index}, 'targetReps', 1)" class="w-10 h-10 rounded-xl bg-tgBg font-bold active:opacity-70 shrink-0">+</button></div></div></div></div>`;
-}).join('');
-document.getElementById('app-content').innerHTML = `<input type="text" id="prog-name" placeholder="Название программы" value="${esc(program.name)}" oninput="updateProgramName(this.value)" class="w-full p-4 rounded-2xl mb-4 text-lg font-semibold card-enter"><div id="exercises-list">${exercisesHTML}</div><button onclick="addExercise()" class="w-full py-4 border-2 border-dashed border-tgHint rounded-2xl text-tgHint mt-2 active:bg-tgSecondaryBg card-enter" style="animation-delay: 0.1s"><i class="fa-solid fa-plus mr-2"></i> Добавить упражнение</button><button onclick="saveProgram()" class="w-full mt-6 mb-4 bg-tgButton text-white font-semibold py-4 rounded-2xl active:opacity-80 card-enter"><i class="fa-solid fa-check mr-2"></i> Сохранить</button>`;
-clearMainButton();
+    const program = state.editingProgram || { name: '', exercises: [] }; const exercises = program.exercises || []; const muscleGroups = getMuscleGroups(); const allSsIds = exercises.map(e => e.supersetId); const activeSsId = state.supersetActiveId;
+    let exercisesHTML = exercises.map((exercise, index) => {
+        const isInThisSuperset = activeSsId && exercise.supersetId === activeSsId; const isBodyweight = exercise.exerciseType === 'bodyweight'; const style = getSupersetStyle(exercise.supersetId, allSsIds);
+        let btnStyle = '', btnClass = 'text-tgHint bg-tgBg', btnTitle = 'Объединить в суперсет';
+        if (activeSsId) { if (isInThisSuperset) { btnStyle = `background: ${style.border}; color: #ffffff; box-shadow: 0 0 12px ${style.border};`; btnTitle = 'В активном суперсете'; } else { btnStyle = `border: 2px dashed ${style.border}; color: ${style.text};`; btnClass = 'animate-pulse'; btnTitle = 'Добавить в суперсет'; } }
+        else if (exercise.supersetId) { btnStyle = `background: ${style.badgeStyle}; color: ${style.text}; border: 1px solid ${style.border};`; }
+        return `<div class="bg-tgSecondaryBg p-4 rounded-2xl mb-3 card-enter" style="animation-delay: ${index * 0.05}s; ${exercise.supersetId ? style.styleAttr : ''}"><div class="flex justify-between items-center mb-3"><span class="font-medium text-sm text-tgHint">Упражнение ${index + 1}</span><div class="flex gap-1"><button onclick="toggleSupersetClick(${index})" title="${btnTitle}" class="w-9 h-9 flex items-center justify-center rounded-full ${btnClass} active:opacity-70 transition-all" style="${btnStyle}"><i class="fa-solid fa-link"></i></button><button onclick="removeExercise(${index})" class="w-9 h-9 flex items-center justify-center rounded-full text-red-500 active:opacity-70"><i class="fa-solid fa-times"></i></button></div></div><input type="text" placeholder="Название" value="${esc(exercise.name)}" oninput="updateExercise(${index}, 'name', this.value)" class="w-full p-3 rounded-xl mb-3 text-sm font-medium"><label class="checkbox-label mb-3 p-3 rounded-xl bg-tgBg"><input type="checkbox" ${isBodyweight ? 'checked' : ''} onchange="updateExercise(${index}, 'exerciseType', this.checked ? 'bodyweight' : 'weighted')"><span class="text-sm font-medium">Собственный вес</span></label><select onchange="updateExercise(${index}, 'muscleGroup', this.value)" class="w-full p-3 rounded-xl mb-3 text-sm"><option value="">Группа мышц</option>${muscleGroups.map(g => `<option value="${g}" ${exercise.muscleGroup === g ? 'selected' : ''}>${g}</option>`).join('')}</select><div class="flex gap-3"><div class="flex-1"><label class="text-xs text-tgHint mb-1 block">Подходы</label><div class="flex items-center gap-1"><button onclick="adjustProgramParam(${index}, 'targetSets', -1)" class="w-10 h-10 rounded-xl bg-tgBg font-bold active:opacity-70 shrink-0">−</button><input type="number" id="sets-${index}" inputmode="numeric" value="${exercise.targetSets ?? 3}" onchange="updateExercise(${index}, 'targetSets', parseInt(this.value) || 3)" class="w-full h-10 rounded-xl text-sm text-center font-semibold"><button onclick="adjustProgramParam(${index}, 'targetSets', 1)" class="w-10 h-10 rounded-xl bg-tgBg font-bold active:opacity-70 shrink-0">+</button></div></div><div class="flex-1"><label class="text-xs text-tgHint mb-1 block">Повторения</label><div class="flex items-center gap-1"><button onclick="adjustProgramParam(${index}, 'targetReps', -1)" class="w-10 h-10 rounded-xl bg-tgBg font-bold active:opacity-70 shrink-0">−</button><input type="number" id="reps-${index}" inputmode="numeric" value="${exercise.targetReps ?? 10}" onchange="updateExercise(${index}, 'targetReps', parseInt(this.value) || 10)" class="w-full h-10 rounded-xl text-sm text-center font-semibold"><button onclick="adjustProgramParam(${index}, 'targetReps', 1)" class="w-10 h-10 rounded-xl bg-tgBg font-bold active:opacity-70 shrink-0">+</button></div></div></div></div>`;
+    }).join('');
+    document.getElementById('app-content').innerHTML = `<input type="text" id="prog-name" placeholder="Название программы" value="${esc(program.name)}" oninput="updateProgramName(this.value)" class="w-full p-4 rounded-2xl mb-4 text-lg font-semibold card-enter"><div id="exercises-list">${exercisesHTML}</div><button onclick="addExercise()" class="w-full py-4 border-2 border-dashed border-tgHint rounded-2xl text-tgHint mt-2 active:bg-tgSecondaryBg card-enter" style="animation-delay: 0.1s"><i class="fa-solid fa-plus mr-2"></i> Добавить упражнение</button><button onclick="saveProgram()" class="w-full mt-6 mb-4 bg-tgButton text-white font-semibold py-4 rounded-2xl active:opacity-80 card-enter"><i class="fa-solid fa-check mr-2"></i> Сохранить</button>`;
+    clearMainButton();
 }
 function updateProgramName(value) { if (!state.editingProgram) state.editingProgram = { name: '', exercises: [] }; state.editingProgram.name = value; }
 function adjustProgramParam(index, field, delta) { const ex = state.editingProgram.exercises[index]; ex[field] = Math.max(1, (ex[field] ?? (field === 'targetSets' ? 3 : 10)) + delta); haptic('light'); const input = document.getElementById(`${field === 'targetSets' ? 'sets' : 'reps'}-${index}`); if (input) input.value = ex[field]; }
@@ -279,7 +468,7 @@ function toggleSupersetClick(index) { const exercises = state.editingProgram.exe
 function saveProgram() { const name = document.getElementById('prog-name')?.value.trim(); if (!name) { showAlert('Введите название'); return; } if (!state.editingProgram || state.editingProgram.exercises.length === 0) { showAlert('Добавьте упражнение'); return; } for (const ex of state.editingProgram.exercises) { if (!ex.name?.trim()) { showAlert('Заполните названия'); return; } if (!ex.muscleGroup) { showAlert(`Выберите группу для «${ex.name}»`); return; } } state.editingProgram.name = name; const programs = DataAPI.getPrograms(); const idx = programs.findIndex(p => p.id === state.editingProgram.id); if (idx > -1) programs[idx] = state.editingProgram; else { state.editingProgram.id = createId(); programs.push(state.editingProgram); } DataAPI.savePrograms(programs); haptic('success'); state.editingProgram = null; state.supersetActiveId = null; openProgramsScreen(); }
 function deleteProgram(id) { showConfirm('Удалить программу?', ok => { if (ok) { DataAPI.savePrograms(DataAPI.getPrograms().filter(p => p.id !== id)); renderPrograms(); } }); }
 
-// ТРЕНИРОВКА
+// --- ТРЕНИРОВКА ---
 function generateSetHTML(exIdx, setIdx, set, exType) { const isBw = exType === 'bodyweight'; const wHeader = isBw ? 'Доп. вес (кг)' : 'Вес (кг)'; const isDrop = set.setType === 'drop'; return `<div id="set-row-${exIdx}-${setIdx}" class="bg-tgBg rounded-xl p-3 mb-2 card-enter ${isDrop ? 'set-drop' : ''}" style="animation-delay: 0.03s"><div class="flex items-center justify-between mb-2"><div class="flex items-center gap-2 flex-wrap"><span class="text-tgHint text-sm font-medium">Подход ${setIdx + 1}</span>${isDrop ? '<span class="drop-badge"><i class="fa-solid fa-fire"></i> ДРОП-СЕТ</span>' : ''}</div><button onclick="removeSet(${exIdx}, ${setIdx})" class="w-8 h-8 flex items-center justify-center rounded-full text-red-500 active:opacity-70"><i class="fa-solid fa-trash-can text-sm"></i></button></div><div class="flex items-center gap-2"><div class="flex-1"><div class="text-[11px] text-tgHint mb-1 font-medium">${wHeader}</div><div class="flex items-center bg-tgSecondaryBg rounded-xl p-1" style="border:none!important"><button onclick="adjustSet(${exIdx}, ${setIdx}, 'weight', -2.5)" class="w-7 h-9 rounded-lg bg-tgBg text-lg flex items-center justify-center active:opacity-70 font-bold shrink-0">−</button><input type="number" id="set-${exIdx}-${setIdx}-weight" inputmode="decimal" value="${set.weight}" onchange="updateSet(${exIdx}, ${setIdx}, 'weight', parseFloat(this.value)||0)" class="w-full h-9 text-center bg-transparent text-lg font-semibold min-w-0" style="border:none!important;outline:none!important"><button onclick="adjustSet(${exIdx}, ${setIdx}, 'weight', 2.5)" class="w-7 h-9 rounded-lg bg-tgBg text-lg flex items-center justify-center active:opacity-70 font-bold shrink-0">+</button></div></div><div class="flex-1"><div class="text-[11px] text-tgHint mb-1 font-medium">Повторения</div><div class="flex items-center bg-tgSecondaryBg rounded-xl p-1" style="border:none!important"><button onclick="adjustSet(${exIdx}, ${setIdx}, 'reps', -1)" class="w-7 h-9 rounded-lg bg-tgBg text-lg flex items-center justify-center active:opacity-70 font-bold shrink-0">−</button><input type="number" id="set-${exIdx}-${setIdx}-reps" inputmode="numeric" value="${set.reps}" onchange="updateSet(${exIdx}, ${setIdx}, 'reps', parseInt(this.value)||0)" class="w-full h-9 text-center bg-transparent text-lg font-semibold min-w-0" style="border:none!important;outline:none!important"><button onclick="adjustSet(${exIdx}, ${setIdx}, 'reps', 1)" class="w-7 h-9 rounded-lg bg-tgBg text-lg flex items-center justify-center active:opacity-70 font-bold shrink-0">+</button></div></div></div></div>`; }
 function generateExerciseCardHTML(exIdx, ex, allSsIds) { const sets = ex.sets || []; const completed = sets.filter(s => s.weight > 0 && s.reps > 0).length; const target = ex.targetSets ?? 3; const isComplete = completed >= target; return `<div id="exercise-card-${exIdx}" class="bg-tgSecondaryBg p-4 rounded-2xl mb-4 card-enter"><div class="flex justify-between items-center mb-3 gap-2"><div class="flex items-center gap-2 flex-1 min-w-0 flex-wrap"><h3 class="font-bold text-sm leading-snug break-words flex-1">${esc(ex.name)}</h3>${ex.exerciseType === 'bodyweight' ? '<span class="bodyweight-badge shrink-0">Собственный вес</span>' : ''}</div><div class="flex items-center gap-2 shrink-0"><span id="badge-${exIdx}" class="text-xs font-medium px-2 py-1 rounded-md ${isComplete ? 'bg-green-500/20 text-green-500' : 'bg-tgBg text-tgHint'}">${isComplete ? '✓ Готово' : `${completed}/${target}`}</span><button onclick="removeWorkoutExercise(${exIdx})" class="w-8 h-8 flex items-center justify-center rounded-full text-red-500 bg-tgBg active:opacity-70"><i class="fa-solid fa-times text-sm"></i></button></div></div><div id="sets-container-${exIdx}">${sets.map((s, i) => generateSetHTML(exIdx, i, s, ex.exerciseType)).join('')}</div><div class="flex gap-2 mt-2"><button onclick="tryAddSet(${exIdx})" class="flex-1 py-3 bg-tgBg rounded-xl text-tgLink text-sm font-semibold active:opacity-70">+ Подход</button><button onclick="tryAddDropSet(${exIdx})" class="flex-1 py-3 bg-orange-500/15 rounded-xl text-orange-400 text-sm font-semibold active:opacity-70"><i class="fa-solid fa-fire mr-1"></i> Дроп-сет</button></div></div>`; }
 function updateExerciseCardInDOM(exIdx, ex) { const cardHTML = generateExerciseCardHTML(exIdx, ex, state.activeWorkout.exercises.map(e => e.supersetId)); const existing = document.getElementById(`exercise-card-${exIdx}`); if (existing) existing.outerHTML = cardHTML; }
@@ -297,7 +486,7 @@ function startTimer() { stopWorkoutTimer(); const update = () => { if (!state.ac
 function stopWorkoutTimer() { if (state.workoutTimer) { clearInterval(state.workoutTimer); state.workoutTimer = null; } }
 function clearWorkoutState() { stopWorkoutTimer(); state.activeWorkout = null; saveActiveWorkout(); clearMainButton(); }
 
-// ИСТОРИЯ
+// --- ИСТОРИЯ ---
 function openDataMenuModal() { const modal = document.createElement('div'); modal.id = 'data-menu-modal'; modal.className = 'modal-backdrop'; modal.innerHTML = `<div class="modal-sheet"><div class="w-10 h-1 bg-tgHint/40 rounded-full mx-auto mb-5"></div><h2 class="text-xl font-bold mb-4">Управление данными</h2><div class="space-y-3 mb-4"><button onclick="document.getElementById('data-menu-modal').remove(); exportData();" class="w-full py-3.5 px-4 rounded-xl bg-tgBg text-tgLink font-medium text-sm flex items-center justify-between active:opacity-80"><span><i class="fa-solid fa-download mr-2"></i> Экспорт (бэкап)</span><i class="fa-solid fa-chevron-right text-xs text-tgHint"></i></button><button onclick="document.getElementById('data-menu-modal').remove(); triggerImportFile();" class="w-full py-3.5 px-4 rounded-xl bg-tgBg text-tgLink font-medium text-sm flex items-center justify-between active:opacity-80"><span><i class="fa-solid fa-upload mr-2"></i> Импорт</span><i class="fa-solid fa-chevron-right text-xs text-tgHint"></i></button><button onclick="document.getElementById('data-menu-modal').remove(); resetAllData();" class="w-full py-3.5 px-4 rounded-xl bg-red-500/10 text-red-500 font-medium text-sm flex items-center justify-between active:opacity-80"><span><i class="fa-solid fa-trash-can mr-2"></i> Сбросить всё</span><i class="fa-solid fa-chevron-right text-xs text-red-500/50"></i></button></div><button onclick="document.getElementById('data-menu-modal').remove();" class="w-full py-3 bg-tgBg rounded-2xl font-semibold active:opacity-80">Закрыть</button></div>`; document.body.appendChild(modal); modal.addEventListener('click', e => { if (e.target === modal) modal.remove(); }); }
 function triggerImportFile() { const input = document.createElement('input'); input.type = 'file'; input.accept = '.json'; input.onchange = e => { const file = e.target.files[0]; if (!file) return; const reader = new FileReader(); reader.onload = event => { try { const imp = JSON.parse(event.target.result); if (imp.programs && imp.history) { DataAPI.savePrograms(imp.programs); DataAPI.saveHistory(imp.history); if (imp.muscleGroups) saveMuscleGroups(imp.muscleGroups); haptic('success'); showAlert('Восстановлено!'); renderHistory(); } else showAlert('Неверный формат'); } catch (err) { showAlert('Ошибка чтения'); } }; reader.readAsText(file); }; input.click(); }
 async function exportData() { try { const data = { programs: DataAPI.getPrograms(), history: DataAPI.getHistory(), muscleGroups: getMuscleGroups(), exportDate: new Date().toISOString() }; const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' }); const file = new File([blob], `fitnary_backup_${new Date().toISOString().slice(0, 10)}.json`, { type: 'application/json' }); if (navigator.canShare && navigator.canShare({ files: [file] })) { await navigator.share({ files: [file] }); haptic('success'); return; } const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = `fitnary_backup_${new Date().toISOString().slice(0, 10)}.json`; document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url); haptic('success'); } catch (e) { if (e.name !== 'AbortError') showAlert('Ошибка экспорта'); } }
@@ -308,6 +497,7 @@ let workoutDialogOpen = false;
 function promptWorkoutExit(targetTab = 'programs') { if (workoutDialogOpen) return; workoutDialogOpen = true; clearMainButton(); const existing = document.getElementById('workout-exit-modal'); if (existing) existing.remove(); const modal = document.createElement('div'); modal.id = 'workout-exit-modal'; modal.className = 'modal-backdrop'; modal.innerHTML = `<div class="modal-sheet"><div class="w-10 h-1 bg-tgHint/40 rounded-full mx-auto mb-5"></div><h2 class="text-xl font-bold text-center mb-2">Завершить тренировку?</h2><p class="text-tgHint text-sm text-center mb-5">Что сделать с текущей тренировкой?</p><div class="space-y-3"><button id="workout-save-btn" class="w-full py-4 rounded-2xl bg-tgButton text-white font-semibold active:opacity-80"><i class="fa-solid fa-check mr-2"></i> Завершить и сохранить</button><button id="workout-discard-btn" class="w-full py-4 rounded-2xl bg-red-500/15 text-red-500 font-semibold active:opacity-80"><i class="fa-solid fa-trash mr-2"></i> Не сохранять</button><button id="workout-cancel-btn" class="w-full py-4 rounded-2xl bg-tgBg text-tgText font-semibold active:opacity-80">Отмена</button></div></div>`; document.body.appendChild(modal); const close = () => { workoutDialogOpen = false; modal.remove(); }; document.getElementById('workout-cancel-btn').onclick = () => { close(); haptic('light'); }; document.getElementById('workout-save-btn').onclick = () => { close(); saveWorkoutAndOpenPrograms(); }; document.getElementById('workout-discard-btn').onclick = () => { close(); discardWorkoutAndOpenPrograms(); }; modal.addEventListener('click', e => { if (e.target === modal) close(); }); }
 function saveWorkoutAndOpenPrograms() { try { const w = state.activeWorkout; if (w) { const hist = DataAPI.getHistory(); hist.push({ id: createId(), date: new Date(w.startTime).toISOString(), duration: Math.max(0, Math.round((Date.now() - w.startTime) / 1000)), programName: w.programName, exercises: w.exercises.map(ex => ({ name: ex.name, muscleGroup: ex.muscleGroup || '', exerciseType: ex.exerciseType || 'weighted', supersetId: ex.supersetId || null, targetSets: ex.targetSets ?? 3, targetReps: ex.targetReps ?? 10, sets: (ex.sets || []).map(s => ({ weight: Number(s.weight)||0, reps: Number(s.reps)||0, setType: s.setType || 'regular' })) })) }); DataAPI.saveHistory(hist); } clearWorkoutState(); haptic('success'); } catch (error) { console.error(error); clearWorkoutState(); } openProgramsScreen(); }
 function discardWorkoutAndOpenPrograms() { clearWorkoutState(); haptic('light'); openProgramsScreen(); }
+
 if (window.visualViewport) { window.visualViewport.addEventListener('resize', () => { const nav = document.getElementById('bottom-nav'); if (!nav) return; nav.classList.toggle('keyboard-hidden', window.visualViewport.height < window.innerHeight - 150); }); }
 document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible' && state.currentScreen === 'workout' && state.activeWorkout) startTimer(); });
 if (restoreActiveWorkout()) navigate('workout'); else navigateToTab('programs');
