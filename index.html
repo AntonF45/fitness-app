@@ -485,6 +485,30 @@ function renderProgramEdit() {
     const muscleGroups = getMuscleGroups();
     const allSsIds = exercises.map(function (e) { return e.supersetId; });
     const activeSsId = state.supersetActiveId;
+
+    // === ЛИПКИЙ БАННЕР РЕЖИМА СУПЕРСЕТА ===
+    let supersetBanner = '';
+    if (activeSsId) {
+        const style = getSupersetStyle(activeSsId, allSsIds);
+        const groupExs = exercises.filter(function (e) { return e.supersetId === activeSsId; });
+        let listHTML = groupExs.map(function (e, i) {
+            return '<div class="flex items-start gap-2 py-1"><span class="font-mono text-[11px] shrink-0 mt-0.5" style="color: ' + style.text + '">' + (i + 1) + '.</span><span class="text-sm font-semibold leading-snug break-words">' + escHtml(e.name || 'Без названия') + '</span></div>';
+        }).join('');
+        if (groupExs.length < 2) {
+            listHTML += '<div class="text-xs opacity-80 mt-1">Нажмите на иконку <i class="fa-solid fa-link"></i> у другого упражнения, чтобы добавить его в суперсет (минимум 2)</div>';
+        }
+        supersetBanner =
+            '<div class="sticky top-2 z-30 mb-4 p-4 rounded-2xl shadow-xl card-enter" style="background: linear-gradient(90deg, ' + style.badgeBg + ', ' + style.bg + '), var(--tg-theme-bg-color, #1c1c1e); border: 2px solid ' + style.border + '; border-left-width: 6px;">' +
+                '<div class="flex items-start justify-between gap-3">' +
+                    '<div class="min-w-0 flex-1">' +
+                        '<div class="text-[10px] font-bold uppercase tracking-wide mb-2" style="color: ' + style.text + '"><i class="fa-solid fa-bolt mr-1"></i> Режим суперсета</div>' +
+                        '<div class="space-y-0.5">' + listHTML + '</div>' +
+                    '</div>' +
+                    '<button onclick="finishSupersetCreation()" class="px-4 py-3 bg-white text-black font-bold rounded-xl text-sm shrink-0 active:scale-95 shadow">Готово ✓</button>' +
+                '</div>' +
+            '</div>';
+    }
+
     let exercisesHTML = exercises.map(function (exercise, index) {
         const isIn = activeSsId && exercise.supersetId === activeSsId;
         const isBw = exercise.exerciseType === 'bodyweight';
@@ -500,7 +524,7 @@ function renderProgramEdit() {
             '<div class="flex gap-3"><div class="flex-1"><label class="text-xs text-tgHint mb-1 block">Подходы</label><div class="flex items-center gap-1"><button data-action="adjust-param" data-payload="' + index + ':targetSets:-1" class="w-10 h-10 rounded-xl bg-tgBg font-bold active:opacity-70 shrink-0">−</button><input type="number" id="sets-' + index + '" inputmode="numeric" value="' + (exercise.targetSets ?? 3) + '" data-exercise-index="' + index + '" data-field="targetSets" class="exercise-input w-full h-10 rounded-xl text-sm text-center font-semibold"><button data-action="adjust-param" data-payload="' + index + ':targetSets:1" class="w-10 h-10 rounded-xl bg-tgBg font-bold active:opacity-70 shrink-0">+</button></div></div><div class="flex-1"><label class="text-xs text-tgHint mb-1 block">Повторения</label><div class="flex items-center gap-1"><button data-action="adjust-param" data-payload="' + index + ':targetReps:-1" class="w-10 h-10 rounded-xl bg-tgBg font-bold active:opacity-70 shrink-0">−</button><input type="number" id="reps-' + index + '" inputmode="numeric" value="' + (exercise.targetReps ?? 10) + '" data-exercise-index="' + index + '" data-field="targetReps" class="exercise-input w-full h-10 rounded-xl text-sm text-center font-semibold"><button data-action="adjust-param" data-payload="' + index + ':targetReps:1" class="w-10 h-10 rounded-xl bg-tgBg font-bold active:opacity-70 shrink-0">+</button></div></div></div>' +
             '</div>';
     }).join('');
-    const supersetBanner = activeSsId ? '<div class="mb-3 px-3 py-2 rounded-xl text-xs font-semibold" style="background: rgba(168,85,247,0.15); color: #c084fc;"><i class="fa-solid fa-bolt mr-1"></i> Режим суперсета: нажмите <i class="fa-solid fa-link"></i> на другом упражнении, чтобы объединить, или ещё раз на текущем — для выхода</div>' : '';
+
     document.getElementById('app-content').innerHTML =
         '<input type="text" id="prog-name" placeholder="Название программы" value="' + escAttr(program.name) + '" class="w-full p-4 rounded-2xl mb-3 text-lg font-semibold card-enter">' +
         '<button data-action="open-mg-modal" class="w-full mb-3 py-3 rounded-xl bg-tgSecondaryBg text-tgLink font-semibold text-sm active:opacity-80 flex items-center justify-center gap-2"><i class="fa-solid fa-pen-to-square"></i> Управление группами мышц</button>' +
@@ -654,6 +678,21 @@ function addExercise() { if (!state.editingProgram) state.editingProgram = { nam
 function removeExercise(index) { const exercises = state.editingProgram.exercises; const removed = exercises[index]; if (removed && removed.supersetId) { const ssId = removed.supersetId; exercises.forEach(function (e) { if (e.supersetId === ssId) e.supersetId = null; }); } exercises.splice(index, 1); renderProgramEdit(); }
 function updateExercise(index, field, value) { if (!state.editingProgram) state.editingProgram = { name: '', exercises: [] }; if (!state.editingProgram.exercises[index]) return; state.editingProgram.exercises[index][field] = value; }
 function toggleSupersetClick(index) { const exercises = state.editingProgram.exercises; const current = exercises[index]; if (!current) return; if (!state.supersetActiveId) { if (!current.supersetId) current.supersetId = createId(); state.supersetActiveId = current.supersetId; haptic('medium'); } else { if (current.supersetId === state.supersetActiveId) { current.supersetId = null; const rem = exercises.filter(function (ex) { return ex.supersetId === state.supersetActiveId; }); if (rem.length < 2) rem.forEach(function (ex) { ex.supersetId = null; }); state.supersetActiveId = null; haptic('light'); } else { current.supersetId = state.supersetActiveId; haptic('success'); } } renderProgramEdit(); }
+function finishSupersetCreation() {
+    if (!state.supersetActiveId) return;
+    const exercises = (state.editingProgram && state.editingProgram.exercises) || [];
+    const inGroup = exercises.filter(function (e) { return e.supersetId === state.supersetActiveId; });
+    if (inGroup.length < 2) {
+        // Суперсет не состоялся — снимаем пометки, чтобы не осталось "висящих" упражнений
+        exercises.forEach(function (e) { if (e.supersetId === state.supersetActiveId) e.supersetId = null; });
+        showAlert('Суперсет должен содержать минимум два упражнения');
+        haptic('warning');
+    } else {
+        haptic('success');
+    }
+    state.supersetActiveId = null;
+    renderProgramEdit();
+}   
 function saveProgram() {
     const name = (document.getElementById('prog-name')?.value || '').trim();
     if (!name) { showAlert('Введите название'); return; }
