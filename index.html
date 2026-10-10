@@ -510,29 +510,27 @@ function renderPrograms() {
 function renderProgramEdit() {
     const program = state.editingProgram || { name: '', exercises: [] };
     const exercises = program.exercises || [];
-    const muscleGroups = getMuscleGroups();
     const allSsIds = exercises.map(function (e) { return e.supersetId; });
     const activeSsId = state.supersetActiveId;
 
-    // === ЛИПКИЙ БАННЕР РЕЖИМА СУПЕРСЕТА ===
+    // === КОМПАКТНЫЙ БАННЕР СУПЕРСЕТА ===
     let supersetBanner = '';
     if (activeSsId) {
         const style = getSupersetStyle(activeSsId, allSsIds);
         const groupExs = exercises.filter(function (e) { return e.supersetId === activeSsId; });
+        const num = getSupersetNumber(activeSsId, exercises);
         let listHTML = groupExs.map(function (e, i) {
-            return '<div class="flex items-start gap-2 py-1"><span class="font-mono text-[11px] shrink-0 mt-0.5" style="color: ' + style.text + '">' + (i + 1) + '.</span><span class="text-sm font-semibold leading-snug break-words">' + escHtml(e.name || 'Без названия') + '</span></div>';
+            return '<div class="flex items-start gap-1.5 py-0.5"><span class="font-mono text-[10px] shrink-0 mt-0.5" style="color: ' + style.text + '">' + (i + 1) + '.</span><span class="text-xs font-semibold leading-snug break-words">' + escHtml(e.name || 'Без названия') + '</span></div>';
         }).join('');
-        if (groupExs.length < 2) {
-            listHTML += '<div class="text-xs opacity-80 mt-1">Нажмите на иконку <i class="fa-solid fa-link"></i> у другого упражнения, чтобы добавить его в суперсет (минимум 2)</div>';
-        }
+        if (groupExs.length < 2) listHTML += '<div class="text-[10px] opacity-80 mt-1">Нажмите <i class="fa-solid fa-link"></i> у второго упражнения, чтобы завершить</div>';
         supersetBanner =
-            '<div class="sticky top-2 z-30 mb-4 p-4 rounded-2xl shadow-xl card-enter" style="background: linear-gradient(90deg, ' + style.badgeBg + ', ' + style.bg + '), var(--tg-theme-bg-color, #1c1c1e); border: 2px solid ' + style.border + '; border-left-width: 6px;">' +
-                '<div class="flex items-start justify-between gap-3">' +
+            '<div class="sticky top-2 z-30 mb-3 px-3 py-2.5 rounded-xl shadow-xl card-enter" style="background: linear-gradient(90deg, ' + style.badgeBg + ', ' + style.bg + '), var(--tg-theme-bg-color, #1c1c1e); border: 1.5px solid ' + style.border + '; border-left-width: 5px;">' +
+                '<div class="flex items-center gap-3">' +
                     '<div class="min-w-0 flex-1">' +
-                        '<div class="text-[10px] font-bold uppercase tracking-wide mb-2" style="color: ' + style.text + '"><i class="fa-solid fa-bolt mr-1"></i> Режим суперсета</div>' +
+                        '<div class="text-[10px] font-bold uppercase tracking-wide mb-1" style="color: ' + style.text + '"><i class="fa-solid fa-bolt mr-1"></i>Суперсет №' + num + '</div>' +
                         '<div class="space-y-0.5">' + listHTML + '</div>' +
                     '</div>' +
-                    '<button onclick="finishSupersetCreation()" class="px-4 py-3 bg-white text-black font-bold rounded-xl text-sm shrink-0 active:scale-95 shadow">Готово ✓</button>' +
+                    '<button onclick="finishSupersetCreation()" class="px-3.5 py-2 rounded-lg text-[11px] font-bold text-white shrink-0 active:scale-95 shadow" style="background: ' + style.border + ';">Готово ✓</button>' +
                 '</div>' +
             '</div>';
     }
@@ -546,8 +544,8 @@ function renderProgramEdit() {
         else if (exercise.supersetId) { btnStyle = 'background: ' + style.badgeBg + '; color: ' + style.text + '; border: 1px solid ' + style.border + ';'; }
         return '<div class="bg-tgSecondaryBg p-4 rounded-2xl mb-3 card-enter" style="animation-delay: ' + (index * 0.05) + 's; ' + (exercise.supersetId ? style.styleAttr : '') + '">' +
             '<div class="flex justify-between items-center mb-3"><span class="font-medium text-sm text-tgHint">Упражнение ' + (index + 1) + '</span><div class="flex gap-1"><button data-action="toggle-superset" data-payload="' + index + '" title="' + escAttr(btnTitle) + '" class="w-9 h-9 flex items-center justify-center rounded-full ' + btnClass + ' active:opacity-70 transition-all" style="' + btnStyle + '"><i class="fa-solid fa-link"></i></button><button data-action="remove-exercise" data-payload="' + index + '" class="w-9 h-9 flex items-center justify-center rounded-full text-red-500 active:opacity-70"><i class="fa-solid fa-times"></i></button></div></div>' +
-            '<select data-exercise-index="' + index + '" data-field="muscleGroup" class="exercise-select w-full p-3 rounded-xl mb-3 text-sm"><option value="">Группа мышц</option>' + muscleGroups.map(function (g) { return '<option value="' + escAttr(g) + '" ' + (exercise.muscleGroup === g ? 'selected' : '') + '>' + escHtml(g) + '</option>'; }).join('') + '</select>' +
-            '<div class="ac-wrapper mb-3"><input type="text" placeholder="Название" value="' + escAttr(exercise.name) + '" data-scope="editor" data-exercise-index="' + index + '" data-field="name" class="exercise-input exercise-name-input w-full p-3 rounded-xl text-sm font-medium"><div class="autocomplete-dropdown" id="ac-drop-editor-' + index + '" style="display:none"></div></div>' +
+            '<div class="ac-wrapper mb-3"><input type="text" placeholder="Группа мышц" value="' + escAttr(exercise.muscleGroup || '') + '" data-scope="editor" data-exercise-index="' + index + '" data-field="muscleGroup" class="muscle-input w-full p-3 rounded-xl text-sm font-medium" autocomplete="off"><div class="autocomplete-dropdown" id="ac-drop-muscle-editor-' + index + '" style="display:none"></div></div>' +
+            '<div class="ac-wrapper mb-3"><input type="text" placeholder="Название" value="' + escAttr(exercise.name) + '" data-scope="editor" data-exercise-index="' + index + '" data-field="name" class="exercise-input exercise-name-input w-full p-3 rounded-xl text-sm font-medium" autocomplete="off"><div class="autocomplete-dropdown" id="ac-drop-editor-' + index + '" style="display:none"></div></div>' +
             '<label class="checkbox-label mb-3 p-3 rounded-xl bg-tgBg"><input type="checkbox" ' + (isBw ? 'checked' : '') + ' data-exercise-index="' + index + '" data-field="exerciseType" class="exercise-checkbox"><span class="text-sm font-medium">Собственный вес</span></label>' +
             '<div class="flex gap-3"><div class="flex-1"><label class="text-xs text-tgHint mb-1 block">Подходы</label><div class="flex items-center gap-1"><button data-action="adjust-param" data-payload="' + index + ':targetSets:-1" class="w-10 h-10 rounded-xl bg-tgBg font-bold active:opacity-70 shrink-0">−</button><input type="number" id="sets-' + index + '" inputmode="numeric" value="' + (exercise.targetSets ?? 3) + '" data-exercise-index="' + index + '" data-field="targetSets" class="exercise-input w-full h-10 rounded-xl text-sm text-center font-semibold"><button data-action="adjust-param" data-payload="' + index + ':targetSets:1" class="w-10 h-10 rounded-xl bg-tgBg font-bold active:opacity-70 shrink-0">+</button></div></div><div class="flex-1"><label class="text-xs text-tgHint mb-1 block">Повторения</label><div class="flex items-center gap-1"><button data-action="adjust-param" data-payload="' + index + ':targetReps:-1" class="w-10 h-10 rounded-xl bg-tgBg font-bold active:opacity-70 shrink-0">−</button><input type="number" id="reps-' + index + '" inputmode="numeric" value="' + (exercise.targetReps ?? 10) + '" data-exercise-index="' + index + '" data-field="targetReps" class="exercise-input w-full h-10 rounded-xl text-sm text-center font-semibold"><button data-action="adjust-param" data-payload="' + index + ':targetReps:1" class="w-10 h-10 rounded-xl bg-tgBg font-bold active:opacity-70 shrink-0">+</button></div></div></div>' +
             '</div>';
@@ -562,14 +560,19 @@ function renderProgramEdit() {
         '<button data-action="save-program" class="w-full mt-6 mb-4 bg-tgButton text-white font-semibold py-4 rounded-2xl active:opacity-80 card-enter"><i class="fa-solid fa-check mr-2"></i> Сохранить</button>';
     clearMainButton();
 }
-// === АВТОПОДБОР НАЗВАНИЙ (КАК В GOOGLE) ===
-function getAutocompleteSuggestions(query, limit) {
+// === АВТОПОДБОР: НАЗВАНИЯ И ГРУППЫ МЫШЦ ===
+function getAutocompleteSuggestions(query, limit, muscleGroup) {
     const q = (query || '').trim().toLowerCase();
-    if (!q) return [];
-    return DataAPI.getUserExercises().filter(function (ex) {
-        const n = ex.name.toLowerCase();
-        return n.includes(q) && n !== q;
-    }).slice(0, limit || 8);
+    let all = DataAPI.getUserExercises();
+    if (muscleGroup) all = all.filter(function (ex) { return ex.muscleGroup === muscleGroup; });
+    if (!q) return all.slice(0, limit || 8);
+    return all.filter(function (ex) { const n = ex.name.toLowerCase(); return n.includes(q) && n !== q; }).slice(0, limit || 8);
+}
+function getMuscleSuggestions(query) {
+    const q = (query || '').trim().toLowerCase();
+    const groups = getMuscleGroups();
+    if (!q) return groups.slice(0, 12);
+    return groups.filter(function (g) { return g.toLowerCase().includes(q); }).slice(0, 12);
 }
 function hideAllAutocomplete() {
     document.querySelectorAll('.autocomplete-dropdown').forEach(function (d) { d.style.display = 'none'; d.innerHTML = ''; });
@@ -579,10 +582,30 @@ function updateAutocomplete(inputEl) {
     const index = inputEl.dataset.exerciseIndex || '0';
     const drop = document.getElementById('ac-drop-' + scope + '-' + index);
     if (!drop) return;
-    const suggestions = getAutocompleteSuggestions(inputEl.value, 8);
+    let group = '';
+    if (scope === 'editor') {
+        const ex = state.editingProgram && state.editingProgram.exercises ? state.editingProgram.exercises[parseInt(index, 10)] : null;
+        group = ex ? (ex.muscleGroup || '') : '';
+    } else {
+        const g = document.getElementById('add-ex-group');
+        group = g ? (g.value || '') : '';
+    }
+    const suggestions = getAutocompleteSuggestions(inputEl.value, 8, group);
     if (!suggestions.length) { drop.style.display = 'none'; drop.innerHTML = ''; return; }
     drop.innerHTML = suggestions.map(function (s) {
-        return '<div class="autocomplete-item" data-action="ac-pick" data-scope="' + scope + '" data-index="' + index + '" data-name="' + escAttr(s.name) + '"><div>' + escHtml(s.name) + '</div><div class="ac-group">' + escHtml(s.muscleGroup) + '</div></div>';
+        return '<div class="autocomplete-item" data-action="ac-pick" data-scope="' + scope + '" data-index="' + index + '" data-name="' + escAttr(s.name) + '"><div>' + escHtml(s.name) + '</div>' + (group ? '' : '<div class="ac-group">' + escHtml(s.muscleGroup) + '</div>') + '</div>';
+    }).join('');
+    drop.style.display = 'block';
+}
+function updateMuscleAutocomplete(inputEl) {
+    const scope = inputEl.dataset.scope || 'editor';
+    const index = inputEl.dataset.exerciseIndex || '0';
+    const drop = document.getElementById('ac-drop-muscle-' + scope + '-' + index);
+    if (!drop) return;
+    const suggestions = getMuscleSuggestions(inputEl.value);
+    if (!suggestions.length) { drop.style.display = 'none'; drop.innerHTML = ''; return; }
+    drop.innerHTML = suggestions.map(function (g) {
+        return '<div class="autocomplete-item" data-action="ac-muscle-pick" data-scope="' + scope + '" data-index="' + index + '" data-name="' + escAttr(g) + '"><div>' + escHtml(g) + '</div></div>';
     }).join('');
     drop.style.display = 'block';
 }
@@ -603,6 +626,16 @@ function pickAutocomplete(target) {
         if (sel && suggestion && suggestion.muscleGroup) sel.value = suggestion.muscleGroup;
         hideAllAutocomplete();
     }
+    haptic('light');
+}
+function pickMuscleAutocomplete(target) {
+    const scope = target.dataset.scope || 'editor';
+    const index = target.dataset.index || '0';
+    const name = target.dataset.name;
+    const input = document.querySelector('.muscle-input[data-scope="' + scope + '"][data-exercise-index="' + index + '"]');
+    if (input) input.value = name;
+    if (scope === 'editor') updateExercise(parseInt(index, 10), 'muscleGroup', name);
+    hideAllAutocomplete();
     haptic('light');
 }
 
@@ -672,11 +705,10 @@ function mgDelete(name) {
 // === ДОБАВЛЕНИЕ УПРАЖНЕНИЯ ВО ВРЕМЯ ТРЕНИРОВКИ ===
 function openAddWorkoutExerciseModal() {
     const existing = document.getElementById('add-exercise-modal'); if (existing) existing.remove();
-    const groups = getMuscleGroups();
     const modal = document.createElement('div'); modal.id = 'add-exercise-modal'; modal.className = 'modal-backdrop';
     modal.innerHTML = '<div class="modal-sheet"><div class="w-10 h-1 bg-tgHint/40 rounded-full mx-auto mb-5"></div><h2 class="text-xl font-bold mb-4">Новое упражнение</h2>' +
-        '<select id="add-ex-group" class="w-full p-3 rounded-xl mb-3 text-sm"><option value="">Группа мышц</option>' + groups.map(function (g) { return '<option value="' + escAttr(g) + '">' + escHtml(g) + '</option>'; }).join('') + '</select>' +
-        '<div class="ac-wrapper mb-3"><input type="text" id="add-ex-name" placeholder="Название" data-scope="workout" data-exercise-index="0" class="exercise-name-input w-full p-3 rounded-xl text-sm font-medium"><div class="autocomplete-dropdown" id="ac-drop-workout-0" style="display:none"></div></div>' +
+        '<div class="ac-wrapper mb-3"><input type="text" id="add-ex-group" placeholder="Группа мышц" data-scope="workout" data-exercise-index="0" class="muscle-input w-full p-3 rounded-xl text-sm font-medium" autocomplete="off"><div class="autocomplete-dropdown" id="ac-drop-muscle-workout-0" style="display:none"></div></div>' +
+        '<div class="ac-wrapper mb-3"><input type="text" id="add-ex-name" placeholder="Название" data-scope="workout" data-exercise-index="0" class="exercise-name-input w-full p-3 rounded-xl text-sm font-medium" autocomplete="off"><div class="autocomplete-dropdown" id="ac-drop-workout-0" style="display:none"></div></div>' +
         '<label class="checkbox-label mb-3 p-3 rounded-xl bg-tgBg"><input type="checkbox" id="add-ex-bw"><span class="text-sm font-medium">Собственный вес</span></label>' +
         '<div class="flex gap-3 mb-4"><div class="flex-1"><label class="text-xs text-tgHint mb-1 block">Подходы</label><input type="number" id="add-ex-sets" inputmode="numeric" value="3" class="w-full h-10 rounded-xl text-sm text-center font-semibold"></div><div class="flex-1"><label class="text-xs text-tgHint mb-1 block">Повторения</label><input type="number" id="add-ex-reps" inputmode="numeric" value="10" class="w-full h-10 rounded-xl text-sm text-center font-semibold"></div></div>' +
         '<button data-action="add-workout-exercise-confirm" class="w-full py-4 rounded-2xl bg-tgButton text-white font-semibold active:opacity-80"><i class="fa-solid fa-plus mr-2"></i> Добавить</button>' +
@@ -690,7 +722,8 @@ function confirmAddWorkoutExercise() {
     const name = ((nameEl && nameEl.value) || '').trim();
     if (!name) { showAlert('Введите название'); return; }
     const groupEl = document.getElementById('add-ex-group');
-    const group = (groupEl && groupEl.value) || 'Другое';
+    const group = ((groupEl && groupEl.value) || '').trim();
+    if (!group || getMuscleGroups().indexOf(group) === -1) { showAlert('Выберите группу мышц из списка'); return; }
     const bwEl = document.getElementById('add-ex-bw');
     const sets = Math.max(1, parseInt((document.getElementById('add-ex-sets') || {}).value, 10) || 3);
     const reps = Math.max(1, parseInt((document.getElementById('add-ex-reps') || {}).value, 10) || 10);
@@ -793,12 +826,13 @@ function saveProgram() {
     const name = ((document.getElementById('prog-name') || {}).value || '').trim();
     if (!name) { showAlert('Введите название'); return; }
     if (!state.editingProgram || (state.editingProgram.exercises || []).length === 0) { showAlert('Добавьте упражнение'); return; }
+    const groups = getMuscleGroups();
     for (let i = 0; i < state.editingProgram.exercises.length; i++) {
         const ex = state.editingProgram.exercises[i];
         if (!(ex.name || '').trim()) { showAlert('Заполните названия'); return; }
-        if (!ex.muscleGroup) { showAlert('Выберите группу для «' + ex.name + '»'); return; }
+        if (!ex.muscleGroup || groups.indexOf(ex.muscleGroup) === -1) { showAlert('Выберите группу мышц из списка для «' + (ex.name || 'упражнения ' + (i + 1)) + '»'); return; }
     }
-    normalizeSupersets(state.editingProgram.exercises);   // правило 8
+    normalizeSupersets(state.editingProgram.exercises);
     state.supersetActiveId = null;
     state.editingProgram.name = name;
     const programs = DataAPI.getPrograms();
@@ -950,6 +984,7 @@ document.addEventListener('click', function (event) {
             case 'mg-edit-cancel': mgEditState = null; renderMgList(); break;
             case 'mg-delete': mgDelete(payload); break;
             case 'ac-pick': pickAutocomplete(target); break;
+            case 'ac-muscle-pick': pickMuscleAutocomplete(target); break;
             case 'add-workout-exercise': openAddWorkoutExerciseModal(); break;
             case 'add-workout-exercise-confirm': confirmAddWorkoutExercise(); break;
         }
@@ -960,16 +995,24 @@ document.addEventListener('click', function (event) {
 document.addEventListener('input', function (e) {
     const t = e.target;
     if (t.id === 'prog-name') { updateProgramName(t.value); return; }
+    if (t.classList.contains('muscle-input')) {
+        if ((t.dataset.scope || 'editor') === 'editor') updateExercise(parseInt(t.dataset.exerciseIndex, 10), 'muscleGroup', t.value);
+        updateMuscleAutocomplete(t);
+        return;
+    }
     if (t.classList.contains('exercise-name-input')) {
-        if ((t.dataset.scope || 'editor') === 'editor') {
-            updateExercise(parseInt(t.dataset.exerciseIndex, 10), 'name', t.value);
-        }
+        if ((t.dataset.scope || 'editor') === 'editor') updateExercise(parseInt(t.dataset.exerciseIndex, 10), 'name', t.value);
         updateAutocomplete(t);
         return;
     }
-    if (t.classList.contains('exercise-input')) {
-        updateExercise(parseInt(t.dataset.exerciseIndex, 10), t.dataset.field, t.value);
-    }
+    if (t.classList.contains('exercise-input')) updateExercise(parseInt(t.dataset.exerciseIndex, 10), t.dataset.field, t.value);
+});
+
+// === ВАРИАНТЫ СРАЗУ ПРИ НАЖАТИИ НА ПОЛЕ (focusin) ===
+document.addEventListener('focusin', function (e) {
+    const t = e.target;
+    if (t.classList.contains('muscle-input')) { updateMuscleAutocomplete(t); return; }
+    if (t.classList.contains('exercise-name-input')) { updateAutocomplete(t); return; }
 });
 
 // === ДЕЛЕГИРОВАНИЕ ИЗМЕНЕНИЙ (change) ===
