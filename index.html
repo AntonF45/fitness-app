@@ -192,16 +192,27 @@ const DataAPI = {
     },
     _safeWrite(type, data) { try { localStorage.setItem(this._key(type), JSON.stringify(data)); return true; } catch (err) { console.error('DataAPI write failed', err); return false; } },
     getPrograms() {
-        return this._safeRead('programs', []).map(function (p) {
-            if (!p || typeof p !== 'object') return null;
-            return {
-                id: p.id || createId(), name: String(p.name || ''),
-                exercises: Array.isArray(p.exercises) ? p.exercises.map(function (ex) {
-                    return { id: ex && ex.id || createId(), name: String(ex && ex.name || ''), muscleGroup: String(ex && ex.muscleGroup || 'Другое'), exerciseType: ex && ex.exerciseType === 'bodyweight' ? 'bodyweight' : 'weighted', supersetId: ex && ex.supersetId || null, targetSets: Math.max(1, parseInt(ex && ex.targetSets) || 3), targetReps: Math.max(1, parseInt(ex && ex.targetReps) || 10) };
-                }) : []
-            };
-        }).filter(function (p) { return p !== null; });
-    },
+    return this._safeRead('programs', []).map(function (p) {
+        if (!p || typeof p !== 'object') return null;
+        const prog = {
+            id: p.id || createId(),
+            name: String(p.name || ''),
+            exercises: Array.isArray(p.exercises) ? p.exercises.map(function (ex) {
+                return {
+                    id: (ex && ex.id) || createId(),
+                    name: String((ex && ex.name) || ''),
+                    muscleGroup: String((ex && ex.muscleGroup) || 'Другое'),
+                    exerciseType: (ex && ex.exerciseType === 'bodyweight') ? 'bodyweight' : 'weighted',
+                    supersetId: (ex && ex.supersetId) || null,
+                    targetSets: Math.max(1, parseInt(ex && ex.targetSets, 10) || 3),
+                    targetReps: Math.max(1, parseInt(ex && ex.targetReps, 10) || 10)
+                };
+            }) : []
+        };
+        normalizeSupersets(prog.exercises);   // правило 8: защита от старых/битых данных
+        return prog;
+    }).filter(function (p) { return p !== null; });
+},
     savePrograms(data) { this._safeWrite('programs', data); },
     getHistory() { return this._safeRead('history', []).filter(function (e) { return e && typeof e === 'object' && e.id && e.date; }); },
     saveHistory(data) { this._safeWrite('history', data); },
@@ -458,6 +469,23 @@ function renderChart() {
 // === ПРОГРАММЫ ===
 const SUPERSET_COLORS = [{ border: '#a855f7', bg: 'rgba(168,85,247,0.08)', badgeBg: 'rgba(168,85,247,0.25)', text: '#c084fc' }, { border: '#3b82f6', bg: 'rgba(59,130,246,0.08)', badgeBg: 'rgba(59,130,246,0.25)', text: '#60a5fa' }, { border: '#10b981', bg: 'rgba(16,185,129,0.08)', badgeBg: 'rgba(16,185,129,0.25)', text: '#34d399' }, { border: '#f59e0b', bg: 'rgba(245,158,11,0.08)', badgeBg: 'rgba(245,158,11,0.25)', text: '#fbbf24' }, { border: '#ec4899', bg: 'rgba(236,72,153,0.08)', badgeBg: 'rgba(236,72,153,0.25)', text: '#f472b6' }];
 function getSupersetStyle(supersetId, allSupersetIds) { if (!supersetId) return { styleAttr: '', badgeStyle: '', text: '#c084fc', border: '#a855f7' }; const unique = Array.from(new Set(allSupersetIds.filter(Boolean))); const c = SUPERSET_COLORS[unique.indexOf(supersetId) % SUPERSET_COLORS.length]; return { styleAttr: 'border-left: 4px solid ' + c.border + '; background: linear-gradient(90deg, ' + c.bg + ', transparent);', badgeStyle: 'background: ' + c.badgeBg + '; color: ' + c.text + ';', text: c.text, border: c.border }; }
+function countSupersetMembers(exercises, ssId) {
+    return (exercises || []).filter(function (e) { return e.supersetId === ssId; }).length;
+}
+function dissolveSuperset(exercises, ssId) {
+    (exercises || []).forEach(function (e) { if (e.supersetId === ssId) e.supersetId = null; });
+}
+function normalizeSupersets(exercises) {
+    const ids = [];
+    (exercises || []).forEach(function (e) { if (e.supersetId && ids.indexOf(e.supersetId) === -1) ids.push(e.supersetId); });
+    ids.forEach(function (id) { if (countSupersetMembers(exercises, id) < 2) dissolveSuperset(exercises, id); });
+}
+function getSupersetNumber(ssId, exercises) {
+    const ids = [];
+    (exercises || []).forEach(function (e) { if (e.supersetId && ids.indexOf(e.supersetId) === -1) ids.push(e.supersetId); });
+    const idx = ids.indexOf(ssId);
+    return idx === -1 ? 0 : idx + 1;
+}   
 function renderPrograms() {
     const programs = DataAPI.getPrograms();
     let listHTML = programs.length ? programs.map(function (program, index) {
@@ -675,34 +703,112 @@ function confirmAddWorkoutExercise() {
 function updateProgramName(value) { if (!state.editingProgram) state.editingProgram = { name: '', exercises: [] }; state.editingProgram.name = value; }
 function adjustProgramParam(index, field, delta) { const ex = state.editingProgram.exercises[index]; if (!ex) return; ex[field] = Math.max(1, (ex[field] ?? (field === 'targetSets' ? 3 : 10)) + delta); haptic('light'); const input = document.getElementById((field === 'targetSets' ? 'sets' : 'reps') + '-' + index); if (input) input.value = ex[field]; }
 function addExercise() { if (!state.editingProgram) state.editingProgram = { name: '', exercises: [] }; if (!state.editingProgram.exercises) state.editingProgram.exercises = []; state.editingProgram.exercises.push({ id: createId(), name: '', muscleGroup: '', exerciseType: 'weighted', supersetId: null, targetSets: 3, targetReps: 10 }); renderProgramEdit(); }
-function removeExercise(index) { const exercises = state.editingProgram.exercises; const removed = exercises[index]; if (removed && removed.supersetId) { const ssId = removed.supersetId; exercises.forEach(function (e) { if (e.supersetId === ssId) e.supersetId = null; }); } exercises.splice(index, 1); renderProgramEdit(); }
+function removeExercise(index) {
+    const exercises = (state.editingProgram && state.editingProgram.exercises) || [];
+    const removed = exercises[index];
+    if (!removed) return;
+    const ssId = removed.supersetId;
+    exercises.splice(index, 1);
+    if (ssId) {                                   // правило 6
+        if (countSupersetMembers(exercises, ssId) < 2) {
+            dissolveSuperset(exercises, ssId);
+            if (state.supersetActiveId === ssId) state.supersetActiveId = null;
+        }
+    }
+    renderProgramEdit();
+}
 function updateExercise(index, field, value) { if (!state.editingProgram) state.editingProgram = { name: '', exercises: [] }; if (!state.editingProgram.exercises[index]) return; state.editingProgram.exercises[index][field] = value; }
-function toggleSupersetClick(index) { const exercises = state.editingProgram.exercises; const current = exercises[index]; if (!current) return; if (!state.supersetActiveId) { if (!current.supersetId) current.supersetId = createId(); state.supersetActiveId = current.supersetId; haptic('medium'); } else { if (current.supersetId === state.supersetActiveId) { current.supersetId = null; const rem = exercises.filter(function (ex) { return ex.supersetId === state.supersetActiveId; }); if (rem.length < 2) rem.forEach(function (ex) { ex.supersetId = null; }); state.supersetActiveId = null; haptic('light'); } else { current.supersetId = state.supersetActiveId; haptic('success'); } } renderProgramEdit(); }
+function toggleSupersetClick(index) {
+    const exercises = (state.editingProgram && state.editingProgram.exercises) || [];
+    const current = exercises[index];
+    if (!current) return;
+
+    // Режим не активен
+    if (!state.supersetActiveId) {
+        if (!current.supersetId) {
+            current.supersetId = createId();          // правило 1
+            state.supersetActiveId = current.supersetId;
+            haptic('medium');
+        } else {
+            state.supersetActiveId = current.supersetId; // правило 2
+            haptic('light');
+        }
+        renderProgramEdit();
+        return;
+    }
+
+    const activeId = state.supersetActiveId;
+
+    // Тап по участнику активного суперсета — убрать (правило 3)
+    if (current.supersetId === activeId) {
+        current.supersetId = null;
+        if (countSupersetMembers(exercises, activeId) < 2) {
+            dissolveSuperset(exercises, activeId);
+            state.supersetActiveId = null;
+        }
+        haptic('light');
+        renderProgramEdit();
+        return;
+    }
+
+    // Свободное упражнение — добавить (правило 4)
+    if (!current.supersetId) {
+        current.supersetId = activeId;
+        haptic('success');
+        renderProgramEdit();
+        return;
+    }
+
+    // КОНФЛИКТ: упражнение в другом суперсете (правило 5)
+    const otherId = current.supersetId;
+    const otherNum = getSupersetNumber(otherId, exercises);
+    const activeNum = getSupersetNumber(activeId, exercises);
+    showConfirm(
+        'Это упражнение уже в суперсете №' + otherNum + '. Перенести его в суперсет №' + activeNum + '?' +
+        (countSupersetMembers(exercises, otherId) <= 2 ? ' Суперсет №' + otherNum + ' будет расформирован.' : ''),
+        function (ok) {
+            if (!ok) { haptic('light'); return; }
+            current.supersetId = activeId;
+            if (countSupersetMembers(exercises, otherId) < 2) dissolveSuperset(exercises, otherId);
+            haptic('success');
+            renderProgramEdit();
+        }
+    );
+}
 function finishSupersetCreation() {
     if (!state.supersetActiveId) return;
     const exercises = (state.editingProgram && state.editingProgram.exercises) || [];
-    const inGroup = exercises.filter(function (e) { return e.supersetId === state.supersetActiveId; });
-    if (inGroup.length < 2) {
-        // Суперсет не состоялся — снимаем пометки, чтобы не осталось "висящих" упражнений
-        exercises.forEach(function (e) { if (e.supersetId === state.supersetActiveId) e.supersetId = null; });
-        showAlert('Суперсет должен содержать минимум два упражнения');
+    const remained = countSupersetMembers(exercises, state.supersetActiveId);
+    state.supersetActiveId = null;
+    if (remained < 2) {                           // правило 7
+        normalizeSupersets(exercises);
+        showAlert('Суперсет не сохранён: нужно минимум 2 упражнения');
         haptic('warning');
     } else {
         haptic('success');
     }
-    state.supersetActiveId = null;
     renderProgramEdit();
 }   
 function saveProgram() {
-    const name = (document.getElementById('prog-name')?.value || '').trim();
+    const name = ((document.getElementById('prog-name') || {}).value || '').trim();
     if (!name) { showAlert('Введите название'); return; }
     if (!state.editingProgram || (state.editingProgram.exercises || []).length === 0) { showAlert('Добавьте упражнение'); return; }
-    for (let i = 0; i < state.editingProgram.exercises.length; i++) { const ex = state.editingProgram.exercises[i]; if (!(ex.name || '').trim()) { showAlert('Заполните названия'); return; } if (!ex.muscleGroup) { showAlert('Выберите группу для «' + ex.name + '»'); return; } }
+    for (let i = 0; i < state.editingProgram.exercises.length; i++) {
+        const ex = state.editingProgram.exercises[i];
+        if (!(ex.name || '').trim()) { showAlert('Заполните названия'); return; }
+        if (!ex.muscleGroup) { showAlert('Выберите группу для «' + ex.name + '»'); return; }
+    }
+    normalizeSupersets(state.editingProgram.exercises);   // правило 8
+    state.supersetActiveId = null;
     state.editingProgram.name = name;
     const programs = DataAPI.getPrograms();
     const idx = programs.findIndex(function (p) { return p.id === state.editingProgram.id; });
-    if (idx > -1) programs[idx] = state.editingProgram; else { state.editingProgram.id = createId(); programs.push(state.editingProgram); }
-    DataAPI.savePrograms(programs); haptic('success'); state.editingProgram = null; state.supersetActiveId = null; openProgramsScreen();
+    if (idx > -1) programs[idx] = state.editingProgram;
+    else { state.editingProgram.id = createId(); programs.push(state.editingProgram); }
+    DataAPI.savePrograms(programs);
+    haptic('success');
+    state.editingProgram = null;
+    openProgramsScreen();
 }
 function deleteProgram(id) { showConfirm('Удалить программу?', function (ok) { if (ok) { DataAPI.savePrograms(DataAPI.getPrograms().filter(function (p) { return p.id !== id; })); renderPrograms(); } }); }
 
