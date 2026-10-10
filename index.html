@@ -147,6 +147,7 @@ input[type=number] { -moz-appearance: textfield; }
 /* Кнопка — отдельный «остров»: без тени, без подложки, без затухания */
 .sticky-bottom-action > * {
     pointer-events: auto;
+    border: 1px solid var(--card-border); /* необязательно: тонкая граница-«остров» */
 }
 
 /* Когда открыта клавиатура — скрываем плавающие кнопки и нижнюю навигацию */
