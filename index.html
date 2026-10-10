@@ -118,7 +118,7 @@ input[type=number] { -moz-appearance: textfield; }
 .drop-badge { display: inline-flex; align-items: center; gap: 4px; background: rgba(249, 115, 22, 0.2); color: #fb923c; padding: 2px 8px; border-radius: 6px; font-size: 10px; font-weight: 700; letter-spacing: 0.5px; }
 .checkbox-label { display: flex; align-items: center; gap: 8px; cursor: pointer; user-select: none; }
 .checkbox-label input[type="checkbox"] { width: 20px; height: 20px; cursor: pointer; accent-color: #4ade80; }
-.keyboard-hidden { display: none !important; }
+
 .modal-backdrop { position: fixed; inset: 0; z-index: 100; display: flex; align-items: center; justify-content: center; background: rgba(0, 0, 0, 0.65); padding: 16px; }
 .modal-sheet { width: 100%; max-width: 480px; background: var(--tg-theme-secondary-bg-color, #2c2c2e); color: var(--tg-theme-text-color, #ffffff); border-radius: 24px; padding: 20px; padding-bottom: calc(20px + env(safe-area-inset-bottom, 0px)); animation: modalIn 0.2s ease-out; }
 @keyframes modalIn { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
@@ -135,23 +135,38 @@ input[type=number] { -moz-appearance: textfield; }
 .autocomplete-item:last-child { border-bottom: none; }
 .autocomplete-item:hover, .autocomplete-item:active { background: rgba(255,255,255,0.08); }
 .autocomplete-item .ac-group { font-size: 10px; color: var(--tg-theme-hint-color, #8e8e93); margin-top: 2px; }
-
-/* ЛИПКИЕ КНОПКИ ВНИЗУ ЭКРАНА */
+/* Плавающая кнопка: без подложки, рамки и отступов — только сама кнопка */
 .sticky-bottom-action {
     position: fixed;
     left: 16px;
     right: 16px;
     bottom: calc(var(--bottom-nav-height) + var(--safe-bottom) + 12px);
     z-index: 15;
-    background: rgba(28, 28, 30, 0.85);
-    background: color-mix(in srgb, var(--tg-theme-bg-color, #1c1c1e) 85%, transparent);
-    backdrop-filter: blur(16px) saturate(180%);
-    -webkit-backdrop-filter: blur(16px) saturate(180%);
-    padding: 10px;
-    border-radius: 20px;
-    border: 1px solid rgba(142, 142, 147, 0.15);
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+    pointer-events: none; /* контейнер не перехватывает taps */
 }
+/* Мягкое затухание контента над кнопкой вместо стеклянной подложки */
+.sticky-bottom-action::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 100%;
+    height: 28px;
+    background: linear-gradient(to top, var(--tg-theme-bg-color, #1c1c1e), rgba(0, 0, 0, 0));
+    pointer-events: none;
+}
+/* Тень и кликабельность — на самой кнопке */
+.sticky-bottom-action > * {
+    pointer-events: auto;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.45);
+}
+
+/* Когда открыта клавиатура — скрываем плавающие кнопки и нижнюю навигацию */
+body.keyboard-open #bottom-nav,
+body.keyboard-open .sticky-bottom-action {
+    display: none !important;
+}
+
 </style>
 </head>
 <body class="min-h-screen">
@@ -1055,7 +1070,57 @@ document.addEventListener('change', function (e) {
     }
 });
 
-if (window.visualViewport) { window.visualViewport.addEventListener('resize', function () { const nav = document.getElementById('bottom-nav'); if (!nav) return; nav.classList.toggle('keyboard-hidden', window.visualViewport.height < window.innerHeight - 150); }); }
+// === КЛАВИАТУРА: скрываем плавающие кнопки и навигацию на время ввода ===
+const isTouchDevice = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0);
+let keyboardRestoreTimer = null;
+let baseViewportHeight = (window.visualViewport && window.visualViewport.height) || window.innerHeight;
+
+function isTextEntryField(el) {
+    if (!el || !el.tagName) return false;
+    if (el.tagName === 'TEXTAREA' || el.tagName === 'SELECT') return true;
+    if (el.tagName === 'INPUT') {
+        const type = (el.type || 'text').toLowerCase();
+        return ['text', 'number', 'search', 'email', 'url', 'tel', 'password'].indexOf(type) !== -1;
+    }
+    return false;
+}
+
+function setKeyboardOpen(open) {
+    document.body.classList.toggle('keyboard-open', !!open);
+}
+
+// Фокус на поле ввода → клавиатура открыта → прячем панели
+document.addEventListener('focusin', function (e) {
+    if (!isTouchDevice) return;
+    if (isTextEntryField(e.target)) {
+        if (keyboardRestoreTimer) { clearTimeout(keyboardRestoreTimer); keyboardRestoreTimer = null; }
+        setKeyboardOpen(true);
+    }
+});
+
+// Потеря фокуса → возвращаем панели (с задержкой на переключение между полями)
+document.addEventListener('focusout', function (e) {
+    if (!isTouchDevice) return;
+    if (isTextEntryField(e.target)) {
+        keyboardRestoreTimer = setTimeout(function () {
+            keyboardRestoreTimer = null;
+            if (!isTextEntryField(document.activeElement)) setKeyboardOpen(false);
+        }, 120);
+    }
+});
+
+// Страховка: если клавиатуру убрали жестом, а фокус остался на поле
+if (window.visualViewport) {
+    window.visualViewport.addEventListener('resize', function () {
+        if (!isTouchDevice) return;
+        const h = window.visualViewport.height;
+        if (!document.body.classList.contains('keyboard-open')) {
+            if (h > baseViewportHeight) baseViewportHeight = h;
+            return;
+        }
+        if (h >= baseViewportHeight - 60) setKeyboardOpen(false);
+    });
+}
 document.addEventListener('visibilitychange', function () { if (document.visibilityState === 'visible' && state.currentScreen === 'workout' && state.activeWorkout) startTimer(); });
 
 // === ЗАПУСК С ЗАЩИТОЙ ОТ ОШИБОК ===
