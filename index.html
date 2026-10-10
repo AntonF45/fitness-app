@@ -41,7 +41,6 @@ input[type=number] { -moz-appearance: textfield; }
 .chart-container-fixed { height: 260px; position: relative; overflow: hidden; }
 .chart-wrapper-fixed { position: absolute; top: 0; left: 0; right: 0; bottom: 0; }
 
-/* ШАПКА СТАТИСТИКИ: fallback ПЕРВЫМ, color-mix ВТОРЫМ (иначе прозрачность не работает) */
 .stats-header {
     position: sticky;
     top: 0;
@@ -123,7 +122,7 @@ input[type=number] { -moz-appearance: textfield; }
 .modal-backdrop { position: fixed; inset: 0; z-index: 100; display: flex; align-items: center; justify-content: center; background: rgba(0, 0, 0, 0.65); padding: 16px; }
 .modal-sheet { width: 100%; max-width: 480px; background: var(--tg-theme-secondary-bg-color, #2c2c2e); color: var(--tg-theme-text-color, #ffffff); border-radius: 24px; padding: 20px; padding-bottom: calc(20px + env(safe-area-inset-bottom, 0px)); animation: modalIn 0.2s ease-out; }
 @keyframes modalIn { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
-/* Автоподбор упражнений (как в Google-поиске) */
+
 .ac-wrapper { position: relative; }
 .autocomplete-dropdown {
     position: absolute; top: 100%; left: 0; right: 0; z-index: 50; margin-top: 4px;
@@ -136,15 +135,16 @@ input[type=number] { -moz-appearance: textfield; }
 .autocomplete-item:last-child { border-bottom: none; }
 .autocomplete-item:hover, .autocomplete-item:active { background: rgba(255,255,255,0.08); }
 .autocomplete-item .ac-group { font-size: 10px; color: var(--tg-theme-hint-color, #8e8e93); margin-top: 2px; }
-/* ЛИПКИЕ КНОПКИ ВНИЗУ ЭКРАНА (над нижней навигацией) */
+
+/* ЛИПКИЕ КНОПКИ ВНИЗУ ЭКРАНА */
 .sticky-bottom-action {
     position: fixed;
     left: 16px;
     right: 16px;
     bottom: calc(var(--bottom-nav-height) + var(--safe-bottom) + 12px);
     z-index: 15;
+    background: rgba(28, 28, 30, 0.85);
     background: color-mix(in srgb, var(--tg-theme-bg-color, #1c1c1e) 85%, transparent);
-    background: rgba(28, 28, 30, 0.85); /* fallback */
     backdrop-filter: blur(16px) saturate(180%);
     -webkit-backdrop-filter: blur(16px) saturate(180%);
     padding: 10px;
@@ -225,7 +225,7 @@ const DataAPI = {
                 };
             }) : []
         };
-        normalizeSupersets(prog.exercises);   // правило 8: защита от старых/битых данных
+        normalizeSupersets(prog.exercises);
         return prog;
     }).filter(function (p) { return p !== null; });
 },
@@ -578,7 +578,7 @@ function renderProgramEdit() {
         '<div class="sticky-bottom-action"><button data-action="save-program" class="w-full bg-tgButton text-white font-semibold py-4 rounded-2xl active:opacity-80 card-enter"><i class="fa-solid fa-check mr-2"></i> Сохранить</button></div>';
     clearMainButton();
 }
-// === АВТОПОДБОР: НАЗВАНИЯ И ГРУППЫ МЫШЦ ===
+
 function getAutocompleteSuggestions(query, limit, muscleGroup) {
     const q = (query || '').trim().toLowerCase();
     let all = DataAPI.getUserExercises();
@@ -657,7 +657,6 @@ function pickMuscleAutocomplete(target) {
     haptic('light');
 }
 
-// === УПРАВЛЕНИЕ ГРУППАМИ МЫШЦ ===
 let mgEditState = null;
 function openMuscleGroupsModal() {
     mgEditState = null;
@@ -720,7 +719,6 @@ function mgDelete(name) {
     });
 }
 
-// === ДОБАВЛЕНИЕ УПРАЖНЕНИЯ ВО ВРЕМЯ ТРЕНИРОВКИ ===
 function openAddWorkoutExerciseModal() {
     const existing = document.getElementById('add-exercise-modal'); if (existing) existing.remove();
     const modal = document.createElement('div'); modal.id = 'add-exercise-modal'; modal.className = 'modal-backdrop';
@@ -760,7 +758,7 @@ function removeExercise(index) {
     if (!removed) return;
     const ssId = removed.supersetId;
     exercises.splice(index, 1);
-    if (ssId) {                                   // правило 6
+    if (ssId) {
         if (countSupersetMembers(exercises, ssId) < 2) {
             dissolveSuperset(exercises, ssId);
             if (state.supersetActiveId === ssId) state.supersetActiveId = null;
@@ -774,14 +772,13 @@ function toggleSupersetClick(index) {
     const current = exercises[index];
     if (!current) return;
 
-    // Режим не активен
     if (!state.supersetActiveId) {
         if (!current.supersetId) {
-            current.supersetId = createId();          // правило 1
+            current.supersetId = createId();
             state.supersetActiveId = current.supersetId;
             haptic('medium');
         } else {
-            state.supersetActiveId = current.supersetId; // правило 2
+            state.supersetActiveId = current.supersetId;
             haptic('light');
         }
         renderProgramEdit();
@@ -790,7 +787,6 @@ function toggleSupersetClick(index) {
 
     const activeId = state.supersetActiveId;
 
-    // Тап по участнику активного суперсета — убрать (правило 3)
     if (current.supersetId === activeId) {
         current.supersetId = null;
         if (countSupersetMembers(exercises, activeId) < 2) {
@@ -802,7 +798,6 @@ function toggleSupersetClick(index) {
         return;
     }
 
-    // Свободное упражнение — добавить (правило 4)
     if (!current.supersetId) {
         current.supersetId = activeId;
         haptic('success');
@@ -810,7 +805,6 @@ function toggleSupersetClick(index) {
         return;
     }
 
-    // КОНФЛИКТ: упражнение в другом суперсете (правило 5)
     const otherId = current.supersetId;
     const otherNum = getSupersetNumber(otherId, exercises);
     const activeNum = getSupersetNumber(activeId, exercises);
@@ -831,7 +825,7 @@ function finishSupersetCreation() {
     const exercises = (state.editingProgram && state.editingProgram.exercises) || [];
     const remained = countSupersetMembers(exercises, state.supersetActiveId);
     state.supersetActiveId = null;
-    if (remained < 2) {                           // правило 7
+    if (remained < 2) {
         normalizeSupersets(exercises);
         showAlert('Суперсет не сохранён: нужно минимум 2 упражнения');
         haptic('warning');
@@ -1011,41 +1005,53 @@ document.addEventListener('click', function (event) {
     } catch (err) { console.error('Delegated action error:', action, payload, err); }
 });
 
-// === ДЕЛЕГИРОВАНИЕ ВВОДА (input) ===
+// === ДЕЛЕГИРОВАНИЕ ВВОДА (input) — ИСПРАВЛЕНО: добавлен try-catch ===
 document.addEventListener('input', function (e) {
-    const t = e.target;
-    if (t.id === 'prog-name') { updateProgramName(t.value); return; }
-    if (t.classList.contains('muscle-input')) {
-        if ((t.dataset.scope || 'editor') === 'editor') updateExercise(parseInt(t.dataset.exerciseIndex, 10), 'muscleGroup', t.value);
-        updateMuscleAutocomplete(t);
-        return;
+    try {
+        const t = e.target;
+        if (t.id === 'prog-name') { updateProgramName(t.value); return; }
+        if (t.classList.contains('muscle-input')) {
+            if ((t.dataset.scope || 'editor') === 'editor') updateExercise(parseInt(t.dataset.exerciseIndex, 10), 'muscleGroup', t.value);
+            updateMuscleAutocomplete(t);
+            return;
+        }
+        if (t.classList.contains('exercise-name-input')) {
+            if ((t.dataset.scope || 'editor') === 'editor') updateExercise(parseInt(t.dataset.exerciseIndex, 10), 'name', t.value);
+            updateAutocomplete(t);
+            return;
+        }
+        if (t.classList.contains('exercise-input')) updateExercise(parseInt(t.dataset.exerciseIndex, 10), t.dataset.field, t.value);
+    } catch (err) {
+        console.error('Input handler error:', err);
     }
-    if (t.classList.contains('exercise-name-input')) {
-        if ((t.dataset.scope || 'editor') === 'editor') updateExercise(parseInt(t.dataset.exerciseIndex, 10), 'name', t.value);
-        updateAutocomplete(t);
-        return;
-    }
-    if (t.classList.contains('exercise-input')) updateExercise(parseInt(t.dataset.exerciseIndex, 10), t.dataset.field, t.value);
 });
 
-// === ВАРИАНТЫ СРАЗУ ПРИ НАЖАТИИ НА ПОЛЕ (focusin) ===
+// === ВАРИАНТЫ СРАЗУ ПРИ НАЖАТИИ НА ПОЛЕ (focusin) — ИСПРАВЛЕНО: добавлен try-catch ===
 document.addEventListener('focusin', function (e) {
-    const t = e.target;
-    if (t.classList.contains('muscle-input')) { updateMuscleAutocomplete(t); return; }
-    if (t.classList.contains('exercise-name-input')) { updateAutocomplete(t); return; }
+    try {
+        const t = e.target;
+        if (t.classList.contains('muscle-input')) { updateMuscleAutocomplete(t); return; }
+        if (t.classList.contains('exercise-name-input')) { updateAutocomplete(t); return; }
+    } catch (err) {
+        console.error('Focusin handler error:', err);
+    }
 });
 
-// === ДЕЛЕГИРОВАНИЕ ИЗМЕНЕНИЙ (change) ===
+// === ДЕЛЕГИРОВАНИЕ ИЗМЕНЕНИЙ (change) — ИСПРАВЛЕНО: добавлен try-catch ===
 document.addEventListener('change', function (e) {
-    const t = e.target;
-    if (t.classList.contains('exercise-select')) { updateExercise(parseInt(t.dataset.exerciseIndex, 10), t.dataset.field, t.value); return; }
-    if (t.classList.contains('exercise-checkbox')) { updateExercise(parseInt(t.dataset.exerciseIndex, 10), t.dataset.field, t.checked ? 'bodyweight' : 'weighted'); return; }
-    if (t.classList.contains('set-input')) {
-        const exIdx = parseInt(t.dataset.exercise, 10), setIdx = parseInt(t.dataset.set, 10), field = t.dataset.field;
-        const value = field === 'weight' ? parseWeight(t.value) : parseReps(t.value);
-        const set = state.activeWorkout && state.activeWorkout.exercises && state.activeWorkout.exercises[exIdx] ? state.activeWorkout.exercises[exIdx].sets[setIdx] : null;
-        if (value === null) { showAlert('Недопустимое значение'); if (set) t.value = set[field]; return; }
-        if (set) { updateSet(exIdx, setIdx, field, value); updateExerciseBadge(exIdx); }
+    try {
+        const t = e.target;
+        if (t.classList.contains('exercise-select')) { updateExercise(parseInt(t.dataset.exerciseIndex, 10), t.dataset.field, t.value); return; }
+        if (t.classList.contains('exercise-checkbox')) { updateExercise(parseInt(t.dataset.exerciseIndex, 10), t.dataset.field, t.checked ? 'bodyweight' : 'weighted'); return; }
+        if (t.classList.contains('set-input')) {
+            const exIdx = parseInt(t.dataset.exercise, 10), setIdx = parseInt(t.dataset.set, 10), field = t.dataset.field;
+            const value = field === 'weight' ? parseWeight(t.value) : parseReps(t.value);
+            const set = state.activeWorkout && state.activeWorkout.exercises && state.activeWorkout.exercises[exIdx] ? state.activeWorkout.exercises[exIdx].sets[setIdx] : null;
+            if (value === null) { showAlert('Недопустимое значение'); if (set) t.value = set[field]; return; }
+            if (set) { updateSet(exIdx, setIdx, field, value); updateExerciseBadge(exIdx); }
+        }
+    } catch (err) {
+        console.error('Change handler error:', err);
     }
 });
 
