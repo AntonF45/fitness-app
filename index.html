@@ -213,15 +213,32 @@ function adjustWeight(current, delta) { const base = Number(current) || 0; retur
 function adjustReps(current, delta) { const base = parseInt(current, 10) || 0; return Math.max(REPS_MIN, Math.min(REPS_MAX, base + delta)); }
 
 const tg = window.Telegram.WebApp;
+const TG_PLATFORM = String(tg.platform || '').toLowerCase();
+const IS_MOBILE = (TG_PLATFORM === 'android' || TG_PLATFORM === 'ios');
+let appFullscreen = false;
+
 try {
     tg.ready();
-    tg.expand();                       // развернуть оверлей на весь экран
-    if (tg.setHeaderColor) tg.setHeaderColor('bg_color');        // шапка оверлея в цвет фона
+    tg.expand();
+    if (tg.setHeaderColor) tg.setHeaderColor('bg_color');
     if (tg.setBackgroundColor) tg.setBackgroundColor('bg_color');
-    if (tg.requestFullscreen) {        // Android/десктоп: убрать рамку оверлея
-        tg.requestFullscreen().catch(function () {});
-    }
 } catch (e) { console.warn('Telegram init error:', e); }
+
+// Полноэкранный режим — ТОЛЬКО на смартфонах
+function enterMobileFullscreen() {
+    if (!IS_MOBILE || !tg.requestFullscreen) return;
+    try {
+        const p = tg.requestFullscreen();
+        if (p && p.then) {
+            p.then(function () { appFullscreen = true; applySafeAreaInsets(); })
+             .catch(function () { appFullscreen = false; });
+        } else { appFullscreen = true; applySafeAreaInsets(); }
+    } catch (e) { appFullscreen = false; }
+}
+function currentFullscreen() {
+    if (typeof tg.isFullscreen === 'boolean') return tg.isFullscreen;
+    return appFullscreen;
+}
 const USER_ID = tg.initDataUnsafe?.user?.id || 'local_test_user_' + Math.random().toString(36).substr(2, 9);
 
 function getMuscleGroups() { try { const saved = localStorage.getItem('twa_fitness_muscle_groups_' + USER_ID); return saved ? JSON.parse(saved) : [...DEFAULT_MUSCLE_GROUPS]; } catch (e) { return [...DEFAULT_MUSCLE_GROUPS]; } }
@@ -1119,22 +1136,32 @@ if (window.visualViewport) {
 
 document.addEventListener('visibilitychange', function () { if (document.visibilityState === 'visible' && state.currentScreen === 'workout' && state.activeWorkout) startTimer(); });
 
-// === СИСТЕМНЫЕ БЕЗОПАСНЫЕ ЗОНЫ (статус-бар, навигационные кнопки) ===
+// === СИСТЕМНЫЕ БЕЗОПАСНЫЕ ЗОНЫ + кнопка «Закрыть» ===
 function applySafeAreaInsets() {
     try {
-        const sa = tg.contentSafeAreaInset || (tg.isFullscreen ? tg.safeAreaInset : null);
         const st = document.documentElement.style;
+        const sa = tg.contentSafeAreaInset || tg.safeAreaInset || null;
         if (sa) {
             if (typeof sa.top === 'number' && sa.top >= 0) st.setProperty('--safe-top', sa.top + 'px');
             if (typeof sa.bottom === 'number' && sa.bottom >= 0) st.setProperty('--safe-bottom', sa.bottom + 'px');
         }
-        // В полноэкранном режиме системная кнопка Telegram «Закрыть» перекрывает
-        // контент сверху — добавляем её высоту как дополнительный отступ
-        const platform = String(tg.platform || '').toLowerCase();
-        const closeBtnHeight = platform.indexOf('android') !== -1 ? 48 : 44;
-        st.setProperty('--extra-top', (tg.isFullscreen ? closeBtnHeight : 0) + 'px');
+        // Высота системной кнопки «Закрыть» в fullscreen;
+        // состояние берём из tg.isFullscreen, а если его нет — из собственного флага
+        const fs = currentFullscreen();
+        const closeBtn = (TG_PLATFORM.indexOf('android') !== -1) ? 48 : 44;
+        st.setProperty('--extra-top', (fs ? closeBtn : 0) + 'px');
+        console.log('[Fitnary] insets:', JSON.stringify(sa), 'fullscreen:', fs, 'extra-top:', fs ? closeBtn : 0);
     } catch (e) {}
 }
+applySafeAreaInsets();
+enterMobileFullscreen();
+try {
+    if (tg.onEvent) {
+        tg.onEvent('safeAreaChanged', applySafeAreaInsets);
+        tg.onEvent('contentSafeAreaChanged', applySafeAreaInsets);
+        tg.onEvent('fullscreenChanged', applySafeAreaInsets);
+    }
+} catch (e) {}
    
 // === ЗАПУСК С ЗАЩИТОЙ ОТ ОШИБОК ===
 (function init() {
