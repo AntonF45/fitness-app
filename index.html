@@ -209,7 +209,15 @@ function adjustWeight(current, delta) { const base = Number(current) || 0; retur
 function adjustReps(current, delta) { const base = parseInt(current, 10) || 0; return Math.max(REPS_MIN, Math.min(REPS_MAX, base + delta)); }
 
 const tg = window.Telegram.WebApp;
-try { tg.ready(); tg.expand(); } catch (e) { console.warn('Telegram init error:', e); }
+try {
+    tg.ready();
+    tg.expand();                       // развернуть оверлей на весь экран
+    if (tg.setHeaderColor) tg.setHeaderColor('bg_color');        // шапка оверлея в цвет фона
+    if (tg.setBackgroundColor) tg.setBackgroundColor('bg_color');
+    if (tg.requestFullscreen) {        // Android/десктоп: убрать рамку оверлея
+        tg.requestFullscreen().catch(function () {});
+    }
+} catch (e) { console.warn('Telegram init error:', e); }
 const USER_ID = tg.initDataUnsafe?.user?.id || 'local_test_user_' + Math.random().toString(36).substr(2, 9);
 
 function getMuscleGroups() { try { const saved = localStorage.getItem('twa_fitness_muscle_groups_' + USER_ID); return saved ? JSON.parse(saved) : [...DEFAULT_MUSCLE_GROUPS]; } catch (e) { return [...DEFAULT_MUSCLE_GROUPS]; } }
