@@ -25,6 +25,7 @@ setTimeout(function () {
 :root {
     --bottom-nav-height: 72px;
     --safe-bottom: env(safe-area-inset-bottom, 0px);
+    --safe-top: env(safe-area-inset-top, 0px);
     --card-bg: rgba(59, 130, 246, 0.04);
     --card-border: rgba(59, 130, 246, 0.12);
     --card-radius: 16px;
@@ -40,7 +41,7 @@ setTimeout(function () {
     --inset-bg: rgba(59, 130, 246, 0.08);
     --inset-border: rgba(59, 130, 246, 0.22);
 }
-body { background-color: var(--tg-theme-bg-color, #1c1c1e); color: var(--tg-theme-text-color, #ffffff); font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; -webkit-tap-highlight-color: transparent; padding-bottom: calc(var(--bottom-nav-height) + var(--safe-bottom) + 16px); }
+body { background-color: var(--tg-theme-bg-color, #1c1c1e); color: var(--tg-theme-text-color, #ffffff); font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; -webkit-tap-highlight-color: transparent; padding-top: var(--safe-top); padding-bottom: calc(var(--bottom-nav-height) + var(--safe-bottom) + 16px); }
 input, select { background: var(--inset-bg); color: var(--tg-theme-text-color, #ffffff); border: 1px solid var(--inset-border); border-radius: 12px; }
 .input-bare { background: transparent; border: none; border-radius: 8px; }
 .input-bare:focus { outline: none; }
@@ -62,13 +63,15 @@ input[type=number] { -moz-appearance: textfield; }
 
 .stats-header {
     position: sticky;
-    top: 0;
+    top: var(--safe-top);
     z-index: 10;
     border-bottom: 1px solid rgba(142, 142, 147, 0.15);
     margin-left: -16px;
     margin-right: -16px;
     padding: 12px 16px 16px;
 }
+.sticky.top-0 { top: var(--safe-top) !important; }
+.sticky.top-2 { top: calc(var(--safe-top) + 8px) !important; }
 .stats-title {
     font-size: 20px;
     font-weight: 800;
@@ -118,7 +121,7 @@ input[type=number] { -moz-appearance: textfield; }
 .drop-badge { display: inline-flex; align-items: center; gap: 4px; background: var(--warn-bg); color: var(--warn); padding: 2px 8px; border-radius: 6px; font-size: 10px; font-weight: 700; letter-spacing: 0.5px; }
 .checkbox-label { display: flex; align-items: center; gap: 8px; cursor: pointer; user-select: none; }
 .checkbox-label input[type="checkbox"] { width: 20px; height: 20px; cursor: pointer; accent-color: #4ade80; }
-.modal-backdrop { position: fixed; inset: 0; z-index: 100; display: flex; align-items: center; justify-content: center; background: rgba(0, 0, 0, 0.65); padding: 16px; }
+.modal-backdrop { position: fixed; inset: 0; z-index: 100; display: flex; align-items: center; justify-content: center; background: rgba(0, 0, 0, 0.65); padding: calc(16px + var(--safe-top)) 16px calc(16px + var(--safe-bottom)); }
 .modal-sheet { width: 100%; max-width: 480px; background: var(--tg-theme-secondary-bg-color, #2c2c2e); background: color-mix(in srgb, var(--tg-theme-secondary-bg-color, #2c2c2e) 92%, #3b82f6 8%); color: var(--tg-theme-text-color, #ffffff); border: 1px solid var(--inset-border); border-radius: 20px; padding: 20px; padding-bottom: calc(20px + env(safe-area-inset-bottom, 0px)); animation: modalIn 0.2s ease-out; }
 @keyframes modalIn { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
 
@@ -1115,6 +1118,27 @@ if (window.visualViewport) {
 
 document.addEventListener('visibilitychange', function () { if (document.visibilityState === 'visible' && state.currentScreen === 'workout' && state.activeWorkout) startTimer(); });
 
+// === СИСТЕМНЫЕ БЕЗОПАСНЫЕ ЗОНЫ (статус-бар, навигационные кнопки) ===
+function applySafeAreaInsets() {
+    try {
+        // contentSafeAreaInset учитывает и системные области, и интерфейс Telegram;
+        // в fullscreen интерфейса Telegram нет, поэтому fallback на safeAreaInset корректен
+        const sa = tg.contentSafeAreaInset || (tg.isFullscreen ? tg.safeAreaInset : null);
+        if (!sa) return;
+        const st = document.documentElement.style;
+        if (typeof sa.top === 'number' && sa.top >= 0) st.setProperty('--safe-top', sa.top + 'px');
+        if (typeof sa.bottom === 'number' && sa.bottom >= 0) st.setProperty('--safe-bottom', sa.bottom + 'px');
+    } catch (e) {}
+}
+applySafeAreaInsets();
+try {
+    if (tg.onEvent) {
+        tg.onEvent('safeAreaChanged', applySafeAreaInsets);
+        tg.onEvent('contentSafeAreaChanged', applySafeAreaInsets);
+        tg.onEvent('fullscreenChanged', applySafeAreaInsets);
+    }
+} catch (e) {}
+   
 // === ЗАПУСК С ЗАЩИТОЙ ОТ ОШИБОК ===
 (function init() {
     try {
