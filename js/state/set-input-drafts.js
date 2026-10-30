@@ -18,26 +18,8 @@ function getSetDraft(exIdx, setIdx, field) {
     return (typeof v === 'string' && v !== '') ? v : null;
 }
 
-// Сдвиг ключей при splice: черновик подхода N после удаления M<N переходит на N-1.
-function shiftSetDraftsAfterRemoval(exIdx, removedIdx) {
-    Object.keys(setDrafts).forEach(function (k) {
-        const p = k.split(':');
-        if (parseInt(p[0], 10) !== exIdx) return;
-        const sIdx = parseInt(p[1], 10);
-        if (sIdx === removedIdx) { delete setDrafts[k]; return; }
-        if (sIdx > removedIdx) setDrafts[p[0] + ':' + (sIdx - 1) + ':' + p[2]] = setDrafts[k], delete setDrafts[k];
-    });
-}
-
-// Сдвиг ключей при вставке/добавлении подхода.
-function shiftSetDraftsAfterInsertion(exIdx, insertedIdx) {
-    Object.keys(setDrafts).slice().reverse().forEach(function (k) {
-        const p = k.split(':');
-        if (parseInt(p[0], 10) !== exIdx) return;
-        const sIdx = parseInt(p[1], 10);
-        if (sIdx >= insertedIdx) setDrafts[p[0] + ':' + (sIdx + 1) + ':' + p[2]] = setDrafts[k], delete setDrafts[k];
-    });
-}
+// Черновики привязаны к индексам подходов; при splice индексы сдвигаются,
+// поэтому их перестраивает removeSet (clear + посев заново из state).
 
 function clearSetDraftsForExercise(exIdx) {
     Object.keys(setDrafts).forEach(function (k) {
