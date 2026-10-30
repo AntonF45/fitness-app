@@ -74,17 +74,27 @@ function syncSetsListInPlace(exIdx, ex) {
     // 1) Удаляем из DOM строки, помеченные свайпом как «удаляемые» (и любые строки,
     //    чей setIdx больше числа подходов в данных — на случай рассинхронизации).
     //    Строки с незавершённой анимацией (swipeAnimating) не трогаем вовсе.
+    //    ВАЖНО: сбор идёт СПИСКОМ и удаление — ОТДЕЛЬНЫМ ЦИКЛОМ ПОСЛЕ обхода.
+    //    Прежний вариант удалял узел прямо во время обхода через nextElementSibling:
+    //    у только что удалённого элемента nextElementSibling === null, обход досрочно
+    //    прерывался, и все строки после удалённой оставались неотсинхронизированными
+    //    (старые номера/ payload) — именно поэтому «удаление всё равно не работало».
     const nSets = ex.sets.length;
+    const doomed = [];
     let cur = list.firstElementChild;
     while (cur) {
         const next = cur.nextElementSibling;
-        if (cur.swipeAnimating) { cur = next; continue; }
-        const p = String(cur.dataset.payload || '').split(':');
-        const sIdx = parseInt(p[1], 10);
-        if (cur.dataset.swipeRemoving === '1' || (!isNaN(sIdx) && sIdx >= nSets)) {
-            cur.remove();
+        if (!cur.swipeAnimating) {
+            const p = String(cur.dataset.payload || '').split(':');
+            const sIdx = parseInt(p[1], 10);
+            if (cur.dataset.swipeRemoving === '1' || (!isNaN(sIdx) && sIdx >= nSets)) {
+                doomed.push(cur);
+            }
         }
         cur = next;
+    }
+    for (let d = 0; d < doomed.length; d++) {
+        if (doomed[d].parentNode === list) list.removeChild(doomed[d]);
     }
 
     // 2) Синхронизируем оставшиеся видимые строки с данными по позиции.
