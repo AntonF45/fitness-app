@@ -141,17 +141,54 @@ function swipeIsFieldTarget(target, z) {
             zone.style.maxHeight = '0px';
             zone.style.marginBottom = '0px';
             zone.style.opacity = '0';
-            setTimeout(function () {
+
+            // Критично: анимация схлопывания НЕ должна прерываться перерисовкой DOM.
+            // Обработчик удаления обновляет данные инкрементально (syncSetsListInPlace),
+            // поэтому схлопнутая строка остаётся в дереве и доанимируется до нуля.
+            // Страховка на случай, если обработчик всё же пересобрал карточку целиком:
+            // находим строку с тем же id в новом дереве и «доматываем» схлопывание на ней.
+            function finalizeDom() {
+                if (document.body.contains(zone)) { zone.remove(); return; }
+                const replacement = document.getElementById(zone.id);
+                if (replacement) {
+                    replacement.dataset.swipeRemoving = '1';
+                    replacement.classList.add('set-collapsing');
+                    replacement.style.maxHeight = '0px';
+                    replacement.style.marginBottom = '0px';
+                    replacement.style.opacity = '0';
+                    setTimeout(function () {
+                        if (document.body.contains(replacement)) replacement.remove();
+                    }, SWIPE_COLLAPSE_MS + 60);
+                }
+            }
+
+            let handlerCalled = false;
+            function callHandler() {
+                if (handlerCalled) return;                            // ровно один раз: без двойного splice
+                handlerCalled = true;
                 const handler = swipeLeftHandlers[action];
                 if (!handler) { console.warn('Unhandled swipe-left action:', action); resetZone(zone); return; }
-                try { handler(action, payload); }                     // обработчик меняет данные и перерисовывает карточку
+                try { handler(action, payload); }                     // обработчик меняет данные и точечно обновляет DOM
                 catch (err) { console.error('Swipe-left handler error:', action, err); resetZone(zone); }
-                // Финал анимации: если схлопнутая строка всё ещё в DOM (перерисовка могла
-                // вернуть её на место) — убираем окончательно, соседние строки займут её место.
-                setTimeout(function () {
-                    if (document.body.contains(zone)) zone.remove();
-                }, 350);
-            }, SWIPE_COLLAPSE_MS);
+                setTimeout(finalizeDom, SWIPE_COLLAPSE_MS + 120);     // финал: схлопнутая строка уходит из DOM окончательно
+            }
+
+            // Таймер — страховка; transitionend/animationend — основной сигнал окончания схлопывания.
+            const safety = setTimeout(callHandler, SWIPE_COLLAPSE_MS + 80);
+            let endedEarly = false;
+            function onEnd(e) {
+                if (endedEarly) return;
+                // Реакция только на завершение схлопывания самой строки (max-height).
+                if (!e || e.target !== zone || e.propertyName === 'max-height') {
+                    endedEarly = true;
+                    clearTimeout(safety);
+                    callHandler();
+                }
+            }
+            zone.addEventListener('transitionend', onEnd);
+            zone.addEventListener('webkitTransitionEnd', onEnd);
+            // Если переход не запустился вовсе (например, prefers-reduced-motion или
+            // строка скрыта) — сработает страховочный таймер выше.
         }
 
         // ── touchstart: начинаем следить за касанием этой строки ──
