@@ -2,8 +2,6 @@
    таймер, старт/завершение сессии. */
 'use strict';
 
-// Строка подхода: номер, группы «−/+» с полями ввода, единицы («кг», «повт») сразу после «+».
-// Удаление — свайпом влево (как в Telegram), долгое нажатие открывает меню.
 function setFieldValue(exIdx, setIdx, field, setData) {
     if (typeof effectiveSetValue === 'function') return escAttr(effectiveSetValue(exIdx, setIdx, field, setData));
     return String(setData);
@@ -60,8 +58,7 @@ function generateExerciseCardHTML(exIdx, ex) {
     '</div>';
 }
 
-// Инкрементальная синхронизация списка подходов: узлы не заменяются целиком,
-// строка с незавершённой свайп-анимацией (swipeAnimating) не трогается вовсе.
+// Инкрементальная синхронизация списка подходов из state; строка со свайп-анимацией не трогается.
 // Возвращает false, если контейнера нет в DOM — вызывающий перерисовывает экран.
 function syncSetsListInPlace(exIdx, ex) {
     const list = document.getElementById('sets-container-' + exIdx);
@@ -119,8 +116,7 @@ function updateExerciseCardInDOM(exIdx, ex) {
     updateExerciseBadge(exIdx);
 }
 
-// Badge считает заполненные подходы по фактическим значениям полей ввода
-// (через реестр черновиков), с откатом на данные state.
+// Badge считает заполненные подходы по значениям полей ввода (реестр черновиков) с откатом на state.
 function countCompletedSets(exIdx) {
     const ex = state.activeWorkout && state.activeWorkout.exercises ? state.activeWorkout.exercises[exIdx] : null;
     if (!ex || !ex.sets) return 0;
@@ -154,8 +150,7 @@ function removeWorkoutExercise(exIdx) {
     });
 }
 
-// Новый подход наследует вес/повторы последнего и сразу попадает в черновики,
-// чтобы последующая перерисовка не потеряла значение до blur.
+// Новый подход наследует вес/повторы последнего и попадает в черновики.
 function seedNewSetDrafts(exIdx, setIdx, set) {
     if (typeof saveSetDraft !== 'function') return;
     ['weight', 'reps'].forEach(function (f) {
@@ -256,7 +251,6 @@ function addDropSet(exIdx) {
     updateExerciseCardInDOM(exIdx, ex);
 }
 
-// Удаление подхода через меню долгого нажатия — с подтверждением.
 function confirmRemoveSet(exIdx, setIdx) {
     const ex = state.activeWorkout && state.activeWorkout.exercises ? state.activeWorkout.exercises[exIdx] : null;
     if (!ex || !ex.sets || !ex.sets[setIdx]) return;
