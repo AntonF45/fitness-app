@@ -96,7 +96,6 @@ function syncSetsListInPlace(exIdx, ex) {
         const el = document.getElementById(savedFocus.id);
         if (el) { try { el.focus({ preventScroll: true }); el.setSelectionRange(savedFocus.start, savedFocus.end); } catch (err) {} }
     }
-    if (typeof applySetDraftsToInputs === 'function') applySetDraftsToInputs(ex.exerciseId);
     return true;
 }
 
@@ -107,15 +106,16 @@ function updateExerciseCardInDOM(exIdx, ex) {
     updateExerciseBadge(exIdx);
 }
 
-// Badge считает заполненные подходы по значениям полей ввода (реестр черновиков) с откатом на state.
+// Badge считает заполненные подходы из state; черновик поля (введено в поле, но
+// ещё не подтверждено) учитывается только когда он НЕ пустой.
 function countCompletedSets(exIdx) {
     const ex = state.activeWorkout && state.activeWorkout.exercises ? state.activeWorkout.exercises[exIdx] : null;
     if (!ex || !ex.sets) return 0;
     let completed = 0;
     for (let i = 0; i < ex.sets.length; i++) {
         const sid = ex.sets[i].id;
-        const w = Number(effectiveSetValue(sid, 'weight', ex.sets[i].weight));
-        const r = Number(effectiveSetValue(sid, 'reps', ex.sets[i].reps));
+        const w = Number(getSetDraft(sid, 'weight') ?? ex.sets[i].weight);
+        const r = Number(getSetDraft(sid, 'reps') ?? ex.sets[i].reps);
         if (w > 0 && r > 0) completed++;
     }
     return completed;
@@ -152,12 +152,12 @@ function seedSetDraft(set) {
     });
 }
 
-// Перед изменением состояния переносим все незакрытые значения полей ввода в state
-// (input-событие в Telegram WebView может не доходить до обработчика).
+// Перед изменением состояния переносим незакрытые значения полей ввода в state.
+// Идентификация — по стабильному data-set-id (не по позиции), поэтому строка,
+// оставшаяся от анимируемого свайпа, не может перезаписать другой подход: она
+// либо уже удалена из state (findSetById вернёт null), либо это тот же подход.
 function commitVisibleSetInputs(exIdx) {
-    // Удаляемая свайпом строка скрыта (hidden) на время анимации — её устаревшие
-    // значения не участвуют в синхронизации DOM -> state.
-    const inputs = document.querySelectorAll('[data-exercise="' + exIdx + '"].set-input:not([hidden] .set-input)');
+    const inputs = document.querySelectorAll('[data-exercise="' + exIdx + '"].set-input');
     const ex = state.activeWorkout && state.activeWorkout.exercises ? state.activeWorkout.exercises[exIdx] : null;
     if (!ex || !Array.isArray(ex.sets)) return;
     for (let i = 0; i < inputs.length; i++) {
@@ -298,12 +298,9 @@ function removeSet(exIdx, setId) {
     const idx = ex.sets.findIndex(function (s) { return s.id === setId; });
     if (idx === -1) return;
     ex.sets.splice(idx, 1);
-    if (typeof saveSetDraft === 'function') {
-        saveSetDraft(setId, 'weight', '');
-        saveSetDraft(setId, 'reps', '');
-    }
-    // Удалён последний подход — оставляем одну пустую строку, карточка не обрывается.
-    if (ex.sets.length === 0) ex.sets.push({ id: makeSetId(), weight: 0, reps: 0, setType: 'regular' });
+    // Черновик удалённого подхода больше не нужен — иначе он переживёт splice.
+    saveSetDraft(setId, 'weight', '');
+    saveSetDraft(setId, 'reps', '');
     saveActiveWorkout(); haptic('light');
     updateExerciseCardInDOM(exIdx, ex);
 }

@@ -82,57 +82,73 @@ function swipeIsFieldTarget(target, z) {
         function collapseAndDelete(action, payload) {
             removed = true;
             zone.swipeAnimating = true;
-            // Строка исключена из DOM до finalize: commitVisibleSetInputs/sync не должны
-            // видеть её устаревшие значения. Визуально это скрытая анимируемая копия.
-            zone.hidden = true;
-            zone.dataset.swipeRemoving = '1';
             window.__swipeDeleteInProgress = true;
 
-            zone.classList.remove('card-enter');
-            const l = layers();
-            if (l.inner) l.inner.style.transform = '';
-            if (l.bg) { l.bg.style.transform = ''; l.bg.classList.remove('visible'); }
-            const h = zone.offsetHeight || 48;
-            zone.style.maxHeight = h + 'px';
-            void zone.offsetHeight;
-            zone.classList.add('set-collapsing');
+            // Данные удаляем СРАЗУ (state — единственный источник истины), иначе
+            // нажатие «+ Подход» в момент анимации добавляет подход к старому
+            // массиву, и последующая пересборка «возвращает» удалённую строку.
+            // Анимация идёт на снятом с потока копировании узла — оно не зависит
+            // от перерисовки списка и гарантированно доводится до конца.
+            const handler = swipeLeftHandlers[action];
+            if (!handler) {
+                console.warn('Unhandled swipe-left action:', action);
+                window.__swipeDeleteInProgress = false;
+                zone.swipeAnimating = false;
+                springBack();
+                return;
+            }
+            try { handler(action, payload); }
+            catch (err) { console.error('Swipe-left handler error:', action, err); }
+
+            // Данные уже удалены из state; визуальное схлопывание — на копии строки.
+            // Исходный узел убираем из DOM сразу: он больше не источник истины,
+            // и никакая перерисовка не должна с ним конфликтовать.
+            const parent = zone.parentNode;
+            const nextSibling = zone.nextSibling;
+            const ghost = zone.cloneNode(true);
+            ghost.removeAttribute('id');
+            Array.prototype.forEach.call(ghost.querySelectorAll('[id]'), function (el) { el.removeAttribute('id'); });
+            if (parent) parent.insertBefore(ghost, nextSibling);
+            zone.remove();
+
+            ghost.classList.remove('card-enter');
+            ghost.classList.add('set-collapsing');
+            ghost.style.flex = 'none';
+            ghost.style.position = 'absolute';
+            ghost.style.left = '0';
+            ghost.style.right = '0';
+            ghost.style.bottom = '0';
+            const gl = { inner: ghost.querySelector('.set-line-inner'), bg: ghost.querySelector('.set-swipe-bg') };
+            if (gl.inner) { gl.inner.style.transition = 'none'; gl.inner.style.transform = ''; }
+            if (gl.bg) { gl.bg.style.transition = 'none'; gl.bg.style.transform = 'scaleX(0)'; gl.bg.classList.remove('visible'); }
+            const h = ghost.offsetHeight || 48;
+            ghost.style.maxHeight = h + 'px';
+            void ghost.offsetHeight;
             nextFrame(function () {
-                zone.style.maxHeight = '0px';
-                zone.style.marginBottom = '0px';
-                zone.style.opacity = '0';
+                ghost.style.maxHeight = '0px';
+                ghost.style.marginBottom = '0px';
+                ghost.style.opacity = '0';
             });
 
             let finalized = false;
             function finalize() {
                 if (finalized) return;
                 finalized = true;
-                zone.removeEventListener('transitionend', onEnd);
-                zone.removeEventListener('webkitTransitionEnd', onEnd);
-                if (zone.parentNode) zone.remove();
+                ghost.removeEventListener('transitionend', onEnd);
+                ghost.removeEventListener('webkitTransitionEnd', onEnd);
+                if (ghost.parentNode) ghost.remove();
                 zone.swipeAnimating = false;
-                zone.hidden = false;
-                delete zone.dataset.swipeRemoving;
-
                 window.__swipeDeleteInProgress = false;
-                const handler = swipeLeftHandlers[action];
-                if (!handler) {
-                    console.warn('Unhandled swipe-left action:', action);
-                    resetZone(zone);
-                    return;
-                }
-                // Единственный источник изменений — обработчик данных (splice + пересборка списка).
-                try { handler(action, payload); }
-                catch (err) { console.error('Swipe-left handler error:', action, err); }
             }
             function onEnd(e) {
-                if (e && e.target !== zone) return;
+                if (e && e.target !== ghost) return;
                 if (e && e.propertyName && e.propertyName.indexOf('height') === -1) return;
                 clearTimeout(safety);
                 finalize();
             }
-            const safety = setTimeout(finalize, SWIPE_COLLAPSE_MS + 120);
-            zone.addEventListener('transitionend', onEnd);
-            zone.addEventListener('webkitTransitionEnd', onEnd);
+            const safety = setTimeout(finalize, SWIPE_COLLAPSE_MS + 150);
+            ghost.addEventListener('transitionend', onEnd);
+            ghost.addEventListener('webkitTransitionEnd', onEnd);
         }
 
         // ── touchstart ──
@@ -205,20 +221,6 @@ function swipeIsFieldTarget(target, z) {
         }
         zone.addEventListener('touchcancel', onTouchCancel, { passive: true });
         window.addEventListener('touchcancel', onTouchCancel, { passive: true });
-    }
-
-    function resetZone(z) {
-        z.hidden = false;
-        z.classList.remove('swipe-open', 'set-collapsing');
-        const i = z.querySelector('.set-line-inner');
-        const b = z.querySelector('.set-swipe-bg');
-        if (i) { i.style.transition = 'transform 0.2s ease'; i.style.transform = ''; }
-        if (b) { b.style.transition = 'transform 0.2s ease, opacity .15s ease'; b.style.transform = ''; b.classList.remove('visible'); }
-        z.style.maxHeight = '';
-        z.style.marginBottom = '';
-        z.style.opacity = '';
-        z.dataset.removedBySwipe = '';
-        delete z.dataset.swipeRemoving;
     }
 
     // Привязка всех существующих строк (attachZone идемпотентен).
