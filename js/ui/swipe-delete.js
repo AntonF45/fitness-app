@@ -139,26 +139,27 @@ function swipeIsFieldTarget(target, z) {
         function collapseAndDelete(action, payload) {
             removed = true;
 
-            // 0) Переводим строку в статичный режим: отключаем анимацию появления
-            //    (card-enter), чтобы keyframes не перебивали maxHeight/opacity при
-            //    схлопывании, и убираем сдвиг по X (строка остаётся на месте, пока
-            //    высота «съедается» соседями — как в Telegram).
+            // 0) Переводим строку в статичный режим: отвязываем анимацию появления
+            //    (card-enter), чтобы keyframes «both» с финальным opacity:1 не
+            //    перебивал inline opacity:0 при схлопывании, и убираем сдвиг по X
+            //    (строка остаётся на месте, пока высота «съедается» соседями).
             zone.classList.remove('card-enter');
             setTransform(0, false);
 
-            // 1) Меняем данные. sync-функция помечена окном удаления (см. workout.controller.js),
-            //    поэтому DOM-строка этого подхода сейчас НЕ трогается.
+            // 1) Меняем данные. Обработчик вызывает removeSet → updateExerciseCardInDOM
+            //    → syncSetsListInPlace. Чтобы перерисовка НЕ удалила эту строку раньше
+            //    времени (иначе анимация срывается и выглядит как «ничего не произошло»),
+            //    строка помечается заранее: swipeAnimating + dataset.swipeRemoving —
+            //    оба флага syncSetsListInPlace учитывает (см. workout.controller.js).
+            zone.swipeAnimating = true;
+            zone.dataset.swipeRemoving = '1';
             const handler = swipeLeftHandlers[action];
             if (!handler) { console.warn('Unhandled swipe-left action:', action); resetZone(zone); return; }
             try { handler(action, payload); }
             catch (err) { console.error('Swipe-left handler error:', action, err); resetZone(zone); return; }
 
             // 2) Схлопываем узел, свайпнутый пользователем.
-            //    Флаг swipeAnimating защищает строку от syncSetsListInPlace: пока
-            //    анимация не завершена, перерисовка карточки не трогает этот узел.
             const h = zone.offsetHeight || 48;
-            zone.swipeAnimating = true;
-            zone.dataset.swipeRemoving = '1';
             zone.style.maxHeight = h + 'px';
             void zone.offsetHeight;                                   // reflow: фиксируем стартовую высоту
             zone.classList.add('set-collapsing');
@@ -173,16 +174,19 @@ function swipeIsFieldTarget(target, z) {
             function finalize() {
                 if (finalized) return;
                 finalized = true;
+                zone.removeEventListener('transitionend', onEnd);
+                zone.removeEventListener('webkitTransitionEnd', onEnd);
                 zone.swipeAnimating = false;                          // снимаем защиту перед sync
-                if (document.body.contains(zone)) zone.remove();
+                delete zone.dataset.swipeRemoving;
+                if (zone.parentNode) zone.remove();                   // parentNode, а не body.contains:
+                                                                      // узел может быть внутри shadow-DOM/иного корня
                 // Данные уже удалены; если экран всё же перерисован целиком —
                 // подход в новом дереве не появится. Подстрахуемся на всякий случай.
                 const twin = zone.id ? document.getElementById(zone.id) : null;
-                if (twin && twin !== zone) { twin.style.display = 'none'; twin.remove(); }
+                if (twin && twin !== zone) twin.remove();
                 // После удаления строки перенумеровываем оставшиеся подходы и
                 // обновляем их data-payload (иначе свайп следующей строки удалит
-                // подход со старым индексом). syncSetsListInPlace к этому моменту
-                // уже вне «окна блокировки» либо выполнит синхронизацию напрямую.
+                // подход со старым индексом).
                 try {
                     const p = String(payload).split(':');
                     const exIdx = parseInt(p[0], 10);
@@ -192,15 +196,15 @@ function swipeIsFieldTarget(target, z) {
                     if (typeof window.bindSwipeZones === 'function') window.bindSwipeZones();
                 } catch (err) {}
             }
-            const safety = setTimeout(finalize, SWIPE_COLLAPSE_MS + 140);
             function onEnd(e) {
                 // Реагируем только на завершение схлопывания самой строки.
                 if (e && e.target !== zone) return;
-                if (e && e.propertyName && e.propertyName.indexOf('max-height') === -1 &&
-                          e.propertyName.indexOf('height') === -1) return;
+                if (e && e.propertyName && e.propertyName.indexOf('height') === -1 &&
+                          e.propertyName !== 'max-height') return;
                 clearTimeout(safety);
                 finalize();
             }
+            const safety = setTimeout(finalize, SWIPE_COLLAPSE_MS + 140);
             zone.addEventListener('transitionend', onEnd);
             zone.addEventListener('webkitTransitionEnd', onEnd);
         }
