@@ -162,30 +162,38 @@ body.keyboard-open .sticky-bottom-action { display: none !important; }
 /* ===== Карточка упражнения: строки подходов — единый блок в цвет карточки, без границы ===== */
 .sets-list { list-style: none; padding-left: 0; margin: 0; }
 .set-line { position: relative; background: transparent; border: none; border-radius: 12px; margin-bottom: 6px; overflow: hidden; touch-action: pan-y; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; }
+/* При свайпе строка уезжает влево за палец — горизонталь не должна обрезаться (иначе
+   «красная зона» Telegram-стиля не откроется). Возвращаем clip только в покое. */
+.set-line:not(.swipe-active) { overflow-x: clip; }
 /* Активная фаза свайпа: отключаем системный скролл по горизонтали и подсветку WebKit. */
 .set-line.swipe-active { -webkit-touch-callout: default; }
 .set-line:last-child { margin-bottom: 0; }
-/* Красная подложка, открывающаяся при свайпе влево (жест удаления). */
-.set-swipe-bg { position: absolute; top: 0; right: 0; bottom: 0; width: 96px; display: flex; align-items: center; justify-content: flex-end; gap: 6px; padding-right: 18px; background: var(--danger-bg); color: var(--danger); font-size: 12px; font-weight: 700; opacity: 0; transition: opacity .15s ease; pointer-events: none; }
+/* Красная подложка, открывающаяся при свайпе влево (жест удаления).
+   Telegram-стиль: зона занимает всю ширину строки и тянется за пальцем (scaleX),
+   надпись «Удалить» остаётся по центру — как в списке чатов. */
+.set-swipe-bg { position: absolute; top: 0; right: 0; bottom: 0; width: calc(100% + 12px); margin-right: -6px; display: flex; align-items: center; justify-content: center; gap: 6px; background: var(--danger); color: #ffffff; font-size: 13px; font-weight: 700; opacity: 0; transition: opacity .15s ease; pointer-events: none; transform-origin: right center; will-change: transform; }
 .set-swipe-bg.visible { opacity: 1; }
-.set-swipe-bg i { font-size: 14px; }
+.set-swipe-bg i { font-size: 15px; }
 /* Основной слой строки: сдвигается пальцем при свайпе; заливка — в цвет карточки упражнения. */
 .set-line-inner { position: relative; z-index: 1; background: var(--card-bg); border-radius: 12px; padding: 6px 10px; will-change: transform; }
 .set-line-main { display: flex; align-items: stretch; gap: 8px; }
+/* Удаление строки подходом «как в Telegram»: сначала схлопываем высоту, потом убираем из DOM. */
+.set-line.set-collapsing { margin-bottom: 0 !important; max-height: 0 !important; padding-top: 0; padding-bottom: 0; overflow: hidden; transition: max-height .22s ease-out, margin-bottom .22s ease-out, opacity .18s ease-out; }
 /* Порядковый номер подхода — часть единого блока строки (по центру высоты). */
 .set-num { width: 18px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 700; line-height: 1; color: var(--tg-theme-hint-color, #8e8e93); }
-/* Группа «− [поле] + кг» — единый блок; единицы («кг», «повт») — внизу строки, под полем ввода. */
-.set-field { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; grid-template-rows: auto auto; column-gap: 4px; row-gap: 0; align-items: center; flex: 1 1 0%; min-width: 0; }
-.set-field .step-btn:first-child { grid-row: 1; grid-column: 1; }
-.set-field input { grid-row: 1; grid-column: 2; }
-.set-field .unit-hint { grid-row: 2; grid-column: 2; }
-.set-field .step-btn:last-of-type { grid-row: 1; grid-column: 3; }
+/* Группа «− [поле] + кг» — единый блок в одну линию: единицы («кг», «повт») идут СРАЗУ
+   после кнопки «+» (в той же строке), а не под полем ввода. */
+.set-field { display: grid; grid-template-columns: auto minmax(0, 1fr) auto auto; grid-template-rows: auto; column-gap: 4px; align-items: center; flex: 1 1 0%; min-width: 0; }
+.set-field .step-btn:first-child { grid-column: 1; }
+.set-field input { grid-column: 2; }
+.set-field .step-btn:last-of-type { grid-column: 3; }
+.set-field .unit-hint { grid-column: 4; }
 /* Кнопки − / + и поля ввода — без собственной границы/заливки, в один блок со строкой. */
 .set-line .step-btn { background: transparent; border: none; }
 .set-drop { box-shadow: inset 3px 0 0 var(--warn); }
 .set-num-drop { position: static; font-size: 10px; line-height: 1; color: var(--warn); opacity: 0.9; }
-/* Подсказки единиц — по нижнему краю строки, шрифт крупнее. */
-.unit-hint { justify-self: center; align-self: end; padding-bottom: 2px; font-size: 15px; font-weight: 600; line-height: 1.2; color: var(--tg-theme-hint-color, #8e8e93); }
+/* Подсказки единиц («кг», «повт») — крупнее, но в той же строке, вплотную к кнопке «+». */
+.unit-hint { justify-self: start; align-self: center; flex-shrink: 0; white-space: nowrap; font-size: 15px; font-weight: 600; line-height: 1.2; color: var(--tg-theme-hint-color, #8e8e93); }
 .exercise-header { user-select: none; -webkit-user-select: none; }
 /* Кнопка «⋮» — меню упражнения (комментарий / удаление). Обычный клик: надёжнее long-press. */
 .menu-btn { width: 32px; height: 32px; display: inline-flex; align-items: center; justify-content: center; border-radius: 8px; background: var(--inset-bg); color: var(--tg-theme-hint-color, #708499); font-size: 15px; border: 1px solid var(--inset-border, rgba(255,255,255,.06)); cursor: pointer; -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
