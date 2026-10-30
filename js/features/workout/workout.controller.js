@@ -67,6 +67,31 @@ function generateExerciseCardHTML(exIdx, ex) {
 // Такие «замороженные» строки также не участвуют в перенумерации — индексы
 // оставшихся строк приводятся в соответствие с данными только после финализации.
 // Функция идемпотентна: повторный вызов ничего лишнего не меняет.
+// ВАЖНО: при отсутствии контейнера возвращает false — тогда вызывающий код
+// перерисовывает карточку/экран целиком (см. updateExerciseCardInDOM).
+//
+// Черновики полей ввода. set-input синхронизируется с данными ТОЛЬКО по событию
+// change (blur), поэтому набранное, но не подтверждённое значение живёт лишь в
+// DOM. При перенумерации рядов (удаление/добавление подхода) innerHTML строки
+// перезаписывается значениями ДРУГОГО подхода — неподтверждённое значение терялось,
+// поле «возвращалось» к старым данным, а badge считал completed по данным без
+// подтверждения. Перед каждой перезаписи значение поля сохраняется и переносится
+// на тот индекс, куда физически переехал этот подход.
+function readRowInputs(exIdx, setIdx) {
+    const out = {};
+    ['weight', 'reps'].forEach(function (f) {
+        const el = document.getElementById('set-' + exIdx + '-' + setIdx + '-' + f);
+        if (el) out[f] = el.value;
+    });
+    return out;
+}
+// Снимок значений ВСЕХ видимых рядов до начала перенумерации.
+function snapshotVisibleRows(exIdx, visible) {
+    const snap = [];
+    for (let i = 0; i < visible.length; i++) snap.push(readRowInputs(exIdx, parseInt(String(visible[i].dataset.payload || '').split(':')[1], 10)));
+    return snap;
+}
+
 function syncSetsListInPlace(exIdx, ex) {
     const list = document.getElementById('sets-container-' + exIdx);
     if (!list) return false;
@@ -74,11 +99,8 @@ function syncSetsListInPlace(exIdx, ex) {
     // 1) Удаляем из DOM строки, помеченные свайпом как «удаляемые» (и любые строки,
     //    чей setIdx больше числа подходов в данных — на случай рассинхронизации).
     //    Строки с незавершённой анимацией (swipeAnimating) не трогаем вовсе.
-    //    ВАЖНО: сбор идёт СПИСКОМ и удаление — ОТДЕЛЬНЫМ ЦИКЛОМ ПОСЛЕ обхода.
-    //    Прежний вариант удалял узел прямо во время обхода через nextElementSibling:
-    //    у только что удалённого элемента nextElementSibling === null, обход досрочно
-    //    прерывался, и все строки после удалённой оставались неотсинхронизированными
-    //    (старые номера/ payload) — именно поэтому «удаление всё равно не работало».
+    //    Сбор идёт СПИСКОМ, удаление — ОТДЕЛЬНЫМ ЦИКЛОМ ПОСЛЕ обхода (прежний
+    //    обход с удалением на месте прерывался на nextElementSibling === null).
     const nSets = ex.sets.length;
     const doomed = [];
     let cur = list.firstElementChild;
@@ -106,6 +128,9 @@ function syncSetsListInPlace(exIdx, ex) {
         if (!cur.swipeAnimating && cur.dataset.swipeRemoving !== '1') visible.push(cur);
         cur = cur.nextElementSibling;
     }
+    // Снимок ДО любых изменений разметки: id полей уникальны, поэтому чтение
+    // после записи соседней строки уже вернуло бы чужое значение.
+    const snap = snapshotVisibleRows(exIdx, visible);
     for (let i = 0; i < nSets; i++) {
         let li = visible[i];
         if (!li) {                                   // не хватает — добавляем новую строку
@@ -115,6 +140,7 @@ function syncSetsListInPlace(exIdx, ex) {
             li = list.lastElementChild;
             visible[i] = li;
         } else {                                     // обновляем содержимое существующей
+            const oldIdx = parseInt(String(li.dataset.payload || '').split(':')[1], 10);
             const srcTmp = document.createElement('ol');
             srcTmp.innerHTML = generateSetHTML(exIdx, i, ex.sets[i], ex.exerciseType);
             const src = srcTmp.firstElementChild;
@@ -124,6 +150,17 @@ function syncSetsListInPlace(exIdx, ex) {
             const inner = li.querySelector('.set-line-inner');
             const srcInner = src.querySelector('.set-line-inner');
             if (inner && srcInner) inner.innerHTML = srcInner.innerHTML;
+            // Переносим неподтверждённые значения: ряд физически остался на месте,
+            // но подход под ним сместился — берём снимок СТАРОГО индекса ряда.
+            if (!isNaN(oldIdx) && oldIdx !== i) {
+                const carried = snap[i] || {};
+                ['weight', 'reps'].forEach(function (f) {
+                    if (typeof carried[f] === 'string') {
+                        const el = document.getElementById('set-' + exIdx + '-' + i + '-' + f);
+                        if (el) el.value = carried[f];
+                    }
+                });
+            }
         }
     }
     // 3) Лишние видимые строки (если данных стало меньше без пометки свайпом).
@@ -137,14 +174,34 @@ function updateExerciseCardInDOM(exIdx, ex) {
     const card = document.getElementById('exercise-card-' + exIdx);
     if (!card) { renderWorkout(); return; }   // карточки нет в DOM — перерисовываем экран
 
-    // Инкрементальная синхронизация (или no-op во время свайп-анимации).
-    if (syncSetsListInPlace(exIdx, ex)) {
-        updateExerciseBadge(exIdx);
-        return;
-    }
-    card.outerHTML = generateExerciseCardHTML(exIdx, ex);
+    // Всегда инкрементальная синхронизация: полная замена карточки через outerHTML
+    // пересоздавала все строки (потеря фокуса, «воскрешение» удалённого подхода,
+    // возврат значений полей).
+    syncSetsListInPlace(exIdx, ex);
+    updateExerciseBadge(exIdx);
 }
-function updateExerciseBadge(exIdx) { const ex = state.activeWorkout && state.activeWorkout.exercises ? state.activeWorkout.exercises[exIdx] : null; if (!ex) return; const completed = ex.sets.filter(function (s) { return s.weight > 0 && s.reps > 0; }).length; const target = ex.targetSets ?? 3; const badge = document.getElementById('badge-' + exIdx); if (badge) { badge.className = 'text-xs font-medium px-2 py-1 rounded-md shrink-0 ' + (completed >= target ? 'bg-green-500/20 text-green-500' : 'app-inset text-tgHint'); badge.innerText = completed >= target ? '✓ Готово' : completed + '/' + target; } }
+// Badge («2/3», «✓ Готово») считает КОЛИЧЕСТВО заполненных подходов, а поля ввода
+// пишутся в state только по событию change (blur). В Telegram WebView blur часто
+// не наступает (клавиатура закрывается кнопкой, касание вне окна и т.п.), поэтому
+// подход может быть заполнен на экране, но оставаться пустым в данных. Счёт
+// completed берётся из фактических значений input'ов (с откатом на данные, если
+// строки ещё не отрисованы) — тогда статус всегда соответствует видимому состоянию.
+function countCompletedSets(exIdx) {
+    const ex = state.activeWorkout && state.activeWorkout.exercises ? state.activeWorkout.exercises[exIdx] : null;
+    if (!ex) return 0;
+    let fromDom = 0, domRows = 0;
+    for (let i = 0; i < ex.sets.length; i++) {
+        const wEl = document.getElementById('set-' + exIdx + '-' + i + '-weight');
+        const rEl = document.getElementById('set-' + exIdx + '-' + i + '-reps');
+        if (!wEl || !rEl) continue;                       // строка этого ряда ещё не в DOM
+        domRows++;
+        const w = Number(wEl.value), r = Number(rEl.value);
+        if (w > 0 && r > 0) fromDom++;
+    }
+    if (domRows === ex.sets.length) return fromDom;      // все ряды видны — доверяем экрану
+    return ex.sets.filter(function (s) { return s.weight > 0 && s.reps > 0; }).length;
+}
+function updateExerciseBadge(exIdx) { const ex = state.activeWorkout && state.activeWorkout.exercises ? state.activeWorkout.exercises[exIdx] : null; if (!ex) return; const completed = countCompletedSets(exIdx); const target = ex.targetSets ?? 3; const badge = document.getElementById('badge-' + exIdx); if (badge) { badge.className = 'text-xs font-medium px-2 py-1 rounded-md shrink-0 ' + (completed >= target ? 'bg-green-500/20 text-green-500' : 'app-inset text-tgHint'); badge.innerText = completed >= target ? '✓ Готово' : completed + '/' + target; } }
 function removeWorkoutExercise(exIdx) { closeWorkoutContextMenu(); showConfirm('Удалить это упражнение из тренировки?', function (ok) { if (ok) { state.activeWorkout.exercises.splice(exIdx, 1); saveActiveWorkout(); haptic('light'); renderWorkout(); } }); }
 // Перед добавлением подхода убеждаемся, что последний заполнен; подсказываем про комментарий.
 function tryAddSet(exIdx) {
