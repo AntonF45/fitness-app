@@ -1,4 +1,2 @@
-_build/
-
-# артефакт сборки (один файл для деплоя)
-dist/ 
+node_modules/
+.tmp-test-swipe.js
