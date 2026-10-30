@@ -58,53 +58,27 @@ function generateExerciseCardHTML(exIdx, ex) {
     '</div>';
 }
 
-// Инкрементальная синхронизация списка подходов из state; строка со свайп-анимацией не трогается.
-// Возвращает false, если контейнера нет в DOM — вызывающий перерисовывает экран.
+// Синхронизация списка подходов из state — единственный источник истины.
+// Строку, удалённую свайпом (zone.remove() до вызова обработчика), здесь уже нет:
+// список пересобирается строго по актуальному ex.sets. Возвращает false, если
+// контейнера нет в DOM — вызывающий перерисовывает экран.
 function syncSetsListInPlace(exIdx, ex) {
     const list = document.getElementById('sets-container-' + exIdx);
     if (!list) return false;
 
-    const nSets = ex.sets.length;
-    const doomed = [];
-    let cur = list.firstElementChild;
-    while (cur) {
-        const next = cur.nextElementSibling;
-        if (!cur.swipeAnimating) {
-            const sIdx = parseInt(String(cur.dataset.payload || '').split(':')[1], 10);
-            if (cur.dataset.swipeRemoving === '1' || (!isNaN(sIdx) && sIdx >= nSets)) doomed.push(cur);
-        }
-        cur = next;
+    // Черновики строк создаются заново из state, поэтому фокус/редактирование
+    // теряются — сохраняем позицию каретки и восстанавливаем после замены.
+    const focusedId = document.activeElement && document.activeElement.id &&
+        String(document.activeElement.id).indexOf('set-' + exIdx + '-') === 0 ?
+        { id: document.activeElement.id, start: document.activeElement.selectionStart, end: document.activeElement.selectionEnd } : null;
+
+    const rowsHtml = ex.sets.map(function (s, i) { return generateSetHTML(exIdx, i, s, ex.exerciseType); }).join('');
+    if (list.innerHTML !== rowsHtml) list.innerHTML = rowsHtml;
+
+    if (focusedId) {
+        const el = document.getElementById(focusedId);
+        if (el) { try { el.focus({ preventScroll: true }); el.setSelectionRange(focusedId.start, focusedId.end); } catch (err) {} }
     }
-    for (let d = 0; d < doomed.length; d++) if (doomed[d].parentNode === list) list.removeChild(doomed[d]);
-
-    const visible = [];
-    cur = list.firstElementChild;
-    while (cur) {
-        if (!cur.swipeAnimating && cur.dataset.swipeRemoving !== '1') visible.push(cur);
-        cur = cur.nextElementSibling;
-    }
-
-    for (let i = 0; i < nSets; i++) {
-        let li = visible[i];
-        if (!li) {
-            const tmp = document.createElement('ol');
-            tmp.innerHTML = generateSetHTML(exIdx, i, ex.sets[i], ex.exerciseType);
-            list.appendChild(tmp.firstElementChild);
-            continue;
-        }
-        const srcTmp = document.createElement('ol');
-        srcTmp.innerHTML = generateSetHTML(exIdx, i, ex.sets[i], ex.exerciseType);
-        const src = srcTmp.firstElementChild;
-        li.id = src.id;
-        li.className = src.className;
-        li.dataset.payload = src.dataset.payload;
-        const inner = li.querySelector('.set-line-inner');
-        const srcInner = src.querySelector('.set-line-inner');
-        if (inner && srcInner) inner.innerHTML = srcInner.innerHTML;
-    }
-
-    for (let i = visible.length - 1; i >= nSets; i--) if (visible[i].parentNode === list) list.removeChild(visible[i]);
-
     if (typeof applySetDraftsToInputs === 'function') applySetDraftsToInputs(exIdx);
     return true;
 }
@@ -159,12 +133,34 @@ function seedNewSetDrafts(exIdx, setIdx, set) {
     });
 }
 
+// Перед изменением состояния переносим все незакрытые значения полей ввода в state
+// (input-событие в Telegram WebView может не доходить до обработчика).
+function commitVisibleSetInputs(exIdx) {
+    const inputs = document.querySelectorAll('[data-exercise="' + exIdx + '"].set-input');
+    for (let i = 0; i < inputs.length; i++) {
+        const t = inputs[i];
+        const setIdx = parseInt(t.dataset.set, 10), field = t.dataset.field;
+        const ex = state.activeWorkout && state.activeWorkout.exercises ? state.activeWorkout.exercises[exIdx] : null;
+        const set = ex && ex.sets ? ex.sets[setIdx] : null;
+        if (!set || isNaN(setIdx)) continue;
+        const raw = String(t.value);
+        if (raw.trim() === '') continue;
+        const value = field === 'weight' ? parseWeight(raw) : parseReps(raw);
+        if (value === null) continue;
+        if (String(value) !== String(set[field])) set[field] = value;
+        if (typeof saveSetDraft === 'function') saveSetDraft(exIdx, setIdx, field, String(value));
+    }
+    if (state.activeWorkout) saveActiveWorkout();
+}
+
 function tryAddSet(exIdx) {
+    commitVisibleSetInputs(exIdx);
     const sets = state.activeWorkout.exercises[exIdx].sets || [];
     if (sets.length > 0) {
         const last = sets[sets.length - 1];
         if (!last.weight || Number(last.weight) <= 0 || !last.reps || Number(last.reps) <= 0) {
             showAlert('Заполните предыдущий подход');
+            updateExerciseBadge(exIdx);
             return;
         }
     }
@@ -172,11 +168,12 @@ function tryAddSet(exIdx) {
 }
 
 function tryAddDropSet(exIdx) {
+    commitVisibleSetInputs(exIdx);
     const sets = state.activeWorkout.exercises[exIdx].sets || [];
     if (sets.length === 0) { showAlert('Сначала добавьте обычный подход'); return; }
     const last = sets[sets.length - 1];
     if (!last.weight || Number(last.weight) <= 0 || !last.reps || Number(last.reps) <= 0) {
-        showAlert('Заполните предыдущий подход'); return;
+        showAlert('Заполните предыдущий подход'); updateExerciseBadge(exIdx); return;
     }
     addDropSet(exIdx);
 }
@@ -216,11 +213,19 @@ function adjustSet(exIdx, setIdx, field, delta) {
     if (!ex) return;
     const set = ex.sets ? ex.sets[setIdx] : null;
     if (!set) return;
-    const current = Number(set[field]) || 0;
+    // Текущее значение берём из поля ввода: в Telegram WebView событие input
+    // может не доходить до обработчика, и state остаётся устаревшим.
+    const input = document.getElementById('set-' + exIdx + '-' + setIdx + '-' + field);
+    let current = 0;
+    if (input && String(input.value).trim() !== '') {
+        const parsed = field === 'weight' ? parseWeight(String(input.value)) : parseReps(String(input.value));
+        current = parsed === null ? 0 : parsed;
+    } else {
+        current = Number(effectiveSetValue(exIdx, setIdx, field, set[field])) || 0;
+    }
     set[field] = field === 'weight' ? adjustWeight(current, delta) : adjustReps(current, delta);
     saveActiveWorkout(); haptic('light');
     if (typeof saveSetDraft === 'function') saveSetDraft(exIdx, setIdx, field, String(set[field]));
-    const input = document.getElementById('set-' + exIdx + '-' + setIdx + '-' + field);
     if (input) input.value = set[field];
     updateExerciseBadge(exIdx);
 }
@@ -232,7 +237,6 @@ function addSet(exIdx) {
     if (sets.length > 0) { w = sets[sets.length - 1].weight; r = sets[sets.length - 1].reps; }
     const created = { weight: w, reps: r, setType: 'regular' };
     sets.push(created);
-    if (typeof shiftSetDraftsAfterInsertion === 'function') shiftSetDraftsAfterInsertion(exIdx, sets.length - 1);
     seedNewSetDrafts(exIdx, sets.length - 1, created);
     saveActiveWorkout(); haptic('light');
     updateExerciseCardInDOM(exIdx, ex);
@@ -245,7 +249,6 @@ function addDropSet(exIdx) {
     const drop = Math.max(0, Math.round((last.weight * 0.75) / 2.5) * 2.5);
     const created = { weight: drop, reps: last.reps, setType: 'drop' };
     sets.push(created);
-    if (typeof shiftSetDraftsAfterInsertion === 'function') shiftSetDraftsAfterInsertion(exIdx, sets.length - 1);
     seedNewSetDrafts(exIdx, sets.length - 1, created);
     saveActiveWorkout(); haptic('medium');
     updateExerciseCardInDOM(exIdx, ex);
@@ -257,13 +260,17 @@ function confirmRemoveSet(exIdx, setIdx) {
     showConfirm('Удалить подход ' + (setIdx + 1) + '?', function (ok) { if (ok) removeSet(exIdx, setIdx); });
 }
 
+// Единственный путь удаления подхода: изменяем state, затем пересобираем список.
 function removeSet(exIdx, setIdx) {
-    const sets = state.activeWorkout.exercises[exIdx].sets;
-    if (sets.length <= 1) sets[0] = { weight: 0, reps: 10, setType: 'regular' };
+    commitVisibleSetInputs(exIdx);
+    const ex = state.activeWorkout.exercises[exIdx];
+    const sets = ex.sets;
+    if (sets.length <= 1) sets[0] = { weight: 0, reps: ex.targetReps ?? 10, setType: 'regular' };
     else sets.splice(setIdx, 1);
-    if (typeof shiftSetDraftsAfterRemoval === 'function') shiftSetDraftsAfterRemoval(exIdx, setIdx);
+    if (typeof clearSetDraftsForExercise === 'function') clearSetDraftsForExercise(exIdx);
+    sets.forEach(function (s, i) { seedNewSetDrafts(exIdx, i, s); });
     saveActiveWorkout(); haptic('light');
-    updateExerciseCardInDOM(exIdx, state.activeWorkout.exercises[exIdx]);
+    updateExerciseCardInDOM(exIdx, ex);
 }
 
 registerSwipeLeftHandler('delete-set', function (action, payload) {
