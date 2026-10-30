@@ -7,6 +7,8 @@
 document.addEventListener('click', function (event) {
     const target = event.target.closest('[data-action]');
     if (!event.target.closest('.ac-wrapper')) hideAllAutocomplete();
+    // Клик вне контекстного меню тренировки закрывает его (само меню — modal-backdrop, не [data-action])
+    if (typeof closeWorkoutContextMenu === 'function' && !event.target.closest('#workout-context-menu')) closeWorkoutContextMenu();
     if (!target) return;
     const action = target.dataset.action;
     const payload = target.dataset.payload;
@@ -30,9 +32,18 @@ document.addEventListener('click', function (event) {
             case 'adjust-param': { const p = payload.split(':'); adjustProgramParam(parseInt(p[0], 10), p[1], parseInt(p[2], 10)); break; }
             case 'add-set': tryAddSet(parseInt(payload, 10)); break;
             case 'add-drop-set': tryAddDropSet(parseInt(payload, 10)); break;
-            case 'remove-set': { const p = payload.split(':'); removeSet(parseInt(p[0], 10), parseInt(p[1], 10)); break; }
+            case 'remove-set': { const p = payload.split(':'); confirmRemoveSet(parseInt(p[0], 10), parseInt(p[1], 10)); break; }
+            // ── контекстные действия долгого нажания (features/workout/workout-context-menu.js) ──
+            case 'note-exercise': { const p = payload.split(':'); openSetNoteModal(parseInt(p[0], 10), parseInt(p[1], 10)); break; }
             case 'adjust-set': { const p = payload.split(':'); adjustSet(parseInt(p[0], 10), parseInt(p[1], 10), p[2], parseFloat(p[3])); break; }
             case 'remove-workout-exercise': removeWorkoutExercise(parseInt(payload, 10)); break;
+            // ── ощущения после упражнения (features/workout/set-note-modal.js) ──
+            case 'open-set-notes': openSetNoteModal(parseInt(payload, 10)); break;
+            case 'note-save': saveSetNotes(parseInt(payload, 10)); break;
+            case 'note-skip': skipSetNotes(parseInt(payload, 10)); break;
+            case 'note-suggestion': appendNoteSuggestion(payload); break;
+            case 'note-rpe': applyRpeToSets(payload); break;
+            case 'note-rpe-more': revealMoreRpe(); break;
             case 'finish-workout': promptWorkoutExit(); break;
             case 'workout-save': closeWorkoutModal(); saveWorkoutAndOpenPrograms(); break;
             case 'workout-discard': closeWorkoutModal(); discardWorkoutAndOpenPrograms(); break;
