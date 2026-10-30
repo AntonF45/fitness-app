@@ -31,6 +31,12 @@ function registerLongPressHandler(action, fn) { longPressHandlers[action] = fn; 
         if (timer) { clearTimeout(timer); timer = null; }
         zone = null;
     }
+    // Внешний API: отменить ожидаемое долгое нажатие (его вызывает свайп-жест,
+    // чтобы два жеста на одной строке не конкурировали).
+    function cancelLongPress(el) {
+        if (!el || !zone) return;
+        if (el === zone || zone.contains(el) || el.contains(zone)) cancel();
+    }
 
     // Долгое нажатие НЕ должно срабатывать, если палец попал на инпут, кнопку «+/−» или
     // любой элемент со своим data-action. Раньше проверка шла вверх от e.target вплоть до

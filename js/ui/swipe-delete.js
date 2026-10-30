@@ -15,29 +15,43 @@
    Внутри элемента ожидается слой-подложка .set-swipe-bg (красная зона «Удалить»)
    и основной контент .set-line-inner, который сдвигается пальцем.
 
-   Почему через Pointer Events + setPointerCapture:
-   раньше перехват touchmove вызывался только ПОСЛЕ распознавания горизонтали;
-   WebView успевал отдать жест вертикальному скроллу, touchmove обрывался
-   и удаление не срабатывало. Теперь при старте свайпа по зоне строка сразу
-   перехватывает указатель (preventDefault), а capture гарантирует, что все события
-   до отпускания придут в этот элемент — анимация следует за пальцем без рывков.
+   Почему реализация на Touch Events (а не Pointer Events):
+   Telegram для iOS — это WKWebView. В нём есть pointerdown/pointermove, но нет
+   pointerup/pointercancel (до Safari 14.5 не было вообще). Поэтому на iPhone
+   «долёт до конца» и схлопывание, привязанные к pointerup, никогда не выполнялись —
+   свайп открывал красную зону, но до конца не отрабатывал.
+   Здесь:
+     • touchstart/touchmove/touchend — нативные события, работают во всех WebView;
+     • touchmove слушается на window в ФАЗЕ ЗАХВАТА (capture), поэтому даже если
+       цель касания — кнопка −/+ или span с единицей, мы получаем событие раньше
+       них и можем вызвать preventDefault (на element-level listener это уже
+       не действует: браузер считает цель неcancelable);
+     • координаты берутся из e.touches[0] / e.changedTouches[0]; порог срабатывания
+       замеряется отдельно (triggerDx) — иначе вертикальный дрейф пальца завышал dx
+       и удаление срабатывало раньше времени;
+     • ориентация жеста определяется по первому ходу пальца: движение вправо или
+       сильнее по вертикали, чем по горизонтали, жестом не считается (скроллит страница).
 
    Касание внутри поля ввода игнорируется — ввод веса/повторов работает как обычно.
-   Вертикальное движение без горизонтали остаётся обычным скроллом.
+   Свайп отменяет ожидаемое долгое нажатие — они не конкурируют.
 
    Реестр обработчиков пополняет фичевый модуль (features/workout/workout.controller.js)
    через registerSwipeLeftHandler(). */
 'use strict';
 
-const SWIPE_TRIGGER_DX = 50;        // px: смещение влево, при котором удаление срабатывает
-const SWIPE_AXIS_TOLERANCE = 1.2;   // насколько вертикаль может опережать горизонталь до сброса жеста
-const SWIPE_MAX_OPEN = 96;          // px: на сколько максимум сдвигаем строку (= ширина «окна» подложки)
+const SWIPE_TRIGGER_DX = 50;        // px: горизонтальное смещение, при котором удаление срабатывает
+const SWIPE_START_SLOP = 8;         // px: пока не пройдено это смещение — решаем, свайп это или скролл
 const SWIPE_GLIDE_MS = 140;         // мс: долёт строки до полного открытия после отпускания
 const SWIPE_COLLAPSE_MS = 220;      // мс: схлопывание высоты строки перед удалением из DOM
 
 // Реестр: action → функция(action, payload).
 const swipeLeftHandlers = {};
 function registerSwipeLeftHandler(action, fn) { swipeLeftHandlers[action] = fn; }
+
+// Отмена долгого нажатия на этой же строке, когда распознан свайп (жесты не должны спорить).
+function cancelLongPressOn(zone) {
+    try { if (typeof cancelLongPress === 'function') cancelLongPress(zone); } catch (err) {}
+}
 
 (function initSwipeDelete() {
     const INTERACTIVE = ['INPUT', 'TEXTAREA', 'SELECT'];
@@ -52,16 +66,23 @@ function registerSwipeLeftHandler(action, fn) { swipeLeftHandlers[action] = fn; 
         return false;
     }
 
+    function pointOf(e) {
+        const t = (e.touches && e.touches[0]) || (e.changedTouches && e.changedTouches[0]);
+        return t ? { x: t.clientX, y: t.clientY } : { x: e.clientX, y: e.clientY };
+    }
+
     // Привязка свайпа к конкретной строке подхода.
     function attachZone(zone) {
         if (!zone || zone.dataset.swipeBound === '1') return;
         zone.dataset.swipeBound = '1';
 
-        let active = false;      // этот pointer ведёт свайп
+        let tracking = false;    // касание есть, но ориентация жеста ещё не определена
+        let engaged = false;     // свайп перехвачен (строка движется за пальцем)
+        let decided = false;     // первый ход сделан (горизонталь/вертикаль распознаны)
         let removed = false;     // строка уже «удаляется» — жесты игнорируем
         let startX = 0, startY = 0;
-        let curDx = 0;
-        let pid = null;
+        let curDx = 0;           // текущий сдвиг строки (для возврата при отмене)
+        let triggerDx = 0;       // чисто горизонтальное смещение — для порога срабатывания
 
         function layers() {
             return {
@@ -87,6 +108,19 @@ function registerSwipeLeftHandler(action, fn) { swipeLeftHandlers[action] = fn; 
             }
         }
 
+        function showBg() {
+            const l = layers();
+            if (l.bg) l.bg.classList.add('visible');
+        }
+
+        // Плавный возврат строки на место и скрытие подложки.
+        function springBack() {
+            curDx = 0; triggerDx = 0;
+            setTransform(0, true);
+            const l = layers();
+            if (l.bg) setTimeout(function () { if (curDx === 0) l.bg.classList.remove('visible'); }, SWIPE_GLIDE_MS);
+        }
+
         // Финальная стадия: схлопываем высоту (соседи плавно подтягиваются), затем
         // перерисовка от обработчика — строка исчезает без «прыжка».
         function collapseAndDelete(action, payload) {
@@ -106,69 +140,84 @@ function registerSwipeLeftHandler(action, fn) { swipeLeftHandlers[action] = fn; 
             }, SWIPE_COLLAPSE_MS);
         }
 
-        zone.addEventListener('pointerdown', function (e) {
+        // ── touchstart: начинаем следить за касанием этой строки ──
+        zone.addEventListener('touchstart', function (e) {
             if (removed) return;
-            if (e.pointerType === 'mouse' && e.button !== 0) return;
+            if (e.touches.length !== 1) return;                       // мультитач не обслуживаем
             if (isFieldTarget(e.target, zone)) return;
-            active = true;
-            pid = e.pointerId;
-            startX = e.clientX; startY = e.clientY; curDx = 0;
-            // Перехватываем указатель: все pointermove/up придут сюда, даже вне зоны.
-            try { zone.setPointerCapture(pid); } catch (err) {}
+            const p = pointOf(e);
+            tracking = true; engaged = false; decided = false;
+            startX = p.x; startY = p.y; curDx = 0; triggerDx = 0;
             setTransform(0, false);
-        });
+        }, { passive: true });
 
-        zone.addEventListener('pointermove', function (e) {
-            if (!active || removed || e.pointerId !== pid) return;
-            const dx = e.clientX - startX, dy = e.clientY - startY;
-            if (dx < 0 && Math.abs(dy) <= Math.abs(dx) * SWIPE_AXIS_TOLERANCE) {
-                // Горизонтальное движение — гасим системный скролл и подсветку WebKit.
-                if (e.cancelable) e.preventDefault();
+        // ── touchmove: слушается НА WINDOW В ФАЗЕ ЗАХВАТА ──
+        // Так событие приходит раньше, чем его получит кнопка/поле внутри строки,
+        // и preventDefault гарантированно работает (отменяет нативный скролл).
+        function onTouchMove(e) {
+            if (!tracking || removed) return;
+            const p = pointOf(e);
+            const dx = p.x - startX, dy = p.y - startY;
+
+            if (!decided) {
+                // Первый ход: определяем ориентацию жеста.
+                if (Math.abs(dx) < SWIPE_START_SLOP && Math.abs(dy) < SWIPE_START_SLOP) return;
+                decided = true;
+                if (dx >= 0 || Math.abs(dy) > Math.abs(dx)) {
+                    tracking = false;                                 // вертикаль/вправо — пусть скроллит
+                    return;
+                }
+                engaged = true;                                       // свайп влево — перехватываем
+                cancelLongPressOn(zone);
                 zone.classList.add('swipe-active');
-                try { document.getSelection && document.getSelection().removeAllRanges(); } catch (err) {}
-                const l = layers();
-                if (l.bg) l.bg.classList.add('visible');
-                // Строка идёт за пальцем без «пружины» — нет дёрганья; максимум — вся ширина зоны.
-                curDx = Math.max(-Math.round(bgWidth()), Math.min(0, dx));
-                setTransform(curDx, false);
-            } else if (curDx !== 0) {
-                // Пользователь увёл палец сильно вверх/вниз — возвращаем строку, но жест не бросаем.
-                curDx = 0;
-                setTransform(0, true);
+                showBg();
             }
-        }, { passive: false });
 
+            if (!engaged) return;
+            if (e.cancelable) e.preventDefault();                     // гасим системный скролл/подсветку
+            try { document.getSelection && document.getSelection().removeAllRanges(); } catch (err) {}
+            triggerDx = dx;                                           // порог меряем по чистой горизонтали
+            // Строка идёт за пальцем без «пружины»; максимум — вся ширина зоны.
+            curDx = Math.max(-Math.round(bgWidth()), Math.min(0, dx));
+            setTransform(curDx, false);
+        }
+        window.addEventListener('touchmove', onTouchMove, { passive: false, capture: true });
+
+        // ── завершение жеста: touchend / touchcancel ──
         function finish(e) {
-            if (!active || removed || (e && e.pointerId !== pid)) return;
-            active = false;
+            if (!tracking || removed) return;
+            tracking = false;
+            const wasEngaged = engaged;
+            engaged = false;
             zone.classList.remove('swipe-active');
-            const fired = curDx <= -SWIPE_TRIGGER_DX;
-            if (!fired) {
-                // Не довели — плавный возврат строки.
-                setTransform(0, true);
-                const l = layers();
-                if (l.bg) setTimeout(function () { if (curDx === 0) l.bg.classList.remove('visible'); }, SWIPE_GLIDE_MS);
-                return;
+            if (!wasEngaged) return;                                  // ничего не двигали — обычное нажатие
+
+            if (triggerDx <= -SWIPE_TRIGGER_DX) {
+                // Порог пройден: долёт «до конца» — как в Telegram: строка уходит за левый край,
+                // зона открыта полностью, затем схлопывание и удаление из данных.
+                const action = zone.dataset.swipeLeft;
+                const payload = zone.dataset.payload || '';
+                try { haptic('medium'); } catch (err) {}
+                showBg();
+                setTransform(-Math.round(bgWidth()), true);
+                setTimeout(function () { collapseAndDelete(action, payload); }, SWIPE_GLIDE_MS);
+            } else {
+                springBack();                                         // не довели — плавный возврат
             }
-            const action = zone.dataset.swipeLeft;
-            const payload = zone.dataset.payload || '';
-            try { haptic('medium'); } catch (err) {}
-            // Долёт «до конца» — как в Telegram: строка уходит за левый край, зона открыта полностью.
-            setTransform(-Math.round(bgWidth()), true);
-            const l = layers();
-            if (l.bg) l.bg.classList.add('visible');
-            setTimeout(function () { collapseAndDelete(action, payload); }, SWIPE_GLIDE_MS);
         }
 
-        zone.addEventListener('pointerup', finish);
-        zone.addEventListener('pointercancel', function (e) {
-            if (!active || removed || e.pointerId !== pid) return;
-            active = false;
+        zone.addEventListener('touchend', finish, { passive: true });
+        function onTouchCancel() {
+            if (!tracking || removed) return;
+            const wasEngaged = engaged;
+            tracking = false; decided = false; engaged = false;
             zone.classList.remove('swipe-active');
-            setTransform(0, true);
-            const l = layers();
-            if (l.bg) setTimeout(function () { if (curDx === 0) l.bg.classList.remove('visible'); }, SWIPE_GLIDE_MS);
-        });
+            if (wasEngaged) springBack();                             // браузер забрал жест (скролл) — возвращаем
+        }
+        zone.addEventListener('touchcancel', onTouchCancel, { passive: true });
+        // Страховка: touchcancel приходит не во всех WebView (например, при системном
+        // прерывании) — дублируем сброс на window в фазе всплытия.
+        window.addEventListener('touchcancel', onTouchCancel, { passive: true });
     }
 
     // Возврат зоны в исходное состояние (если удаление не произошло).
