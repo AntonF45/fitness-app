@@ -181,6 +181,8 @@ body.keyboard-open .sticky-bottom-action { display: none !important; }
 .chip-btn:active { transform: scale(0.95); opacity: 0.8; }
 .chip-btn.chip-add { color: var(--accent); border-style: dashed; }
 .btn-auto { width: auto; flex: 0 0 auto; }
+/* Кнопки «+ Подход» / «Дроп-сет»: растягиваются на всю ширину блока, деля её пополам */
+.exercise-actions .btn { flex: 1 1 0; min-width: 0; width: auto; }
 .btn.has-note { border-color: var(--accent-border); }
 .set-note { margin-top: 6px; font-size: 12px; line-height: 1.4; color: var(--tg-theme-hint-color, #8e8e93); background: var(--inset-bg); border-left: 2px solid var(--warn); border-radius: 8px; padding: 6px 10px; }
 .note-indicator { font-size: 12px; color: var(--warn); opacity: 0.9; }
