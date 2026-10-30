@@ -162,30 +162,30 @@ body.keyboard-open .sticky-bottom-action { display: none !important; }
 /* ===== Карточка упражнения: строки подходов — единый блок в цвет карточки, без границы ===== */
 .sets-list { list-style: none; padding-left: 0; margin: 0; }
 .set-line { position: relative; background: transparent; border: none; border-radius: 12px; margin-bottom: 6px; overflow: hidden; touch-action: pan-y; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; }
-/* Свайп-жест «удаление»: как только распознан горизонтальный свайп (класс .swipe-active),
-   разрешаем перехват движения (none) — иначе WebView отдаёт жест вертикальному скроллу,
-   touchmove обрывается и удаление не срабатывает. pan-y до распознавания сохраняет скролл. */
-.set-line.swipe-active { touch-action: none; -webkit-touch-callout: default; }
+/* Активная фаза свайпа: отключаем системный скролл по горизонтали и подсветку WebKit. */
+.set-line.swipe-active { -webkit-touch-callout: default; }
 .set-line:last-child { margin-bottom: 0; }
 /* Красная подложка, открывающаяся при свайпе влево (жест удаления). */
 .set-swipe-bg { position: absolute; top: 0; right: 0; bottom: 0; width: 96px; display: flex; align-items: center; justify-content: flex-end; gap: 6px; padding-right: 18px; background: var(--danger-bg); color: var(--danger); font-size: 12px; font-weight: 700; opacity: 0; transition: opacity .15s ease; pointer-events: none; }
 .set-swipe-bg.visible { opacity: 1; }
 .set-swipe-bg i { font-size: 14px; }
 /* Основной слой строки: сдвигается пальцем при свайпе; заливка — в цвет карточки упражнения. */
-.set-line-inner { position: relative; z-index: 1; background: var(--card-bg); border-radius: 12px; padding: 6px 10px; transition: transform 0.2s ease; }
-.set-line.swipe-open .set-line-inner { animation: swipeOpenFlash .14s ease-out both; }
-@keyframes swipeOpenFlash { from { transform: translateX(-40px); } to { transform: translateX(-96px); } }
+.set-line-inner { position: relative; z-index: 1; background: var(--card-bg); border-radius: 12px; padding: 6px 10px; will-change: transform; }
 .set-line-main { display: flex; align-items: stretch; gap: 8px; }
 /* Порядковый номер подхода — часть единого блока строки (по центру высоты). */
 .set-num { width: 18px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 700; line-height: 1; color: var(--tg-theme-hint-color, #8e8e93); }
-/* Группа «− [поле] + кг» — единый блок; единицы («кг», «повт») выровнены по нижнему краю строки. */
-.set-field { display: flex; align-items: center; gap: 4px; flex: 1 1 0%; min-width: 0; }
-.unit-hint { align-self: flex-end; }
+/* Группа «− [поле] + кг» — единый блок; единицы («кг», «повт») — внизу строки, под полем ввода. */
+.set-field { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; grid-template-rows: auto auto; column-gap: 4px; row-gap: 0; align-items: center; flex: 1 1 0%; min-width: 0; }
+.set-field .step-btn:first-child { grid-row: 1; grid-column: 1; }
+.set-field input { grid-row: 1; grid-column: 2; }
+.set-field .unit-hint { grid-row: 2; grid-column: 2; }
+.set-field .step-btn:last-of-type { grid-row: 1; grid-column: 3; }
 /* Кнопки − / + и поля ввода — без собственной границы/заливки, в один блок со строкой. */
 .set-line .step-btn { background: transparent; border: none; }
 .set-drop { box-shadow: inset 3px 0 0 var(--warn); }
 .set-num-drop { position: static; font-size: 10px; line-height: 1; color: var(--warn); opacity: 0.9; }
-.unit-hint { align-self: flex-end; padding-bottom: 8px; font-size: 13px; font-weight: 600; color: var(--tg-theme-hint-color, #8e8e93); flex-shrink: 0; min-width: 26px; }
+/* Подсказки единиц — по нижнему краю строки, шрифт крупнее. */
+.unit-hint { justify-self: center; align-self: end; padding-bottom: 2px; font-size: 15px; font-weight: 600; line-height: 1.2; color: var(--tg-theme-hint-color, #8e8e93); }
 .exercise-header { user-select: none; -webkit-user-select: none; }
 /* Кнопка «⋮» — меню упражнения (комментарий / удаление). Обычный клик: надёжнее long-press. */
 .menu-btn { width: 32px; height: 32px; display: inline-flex; align-items: center; justify-content: center; border-radius: 8px; background: var(--inset-bg); color: var(--tg-theme-hint-color, #708499); font-size: 15px; border: 1px solid var(--inset-border, rgba(255,255,255,.06)); cursor: pointer; -webkit-tap-highlight-color: transparent; touch-action: manipulation; }

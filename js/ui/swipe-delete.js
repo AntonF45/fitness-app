@@ -5,31 +5,33 @@
    Внутри элемента ожидается слой-подложка .set-swipe-bg (красная зона «Удалить»)
    и основной контент .set-line-inner, который сдвигается пальцем.
 
-   Логика: горизонтальный свайп влево по зоне (не по инпуту/кнопке) плавно сдвигает
-   строку за пальцем; если отпущен дальше порога — строка анимируется к полному
-   открытию и после короткой паузы вызывается обработчик из swipeLeftHandlers
-   (обработчик перерисовывает DOM — строка исчезает). Вертикальное движение не
-   перехватывается — обычный скролл страницы работает.
+   Почему через Pointer Events + setPointerCapture:
+   раньше перехват touchmove вызывался только ПОСЛЕ распознавания горизонтали;
+   WebView успевал отдать жест вертикальному скроллу, touchmove обрывался
+   и удаление не срабатывало. Теперь при старте свайпа по зоне строки движение
+   перехватывается сразу (preventDefault), а capture гарантирует, что все события
+   до отпускания придут в этот элемент — анимация следует за пальцем без рывков.
+
+   Логика: горизонтальное движение плавно сдвигает строку за пальцем; если отпущено
+   дальше порога — строка одним плавным glide доезжает до полного открытия и после
+   короткой паузы вызывается обработчик из swipeLeftHandlers (он перерисовывает DOM —
+   строка исчезает). Касание внутри поля ввода/кнопок ± игнорируется — они работают
+   как обычно. Вертикальное движение без горизонтали остаётся обычным скроллом.
 
    Реестр обработчиков пополняет фичевый модуль (features/workout/workout.controller.js)
    через registerSwipeLeftHandler(). */
 'use strict';
 
-const SWIPE_MIN_DX = 50;            // px: минимальное смещение влево для срабатывания
-const SWIPE_AXIS_LOCK = 8;          // px: превысил по вертикали раньше — это скролл
+const SWIPE_TRIGGER_DX = 50;        // px: смещение влево, при котором удаление срабатывает
+const SWIPE_AXIS_TOLERANCE = 1.2;   // насколько вертикаль может опережать горизонталь до сброса жеста
 const SWIPE_MAX_OPEN = 96;          // px: на сколько максимум сдвигаем строку (= ширина подложки)
-const SWIPE_DELETE_DELAY = 140;     // мс: пауза на анимацию «полного открытия» перед удалением
+const SWIPE_DELETE_DELAY = 130;     // мс: пауза на анимацию «полного открытия» перед удалением
 
 // Реестр: action → функция(action, payload).
 const swipeLeftHandlers = {};
 function registerSwipeLeftHandler(action, fn) { swipeLeftHandlers[action] = fn; }
 
 (function initSwipeDelete() {
-    let zone = null, inner = null, bg = null;
-    let startX = 0, startY = 0;
-    let locked = false;     // true: жест признан горизонтальным свайпом
-    let curDx = 0;
-
     const INTERACTIVE = ['INPUT', 'TEXTAREA', 'SELECT'];
 
     function isFieldTarget(target, z) {
@@ -42,70 +44,85 @@ function registerSwipeLeftHandler(action, fn) { swipeLeftHandlers[action] = fn; 
         return false;
     }
 
-    function begin(target, x, y) {
-        const z = target.closest ? target.closest('[data-swipe-left]') : null;
-        if (!z) return;
-        if (isFieldTarget(target, z)) return;
-        zone = z;
-        inner = z.querySelector('.set-line-inner');
-        bg = z.querySelector('.set-swipe-bg');
-        startX = x; startY = y; locked = false; curDx = 0;
-        // Жёсткий сброс трансформации — иначе «дёрганье» при повторных жестах,
-        // если предыдущая анимация возврата не завершилась.
-        if (inner) { inner.style.transition = 'none'; inner.style.transform = ''; }
-    }
+    // Привязка свайпа к конкретной строке подхода.
+    function attachZone(zone) {
+        if (!zone || zone.dataset.swipeBound === '1') return;
+        zone.dataset.swipeBound = '1';
 
-    // Плавный возврат строки в исходное положение.
-    function glideHome(i, ms) {
-        if (!i) return;
-        i.style.transition = 'transform ' + (ms || 200) + 'ms cubic-bezier(0.22, 0.61, 0.36, 1)';
-        i.style.transform = 'translateX(0)';
-    }
+        let active = false;      // этот pointer ведёт свайп
+        let startX = 0, startY = 0;
+        let curDx = 0;
+        let pid = null;
+        const inner = zone.querySelector('.set-line-inner');
+        const bg = zone.querySelector('.set-swipe-bg');
 
-    function move(x, y) {
-        if (!zone || !inner) return;
-        const dx = x - startX, dy = y - startY;
-        if (!locked) {
-            if (Math.abs(dy) > SWIPE_AXIS_LOCK && Math.abs(dy) > Math.abs(dx)) { abort(); return; } // вертикаль — скролл
-            if (dx < -SWIPE_AXIS_LOCK && Math.abs(dx) > Math.abs(dy)) {
-                locked = true;
-                zone.classList.add('swipe-active');      // сбрасываем iOS callout/подсветку на время жеста
-                try { document.getSelection && document.getSelection().removeAllRanges(); } catch (e) {}
+        function setTransform(px, animate) {
+            if (!inner) return;
+            inner.style.transition = animate ? 'transform 0.14s ease-out' : 'none';
+            inner.style.transform = 'translateX(' + px + 'px)';
+        }
+
+        zone.addEventListener('pointerdown', function (e) {
+            if (e.pointerType === 'mouse' && e.button !== 0) return;
+            if (isFieldTarget(e.target, zone)) return;
+            active = true;
+            pid = e.pointerId;
+            startX = e.clientX; startY = e.clientY; curDx = 0;
+            // Перехватываем указатель: все pointermove/up придут сюда, даже вне зоны.
+            try { zone.setPointerCapture(pid); } catch (err) {}
+            setTransform(0, false);
+        });
+
+        zone.addEventListener('pointermove', function (e) {
+            if (!active || e.pointerId !== pid) return;
+            const dx = e.clientX - startX, dy = e.clientY - startY;
+            if (dx < 0 && Math.abs(dy) <= Math.abs(dx) * SWIPE_AXIS_TOLERANCE) {
+                // Горизонтальное движение — гасим системный скролл и подсветку WebKit.
+                if (e.cancelable) e.preventDefault();
+                zone.classList.add('swipe-active');
+                try { document.getSelection && document.getSelection().removeAllRanges(); } catch (err) {}
                 if (bg) bg.classList.add('visible');
-            } else return;
-        }
-        // Смещение строго за пальцем без пружины за краями — так нет «дёрганья».
-        curDx = Math.max(-SWIPE_MAX_OPEN, Math.min(0, dx));
-        inner.style.transition = 'none';
-        inner.style.transform = 'translateX(' + curDx + 'px)';
-    }
+                curDx = Math.max(-SWIPE_MAX_OPEN, Math.min(0, dx));
+                setTransform(curDx, false);           // строго за пальцем, без пружины — нет «дёрганья»
+            } else if (curDx !== 0) {
+                // Пользователь увёл палец сильно вверх/вниз — возвращаем строку, но жест не бросаем.
+                curDx = 0;
+                setTransform(0, true);
+            }
+        }, { passive: false });
 
-    function end() {
-        if (!zone || !inner) { cleanup(); return; }
-        const z = zone, i = inner, b = bg;
-        const action = z.dataset.swipeLeft;
-        const payload = z.dataset.payload || '';
-        cleanup();
-        z.classList.remove('swipe-active');
-        if (!locked || curDx > -SWIPE_MIN_DX) {
-            // Не довели — плавный возврат строки.
-            if (i) { i.style.transition = 'transform 0.22s cubic-bezier(0.22, 0.61, 0.36, 1)'; i.style.transform = 'translateX(0)'; }
-            if (b) b.classList.remove('visible');
-            return;
+        function finish(e) {
+            if (!active || (e && e.pointerId !== pid)) return;
+            active = false;
+            zone.classList.remove('swipe-active');
+            const fired = curDx <= -SWIPE_TRIGGER_DX;
+            if (!fired) {
+                // Не довели — плавный возврат строки.
+                setTransform(0, true);
+                if (bg) setTimeout(function () { bg.classList.remove('visible'); }, 180);
+                return;
+            }
+            const action = zone.dataset.swipeLeft;
+            const payload = zone.dataset.payload || '';
+            try { haptic('medium'); } catch (err) {}
+            setTransform(-SWIPE_MAX_OPEN, true);      // один плавный glide до полного открытия
+            if (bg) bg.classList.add('visible');
+            setTimeout(function () {
+                const handler = swipeLeftHandlers[action];
+                if (!handler) { console.warn('Unhandled swipe-left action:', action); resetZone(zone); return; }
+                try { handler(action, payload); }     // обработчик перерисовывает карточку — строка исчезает
+                catch (err) { console.error('Swipe-left handler error:', action, err); resetZone(zone); }
+            }, SWIPE_DELETE_DELAY);
         }
-        // Сработало: плавно доводим строку до полного открытия подложки, затем удаляем.
-        try { haptic('medium'); } catch (e) {}
-        if (i) {
-            i.style.transition = 'transform 0.14s ease-out';
-            i.style.transform = 'translateX(-' + SWIPE_MAX_OPEN + 'px)';   // один плавный glide вместо рывка анимацией
-        }
-        if (b) b.classList.add('visible');
-        setTimeout(function () {
-            const handler = swipeLeftHandlers[action];
-            if (!handler) { console.warn('Unhandled swipe-left action:', action); resetZone(z); return; }
-            try { handler(action, payload); }         // обработчик перерисовывает карточку — строка исчезает
-            catch (err) { console.error('Swipe-left handler error:', action, err); resetZone(z); }
-        }, SWIPE_DELETE_DELAY);
+
+        zone.addEventListener('pointerup', finish);
+        zone.addEventListener('pointercancel', function (e) {
+            if (!active || e.pointerId !== pid) return;
+            active = false;
+            zone.classList.remove('swipe-active');
+            setTransform(0, true);
+            if (bg) bg.classList.remove('visible');
+        });
     }
 
     // Возврат зоны в исходное состояние (если удаление не произошло).
@@ -113,48 +130,29 @@ function registerSwipeLeftHandler(action, fn) { swipeLeftHandlers[action] = fn; 
         z.classList.remove('swipe-open');
         const i = z.querySelector('.set-line-inner');
         const b = z.querySelector('.set-swipe-bg');
-        if (i) {
-            i.style.transition = 'transform 0.2s ease';
-            i.style.transform = '';
+        if (i) { i.style.transition = 'transform 0.2s ease'; i.style.transform = ''; }
+        if (b) b.classList.remove('visible');
+    }
+
+    // Глобальная делегирующая привязка: работает и для новых строк после перерисовки карточки.
+    const MO = new MutationObserver(function (muts) {
+        for (let i = 0; i < muts.length; i++) {
+            const added = muts[i].addedNodes;
+            for (let j = 0; j < added.length; j++) {
+                const n = added[j];
+                if (n.nodeType !== 1) continue;
+                if (n.matches && n.matches('[data-swipe-left]')) attachZone(n);
+                if (n.querySelectorAll) {
+                    const list = n.querySelectorAll('[data-swipe-left]');
+                    for (let k = 0; k < list.length; k++) attachZone(list[k]);
+                }
+            }
         }
-        if (b) b.classList.remove('visible');
-    }
-
-    function abort() {           // жест прерван (вертикальный скролл) — просто возвращаем
-        const z = zone, i = inner, b = bg;
-        cleanup();
-        if (z) z.classList.remove('swipe-active');
-        glideHome(i, 180);
-        if (b) b.classList.remove('visible');
-    }
-
-    function cleanup() { zone = null; inner = null; bg = null; locked = false; curDx = 0; }
-
-    if ('ontouchstart' in window || navigator.maxTouchPoints > 0) {
-        document.addEventListener('touchstart', function (e) {
-            if (e.touches.length !== 1) { cleanup(); return; }
-            const t = e.touches[0];
-            begin(e.target, t.clientX, t.clientY);
-        }, { passive: true });
-        document.addEventListener('touchmove', function (e) {
-            if (!zone) return;
-            const t = e.touches[0]; if (!t) return;
-            move(t.clientX, t.clientY);
-            // Перехватываем вертикальный скролл только когда жест уже стал горизонтальным свайпом.
-            if (locked && e.cancelable) e.preventDefault();
-        }, { passive: false });
-        document.addEventListener('touchend', end, { passive: true });
-        document.addEventListener('touchcancel', abort, { passive: true });
-    }
-
-    // Мышь (десктоп/отладка): свайп зажатой левой кнопкой.
-    document.addEventListener('mousedown', function (e) {
-        if (e.button !== 0) return;
-        begin(e.target, e.clientX, e.clientY);
     });
-    document.addEventListener('mousemove', function (e) {
-        if (!zone) return;
-        move(e.clientX, e.clientY);
-    });
-    document.addEventListener('mouseup', function () { if (zone) end(); });
+    function startObserving() { MO.observe(document.body, { childList: true, subtree: true }); }
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', startObserving);
+    } else {
+        startObserving();
+    }
 })();
