@@ -37,8 +37,9 @@ document.addEventListener('click', function (event) {
             case 'note-exercise': { const p = payload.split(':'); openSetNoteModal(parseInt(p[0], 10), parseInt(p[1], 10)); break; }
             case 'adjust-set': { const p = payload.split(':'); adjustSet(parseInt(p[0], 10), parseInt(p[1], 10), p[2], parseFloat(p[3])); break; }
             case 'remove-workout-exercise': removeWorkoutExercise(parseInt(payload, 10)); break;
-            // ── ощущения после упражнения (features/workout/set-note-modal.js) ──
-            case 'open-set-notes': openSetNoteModal(parseInt(payload, 10)); break;
+            // ── заметки к подходам/упражнению (features/workout/set-note-modal.js) ──
+            // case 'open-set-notes' убран вместе с кнопкой «Ощущения»: модалка открывается
+            // только из контекстного меню по долгому нажатию (action 'note-exercise').
             case 'note-save': saveSetNotes(parseInt(payload, 10)); break;
             case 'note-skip': skipSetNotes(parseInt(payload, 10)); break;
             case 'note-suggestion': appendNoteSuggestion(payload); break;

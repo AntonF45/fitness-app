@@ -176,8 +176,7 @@ function saveSetNotes(exIdx) {
             if (v) ex.sets[i].note = v; else delete ex.sets[i].note;
         }
     });
-    ex.notesSeen = true;                   // автопоказ больше не тревожит это упражнение
-    ex.completed = true;                     // флаг для бейджа «✓ Готово» и для истории
+    ex.completed = true;                     // «ощущения внесены» — сохраняется в историю (data-management)
     saveActiveWorkout();                     // заметки живут в state.activeWorkout → restore их вернёт
     closeSetNoteModal();
     haptic('success');
@@ -185,8 +184,8 @@ function saveSetNotes(exIdx) {
 }
 
 function skipSetNotes(exIdx) {
-    const ex = state.activeWorkout && state.activeWorkout.exercises ? state.activeWorkout.exercises[exIdx] : null;
-    if (ex) { ex.completed = false; saveActiveWorkout(); updateExerciseCardInDOM(exIdx, ex); }
+    // «Пропустить» только закрывает модалку: состояние упражнения не меняем,
+    // иначе ранее сохранённые заметки/флаг терялись бы при случайном нажатии.
     closeSetNoteModal();
     haptic('light');
 }
