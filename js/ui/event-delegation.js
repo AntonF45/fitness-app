@@ -36,17 +36,14 @@ document.addEventListener('click', function (event) {
             // ── контекстные действия (features/workout/workout-context-menu.js) ──
             // Меню упражнения — по клику на кнопку «⋮» в углу карточки.
             case 'exercise-menu': openExerciseContextMenu(parseInt(payload, 10)); break;
-            case 'note-exercise': { const p = payload.split(':'); openSetNoteModal(parseInt(p[0], 10), parseInt(p[1], 10)); break; }
+            case 'note-exercise': openSetNoteModal(parseInt(payload, 10)); break;
             case 'adjust-set': { const p = payload.split(':'); adjustSet(parseInt(p[0], 10), parseInt(p[1], 10), p[2], parseFloat(p[3])); break; }
             case 'remove-workout-exercise': removeWorkoutExercise(parseInt(payload, 10)); break;
-            // ── заметки к подходам/упражнению (features/workout/set-note-modal.js) ──
-            // case 'open-set-notes' убран вместе с кнопкой «Ощущения»: модалка открывается
-            // только из контекстного меню по долгому нажатию (action 'note-exercise').
+            // ── комментарий к упражнению (features/workout/set-note-modal.js) ──
+            // Быстрые подсказки (note-suggestion) и общая оценка RPE (note-rpe / note-rpe-more)
+            // убраны: в модалке осталось одно общее поле textarea.
             case 'note-save': saveSetNotes(parseInt(payload, 10)); break;
             case 'note-skip': skipSetNotes(parseInt(payload, 10)); break;
-            case 'note-suggestion': appendNoteSuggestion(payload); break;
-            case 'note-rpe': applyRpeToSets(payload); break;
-            case 'note-rpe-more': revealMoreRpe(); break;
             case 'finish-workout': promptWorkoutExit(); break;
             case 'workout-save': closeWorkoutModal(); saveWorkoutAndOpenPrograms(); break;
             case 'workout-discard': closeWorkoutModal(); discardWorkoutAndOpenPrograms(); break;

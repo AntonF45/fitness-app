@@ -60,7 +60,7 @@ function openExerciseContextMenu(exIdx) {
     const ex = _ctxExercise(exIdx);
     if (!ex) return;
     openWorkoutContextMenu(ex.name, (ex.sets || []).length + ' подх.', [
-        { action: 'note-exercise', payload: exIdx + ':-1', label: 'Добавить комментарий', icon: 'fa-comment-dots', cls: 'btn-primary' },
+        { action: 'note-exercise', payload: String(exIdx), label: 'Добавить комментарий', icon: 'fa-comment-dots', cls: 'btn-primary' },
         { action: 'remove-workout-exercise', payload: String(exIdx), label: 'Удалить упражнение', icon: 'fa-trash-can', cls: 'btn-danger' }
     ]);
 }
@@ -70,7 +70,7 @@ function openSetContextMenu(exIdx, setIdx) {
     const ex = _ctxExercise(exIdx);
     if (!ex || !ex.sets || !ex.sets[setIdx]) return;
     openWorkoutContextMenu(ex.name, formatSetSummary(ex.sets[setIdx]), [
-        { action: 'note-exercise', payload: exIdx + ':' + setIdx, label: 'Добавить комментарий', icon: 'fa-comment-dots', cls: 'btn-primary' },
+        { action: 'note-exercise', payload: String(exIdx), label: 'Добавить комментарий', icon: 'fa-comment-dots', cls: 'btn-primary' },
         { action: 'remove-set', payload: exIdx + ':' + setIdx, label: 'Удалить подход', icon: 'fa-trash-can', cls: 'btn-danger' }
     ]);
 }

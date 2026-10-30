@@ -7,7 +7,7 @@
 function generateSetHTML(exIdx, setIdx, set, exType) {
     const isDrop = set.setType === 'drop';
     const bw = exType === 'bodyweight';
-    const noteHTML = set.note ? '<div class="set-note"><i class="fa-solid fa-comment-dots"></i> ' + escHtml(set.note) + '</div>' : '';
+    // Заметка-комментарий теперь одна на упражнение (ex.note) — под списком подходов, не у каждой строки.
     return '<li id="set-row-' + exIdx + '-' + setIdx + '" class="set-line card-enter' + (isDrop ? ' set-drop' : '') + '" data-longpress="context-set" data-payload="' + exIdx + ':' + setIdx + '">' +
         '<div class="set-line-main">' +
             '<span class="set-num">' + (isDrop ? '<i class="fa-solid fa-fire set-num-drop" title="Дроп-подход"></i>' : '') + '</span>' +
@@ -23,7 +23,7 @@ function generateSetHTML(exIdx, setIdx, set, exType) {
                 '<button data-action="adjust-set" data-payload="' + exIdx + ':' + setIdx + ':reps:1" class="step-btn" aria-label="Больше повторов">+</button>' +
                 '<span class="unit-hint">повт</span>' +
             '</div>' +
-        '</div>' + noteHTML +
+        '</div>' +
     '</li>';
 }
 function generateExerciseCardHTML(exIdx, ex) {
@@ -31,13 +31,14 @@ function generateExerciseCardHTML(exIdx, ex) {
     const completed = sets.filter(function (s) { return s.weight > 0 && s.reps > 0; }).length;
     const target = ex.targetSets ?? 3;
     const isComplete = completed >= target;   // «✓ Готово» — только по числу заполненных подходов
-    const hasNotes = sets.some(function (st) { return !!(st && st.note); });
+    const hasNotes = !!(ex.note && String(ex.note).trim());
     // Заголовок: название — зона долгого нажатия (контекстное меню: удалить / комментарий).
     // Кнопка «крестик» убрана, удаление упражнения — только через контекст с подтверждением.
     // Отдельная кнопка «Ощущения» убрана: комментарий добавляется тем же долгим нажатием,
-    // наличие заметки показывается иконкой в заголовке и под строкой подхода.
+    // наличие заметки показывается иконкой в заголовке и блоком под списком подходов.
     // Меню упражнения открывается обычной кнопкой «⋮» (data-action="exercise-menu") —
     // надёжный клик вместо долгого нажатия, которое не срабатывало в Telegram WebView.
+    const exNoteHTML = hasNotes ? '<div class="set-note exercise-note mb-3"><i class="fa-solid fa-comment-dots"></i> ' + escHtml(ex.note) + '</div>' : '';
     return '<div id="exercise-card-' + exIdx + '" class="app-card mb-4 card-enter">' +
         '<div class="flex justify-between items-center mb-3 gap-2">' +
             '<div class="exercise-header flex items-center gap-2 flex-1 min-w-0 flex-wrap">' +
@@ -49,6 +50,7 @@ function generateExerciseCardHTML(exIdx, ex) {
             '<button data-action="exercise-menu" data-payload="' + exIdx + '" class="menu-btn shrink-0" aria-label="Меню упражнения"><i class="fa-solid fa-ellipsis-vertical"></i></button>' +
         '</div>' +
         '<ol id="sets-container-' + exIdx + '" class="sets-list">' + sets.map(function (s, i) { return generateSetHTML(exIdx, i, s, ex.exerciseType); }).join('') + '</ol>' +
+        exNoteHTML +
         '<div class="exercise-actions"><button data-action="add-set" data-payload="' + exIdx + '" class="btn btn-sm btn-secondary">+ Подход</button><button data-action="add-drop-set" data-payload="' + exIdx + '" class="btn btn-sm btn-warn"><i class="fa-solid fa-fire"></i> Дроп-сет</button></div>' +
     '</div>';
 }
@@ -61,7 +63,7 @@ function tryAddSet(exIdx) {
     if (sets.length > 0) {
         const last = sets[sets.length - 1];
         if (!last.weight || Number(last.weight) <= 0 || !last.reps || Number(last.reps) <= 0) {
-            showAlert(last.note ? 'Предыдущий подход не заполнен (к нему уже есть комментарий)' : 'Заполните предыдущий подход');
+            showAlert('Заполните предыдущий подход');
             return;
         }
     }
