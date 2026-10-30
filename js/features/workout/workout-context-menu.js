@@ -17,7 +17,6 @@
 
 const CTX_MENU_ID = 'workout-context-menu';
 
-// ---------- helpers ----------
 function _ctxExercise(exIdx) {
     return state.activeWorkout && state.activeWorkout.exercises ? state.activeWorkout.exercises[exIdx] : null;
 }
@@ -29,7 +28,6 @@ function formatSetSummary(set) {
     return label + ' · ' + w + ' кг × ' + r;
 }
 
-// ---------- view: bottom-sheet меню ----------
 function closeWorkoutContextMenu() { const m = document.getElementById(CTX_MENU_ID); if (m) m.remove(); }
 
 function openWorkoutContextMenu(title, subtitle, items) {
@@ -55,7 +53,6 @@ function openWorkoutContextMenu(title, subtitle, items) {
     haptic('light');
 }
 
-// ---------- exercise: context-exercise ----------
 function openExerciseContextMenu(exIdx) {
     const ex = _ctxExercise(exIdx);
     if (!ex) return;
@@ -65,7 +62,6 @@ function openExerciseContextMenu(exIdx) {
     ]);
 }
 
-// ---------- set: context-set ----------
 function openSetContextMenu(exIdx, setIdx) {
     const ex = _ctxExercise(exIdx);
     if (!ex || !ex.sets || !ex.sets[setIdx]) return;
@@ -75,7 +71,6 @@ function openSetContextMenu(exIdx, setIdx) {
     ]);
 }
 
-// ---------- реестр жестов long-press (только подходы; меню упражнения — по клику «⋮») ----------
 registerLongPressHandler('context-set', function (action, payload) {
     const p = String(payload).split(':');
     openSetContextMenu(parseInt(p[0], 10), parseInt(p[1], 10));

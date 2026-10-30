@@ -3,11 +3,11 @@
    Добавляя новый экран, регистрируйте действие здесь, а не навешивайте onclick в HTML. */
 'use strict';
 
-// === ДЕЛЕГИРОВАНИЕ СОБЫТИЙ (click) ===
+// === click ===
 document.addEventListener('click', function (event) {
     const target = event.target.closest('[data-action]');
     if (!event.target.closest('.ac-wrapper')) hideAllAutocomplete();
-    // Клик вне контекстного меню тренировки закрывает его (само меню — modal-backdrop, не [data-action])
+    // Клик вне контекстного меню закрывает его.
     if (typeof closeWorkoutContextMenu === 'function' && !event.target.closest('#workout-context-menu')) closeWorkoutContextMenu();
     if (!target) return;
     const action = target.dataset.action;
@@ -33,15 +33,11 @@ document.addEventListener('click', function (event) {
             case 'add-set': tryAddSet(parseInt(payload, 10)); break;
             case 'add-drop-set': tryAddDropSet(parseInt(payload, 10)); break;
             case 'remove-set': { const p = payload.split(':'); confirmRemoveSet(parseInt(p[0], 10), parseInt(p[1], 10)); break; }
-            // ── контекстные действия (features/workout/workout-context-menu.js) ──
-            // Меню упражнения — по клику на кнопку «⋮» в углу карточки.
+            // ── контекстные действия ──
             case 'exercise-menu': openExerciseContextMenu(parseInt(payload, 10)); break;
             case 'note-exercise': openSetNoteModal(parseInt(payload, 10)); break;
             case 'adjust-set': { const p = payload.split(':'); adjustSet(parseInt(p[0], 10), parseInt(p[1], 10), p[2], parseFloat(p[3])); break; }
             case 'remove-workout-exercise': removeWorkoutExercise(parseInt(payload, 10)); break;
-            // ── комментарий к упражнению (features/workout/set-note-modal.js) ──
-            // Быстрые подсказки (note-suggestion) и общая оценка RPE (note-rpe / note-rpe-more)
-            // убраны: в модалке осталось одно общее поле textarea.
             case 'note-save': saveSetNotes(parseInt(payload, 10)); break;
             case 'note-skip': skipSetNotes(parseInt(payload, 10)); break;
             case 'finish-workout': promptWorkoutExit(); break;
@@ -84,12 +80,17 @@ document.addEventListener('input', function (e) {
             return;
         }
         if (t.classList.contains('exercise-input')) updateExercise(parseInt(t.dataset.exerciseIndex, 10), t.dataset.field, t.value);
+        if (t.classList.contains('set-input')) {
+            const exIdx = parseInt(t.dataset.exercise, 10), setIdx = parseInt(t.dataset.set, 10);
+            saveSetDraft(exIdx, setIdx, t.dataset.field, t.value);
+            updateExerciseBadge(exIdx);
+        }
     } catch (err) {
         console.error('Input handler error:', err);
     }
 });
 
-// === ВАРИАНТЫ ПРИ ФОКУСЕ НА ПОЛЕ ===
+// === focusin ===
 document.addEventListener('focusin', function (e) {
     try {
         const t = e.target;
@@ -100,7 +101,7 @@ document.addEventListener('focusin', function (e) {
     }
 });
 
-// === ДЕЛЕГИРОВАНИЕ ИЗМЕНЕНИЙ (change) ===
+// === change ===
 document.addEventListener('change', function (e) {
     try {
         const t = e.target;
@@ -110,8 +111,8 @@ document.addEventListener('change', function (e) {
             const exIdx = parseInt(t.dataset.exercise, 10), setIdx = parseInt(t.dataset.set, 10), field = t.dataset.field;
             const value = field === 'weight' ? parseWeight(t.value) : parseReps(t.value);
             const set = state.activeWorkout && state.activeWorkout.exercises && state.activeWorkout.exercises[exIdx] ? state.activeWorkout.exercises[exIdx].sets[setIdx] : null;
-            if (value === null) { showAlert('Недопустимое значение'); if (set) t.value = set[field]; return; }
-            if (set) { updateSet(exIdx, setIdx, field, value); updateExerciseBadge(exIdx); }
+            if (value === null) { showAlert('Недопустимое значение'); if (set) { t.value = set[field]; saveSetDraft(exIdx, setIdx, field, String(set[field])); } return; }
+            if (set) { updateSet(exIdx, setIdx, field, value); saveSetDraft(exIdx, setIdx, field, String(value)); updateExerciseBadge(exIdx); }
         }
     } catch (err) {
         console.error('Change handler error:', err);

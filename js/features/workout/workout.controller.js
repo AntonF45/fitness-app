@@ -2,15 +2,18 @@
    таймер, старт/завершение сессии. */
 'use strict';
 
-// Строка подхода — единый блок без границы, с заливкой в цвет карточки упражнения:
-// порядковый номер, группы кнопок − / + и поля ввода (вес, повторения).
-// Единицы («кг», «повт») стоят в той же строке сразу после кнопки «+» (см. .set-field в css).
-// Удаление подхода — свайпом влево по строке (жест как в Telegram: открытие → схлопывание),
-// долгим нажатием доступно меню (комментарий / удалить с подтверждением).
+// Строка подхода: номер, группы «−/+» с полями ввода, единицы («кг», «повт») сразу после «+».
+// Удаление — свайпом влево (как в Telegram), долгое нажатие открывает меню.
+function setFieldValue(exIdx, setIdx, field, setData) {
+    if (typeof effectiveSetValue === 'function') return escAttr(effectiveSetValue(exIdx, setIdx, field, setData));
+    return String(setData);
+}
+
 function generateSetHTML(exIdx, setIdx, set, exType) {
     const isDrop = set.setType === 'drop';
     const bw = exType === 'bodyweight';
-    // Заметка-комментарий теперь одна на упражнение (ex.note) — под списком подходов, не у каждой строки.
+    const w = setFieldValue(exIdx, setIdx, 'weight', set.weight);
+    const r = setFieldValue(exIdx, setIdx, 'reps', set.reps);
     return '<li id="set-row-' + exIdx + '-' + setIdx + '" class="set-line card-enter' + (isDrop ? ' set-drop' : '') + '" data-swipe-left="delete-set" data-payload="' + exIdx + ':' + setIdx + '" data-longpress="context-set">' +
         '<div class="set-swipe-bg"><i class="fa-solid fa-trash-can"></i><span>Удалить</span></div>' +
         '<div class="set-line-inner">' +
@@ -19,13 +22,13 @@ function generateSetHTML(exIdx, setIdx, set, exType) {
             (isDrop ? '<i class="fa-solid fa-fire set-num-drop" title="Дроп-подход"></i>' : '') +
             '<div class="set-field">' +
                 '<button data-action="adjust-set" data-payload="' + exIdx + ':' + setIdx + ':weight:-2.5" class="step-btn" aria-label="Меньше вес">−</button>' +
-                '<input type="number" id="set-' + exIdx + '-' + setIdx + '-weight" inputmode="decimal" value="' + set.weight + '" data-exercise="' + exIdx + '" data-set="' + setIdx + '" data-field="weight" class="set-input input-bare h-9 text-center text-base font-semibold min-w-0" aria-label="' + (bw ? 'Доп. вес, кг' : 'Вес, кг') + '">' +
+                '<input type="number" id="set-' + exIdx + '-' + setIdx + '-weight" inputmode="decimal" value="' + w + '" data-exercise="' + exIdx + '" data-set="' + setIdx + '" data-field="weight" class="set-input input-bare h-9 text-center text-base font-semibold min-w-0" aria-label="' + (bw ? 'Доп. вес, кг' : 'Вес, кг') + '">' +
                 '<button data-action="adjust-set" data-payload="' + exIdx + ':' + setIdx + ':weight:2.5" class="step-btn" aria-label="Больше вес">+</button>' +
                 '<span class="unit-hint shrink-0">кг</span>' +
             '</div>' +
             '<div class="set-field">' +
                 '<button data-action="adjust-set" data-payload="' + exIdx + ':' + setIdx + ':reps:-1" class="step-btn" aria-label="Меньше повторов">−</button>' +
-                '<input type="number" id="set-' + exIdx + '-' + setIdx + '-reps" inputmode="numeric" value="' + set.reps + '" data-exercise="' + exIdx + '" data-set="' + setIdx + '" data-field="reps" class="set-input input-bare h-9 text-center text-base font-semibold min-w-0" aria-label="Повторения">' +
+                '<input type="number" id="set-' + exIdx + '-' + setIdx + '-reps" inputmode="numeric" value="' + r + '" data-exercise="' + exIdx + '" data-set="' + setIdx + '" data-field="reps" class="set-input input-bare h-9 text-center text-base font-semibold min-w-0" aria-label="Повторения">' +
                 '<button data-action="adjust-set" data-payload="' + exIdx + ':' + setIdx + ':reps:1" class="step-btn" aria-label="Больше повторов">+</button>' +
                 '<span class="unit-hint shrink-0">повт</span>' +
             '</div>' +
@@ -33,18 +36,13 @@ function generateSetHTML(exIdx, setIdx, set, exType) {
         '</div>' +
     '</li>';
 }
+
 function generateExerciseCardHTML(exIdx, ex) {
     const sets = ex.sets || [];
-    const completed = sets.filter(function (s) { return s.weight > 0 && s.reps > 0; }).length;
+    const completed = countCompletedSets(exIdx);
     const target = ex.targetSets ?? 3;
-    const isComplete = completed >= target;   // «✓ Готово» — только по числу заполненных подходов
+    const isComplete = completed >= target;
     const hasNotes = !!(ex.note && String(ex.note).trim());
-    // Заголовок: название — зона долгого нажатия (контекстное меню: удалить / комментарий).
-    // Кнопка «крестик» убрана, удаление упражнения — только через контекст с подтверждением.
-    // Отдельная кнопка «Ощущения» убрана: комментарий добавляется тем же долгим нажатием,
-    // наличие заметки показывается иконкой в заголовке и блоком под списком подходов.
-    // Меню упражнения открывается обычной кнопкой «⋮» (data-action="exercise-menu") —
-    // надёжный клик вместо долгого нажатия, которое не срабатывало в Telegram WebView.
     const exNoteHTML = hasNotes ? '<div class="set-note exercise-note mb-3"><i class="fa-solid fa-comment-dots"></i> ' + escHtml(ex.note) + '</div>' : '';
     return '<div id="exercise-card-' + exIdx + '" class="app-card mb-4 card-enter">' +
         '<div class="flex justify-between items-center mb-3 gap-2">' +
@@ -61,149 +59,111 @@ function generateExerciseCardHTML(exIdx, ex) {
         '<div class="exercise-actions"><button data-action="add-set" data-payload="' + exIdx + '" class="btn btn-sm btn-secondary">+ Подход</button><button data-action="add-drop-set" data-payload="' + exIdx + '" class="btn btn-sm btn-warn"><i class="fa-solid fa-fire"></i> Дроп-сет</button></div>' +
     '</div>';
 }
-// Инкрементальное обновление списка подходов карточки БЕЗ замены узлов целиком.
-// Ключевой момент для свайп-удаления: sync НЕ удаляет строку, анимация схлопывания
-// которой ещё не завершена (свойство swipeAnimating выставляет ui/swipe-delete.js).
-// Такие «замороженные» строки также не участвуют в перенумерации — индексы
-// оставшихся строк приводятся в соответствие с данными только после финализации.
-// Функция идемпотентна: повторный вызов ничего лишнего не меняет.
-// ВАЖНО: при отсутствии контейнера возвращает false — тогда вызывающий код
-// перерисовывает карточку/экран целиком (см. updateExerciseCardInDOM).
-//
-// Черновики полей ввода. set-input синхронизируется с данными ТОЛЬКО по событию
-// change (blur), поэтому набранное, но не подтверждённое значение живёт лишь в
-// DOM. При перенумерации рядов (удаление/добавление подхода) innerHTML строки
-// перезаписывается значениями ДРУГОГО подхода — неподтверждённое значение терялось,
-// поле «возвращалось» к старым данным, а badge считал completed по данным без
-// подтверждения. Перед каждой перезаписи значение поля сохраняется и переносится
-// на тот индекс, куда физически переехал этот подход.
-function readRowInputs(exIdx, setIdx) {
-    const out = {};
-    ['weight', 'reps'].forEach(function (f) {
-        const el = document.getElementById('set-' + exIdx + '-' + setIdx + '-' + f);
-        if (el) out[f] = el.value;
-    });
-    return out;
-}
-// Снимок значений ВСЕХ видимых рядов до начала перенумерации.
-function snapshotVisibleRows(exIdx, visible) {
-    const snap = [];
-    for (let i = 0; i < visible.length; i++) snap.push(readRowInputs(exIdx, parseInt(String(visible[i].dataset.payload || '').split(':')[1], 10)));
-    return snap;
-}
 
+// Инкрементальная синхронизация списка подходов: узлы не заменяются целиком,
+// строка с незавершённой свайп-анимацией (swipeAnimating) не трогается вовсе.
+// Возвращает false, если контейнера нет в DOM — вызывающий перерисовывает экран.
 function syncSetsListInPlace(exIdx, ex) {
     const list = document.getElementById('sets-container-' + exIdx);
     if (!list) return false;
 
-    // 1) Удаляем из DOM строки, помеченные свайпом как «удаляемые» (и любые строки,
-    //    чей setIdx больше числа подходов в данных — на случай рассинхронизации).
-    //    Строки с незавершённой анимацией (swipeAnimating) не трогаем вовсе.
-    //    Сбор идёт СПИСКОМ, удаление — ОТДЕЛЬНЫМ ЦИКЛОМ ПОСЛЕ обхода (прежний
-    //    обход с удалением на месте прерывался на nextElementSibling === null).
     const nSets = ex.sets.length;
     const doomed = [];
     let cur = list.firstElementChild;
     while (cur) {
         const next = cur.nextElementSibling;
         if (!cur.swipeAnimating) {
-            const p = String(cur.dataset.payload || '').split(':');
-            const sIdx = parseInt(p[1], 10);
-            if (cur.dataset.swipeRemoving === '1' || (!isNaN(sIdx) && sIdx >= nSets)) {
-                doomed.push(cur);
-            }
+            const sIdx = parseInt(String(cur.dataset.payload || '').split(':')[1], 10);
+            if (cur.dataset.swipeRemoving === '1' || (!isNaN(sIdx) && sIdx >= nSets)) doomed.push(cur);
         }
         cur = next;
     }
-    for (let d = 0; d < doomed.length; d++) {
-        if (doomed[d].parentNode === list) list.removeChild(doomed[d]);
-    }
+    for (let d = 0; d < doomed.length; d++) if (doomed[d].parentNode === list) list.removeChild(doomed[d]);
 
-    // 2) Синхронизируем оставшиеся видимые строки с данными по позиции.
-    //    Позиция считается среди строк без «заморозки», чтобы не переписывать
-    //    payload/разметку схлопываемой строки в разгар анимации.
     const visible = [];
     cur = list.firstElementChild;
     while (cur) {
         if (!cur.swipeAnimating && cur.dataset.swipeRemoving !== '1') visible.push(cur);
         cur = cur.nextElementSibling;
     }
-    // Снимок ДО любых изменений разметки: id полей уникальны, поэтому чтение
-    // после записи соседней строки уже вернуло бы чужое значение.
-    const snap = snapshotVisibleRows(exIdx, visible);
+
     for (let i = 0; i < nSets; i++) {
         let li = visible[i];
-        if (!li) {                                   // не хватает — добавляем новую строку
+        if (!li) {
             const tmp = document.createElement('ol');
             tmp.innerHTML = generateSetHTML(exIdx, i, ex.sets[i], ex.exerciseType);
             list.appendChild(tmp.firstElementChild);
-            li = list.lastElementChild;
-            visible[i] = li;
-        } else {                                     // обновляем содержимое существующей
-            const oldIdx = parseInt(String(li.dataset.payload || '').split(':')[1], 10);
-            const srcTmp = document.createElement('ol');
-            srcTmp.innerHTML = generateSetHTML(exIdx, i, ex.sets[i], ex.exerciseType);
-            const src = srcTmp.firstElementChild;
-            li.id = src.id;
-            li.className = src.className;            // card-enter/set-drop и т.п.
-            li.dataset.payload = src.dataset.payload;
-            const inner = li.querySelector('.set-line-inner');
-            const srcInner = src.querySelector('.set-line-inner');
-            if (inner && srcInner) inner.innerHTML = srcInner.innerHTML;
-            // Переносим неподтверждённые значения: ряд физически остался на месте,
-            // но подход под ним сместился — берём снимок СТАРОГО индекса ряда.
-            if (!isNaN(oldIdx) && oldIdx !== i) {
-                const carried = snap[i] || {};
-                ['weight', 'reps'].forEach(function (f) {
-                    if (typeof carried[f] === 'string') {
-                        const el = document.getElementById('set-' + exIdx + '-' + i + '-' + f);
-                        if (el) el.value = carried[f];
-                    }
-                });
-            }
+            continue;
         }
+        const srcTmp = document.createElement('ol');
+        srcTmp.innerHTML = generateSetHTML(exIdx, i, ex.sets[i], ex.exerciseType);
+        const src = srcTmp.firstElementChild;
+        li.id = src.id;
+        li.className = src.className;
+        li.dataset.payload = src.dataset.payload;
+        const inner = li.querySelector('.set-line-inner');
+        const srcInner = src.querySelector('.set-line-inner');
+        if (inner && srcInner) inner.innerHTML = srcInner.innerHTML;
     }
-    // 3) Лишние видимые строки (если данных стало меньше без пометки свайпом).
-    for (let i = visible.length - 1; i >= nSets; i--) {
-        if (visible[i].parentNode === list) list.removeChild(visible[i]);
-    }
+
+    for (let i = visible.length - 1; i >= nSets; i--) if (visible[i].parentNode === list) list.removeChild(visible[i]);
+
+    if (typeof applySetDraftsToInputs === 'function') applySetDraftsToInputs(exIdx);
     return true;
 }
 
 function updateExerciseCardInDOM(exIdx, ex) {
     const card = document.getElementById('exercise-card-' + exIdx);
-    if (!card) { renderWorkout(); return; }   // карточки нет в DOM — перерисовываем экран
-
-    // Всегда инкрементальная синхронизация: полная замена карточки через outerHTML
-    // пересоздавала все строки (потеря фокуса, «воскрешение» удалённого подхода,
-    // возврат значений полей).
+    if (!card) { renderWorkout(); return; }
     syncSetsListInPlace(exIdx, ex);
     updateExerciseBadge(exIdx);
 }
-// Badge («2/3», «✓ Готово») считает КОЛИЧЕСТВО заполненных подходов, а поля ввода
-// пишутся в state только по событию change (blur). В Telegram WebView blur часто
-// не наступает (клавиатура закрывается кнопкой, касание вне окна и т.п.), поэтому
-// подход может быть заполнен на экране, но оставаться пустым в данных. Счёт
-// completed берётся из фактических значений input'ов (с откатом на данные, если
-// строки ещё не отрисованы) — тогда статус всегда соответствует видимому состоянию.
+
+// Badge считает заполненные подходы по фактическим значениям полей ввода
+// (через реестр черновиков), с откатом на данные state.
 function countCompletedSets(exIdx) {
     const ex = state.activeWorkout && state.activeWorkout.exercises ? state.activeWorkout.exercises[exIdx] : null;
-    if (!ex) return 0;
-    let fromDom = 0, domRows = 0;
+    if (!ex || !ex.sets) return 0;
+    let completed = 0;
     for (let i = 0; i < ex.sets.length; i++) {
-        const wEl = document.getElementById('set-' + exIdx + '-' + i + '-weight');
-        const rEl = document.getElementById('set-' + exIdx + '-' + i + '-reps');
-        if (!wEl || !rEl) continue;                       // строка этого ряда ещё не в DOM
-        domRows++;
-        const w = Number(wEl.value), r = Number(rEl.value);
-        if (w > 0 && r > 0) fromDom++;
+        const w = Number(effectiveSetValue(exIdx, i, 'weight', ex.sets[i].weight));
+        const r = Number(effectiveSetValue(exIdx, i, 'reps', ex.sets[i].reps));
+        if (w > 0 && r > 0) completed++;
     }
-    if (domRows === ex.sets.length) return fromDom;      // все ряды видны — доверяем экрану
-    return ex.sets.filter(function (s) { return s.weight > 0 && s.reps > 0; }).length;
+    return completed;
 }
-function updateExerciseBadge(exIdx) { const ex = state.activeWorkout && state.activeWorkout.exercises ? state.activeWorkout.exercises[exIdx] : null; if (!ex) return; const completed = countCompletedSets(exIdx); const target = ex.targetSets ?? 3; const badge = document.getElementById('badge-' + exIdx); if (badge) { badge.className = 'text-xs font-medium px-2 py-1 rounded-md shrink-0 ' + (completed >= target ? 'bg-green-500/20 text-green-500' : 'app-inset text-tgHint'); badge.innerText = completed >= target ? '✓ Готово' : completed + '/' + target; } }
-function removeWorkoutExercise(exIdx) { closeWorkoutContextMenu(); showConfirm('Удалить это упражнение из тренировки?', function (ok) { if (ok) { state.activeWorkout.exercises.splice(exIdx, 1); saveActiveWorkout(); haptic('light'); renderWorkout(); } }); }
-// Перед добавлением подхода убеждаемся, что последний заполнен; подсказываем про комментарий.
+
+function updateExerciseBadge(exIdx) {
+    const ex = state.activeWorkout && state.activeWorkout.exercises ? state.activeWorkout.exercises[exIdx] : null;
+    if (!ex) return;
+    const completed = countCompletedSets(exIdx);
+    const target = ex.targetSets ?? 3;
+    const badge = document.getElementById('badge-' + exIdx);
+    if (!badge) return;
+    badge.className = 'text-xs font-medium px-2 py-1 rounded-md shrink-0 ' + (completed >= target ? 'bg-green-500/20 text-green-500' : 'app-inset text-tgHint');
+    badge.innerText = completed >= target ? '✓ Готово' : completed + '/' + target;
+}
+
+function removeWorkoutExercise(exIdx) {
+    closeWorkoutContextMenu();
+    showConfirm('Удалить это упражнение из тренировки?', function (ok) {
+        if (!ok) return;
+        if (typeof clearSetDraftsForExercise === 'function') clearSetDraftsForExercise(exIdx);
+        state.activeWorkout.exercises.splice(exIdx, 1);
+        saveActiveWorkout(); haptic('light'); renderWorkout();
+    });
+}
+
+// Новый подход наследует вес/повторы последнего и сразу попадает в черновики,
+// чтобы последующая перерисовка не потеряла значение до blur.
+function seedNewSetDrafts(exIdx, setIdx, set) {
+    if (typeof saveSetDraft !== 'function') return;
+    ['weight', 'reps'].forEach(function (f) {
+        const v = set[f];
+        if (v !== 0 && v !== null && typeof v !== 'undefined') saveSetDraft(exIdx, setIdx, f, String(v));
+    });
+}
+
 function tryAddSet(exIdx) {
     const sets = state.activeWorkout.exercises[exIdx].sets || [];
     if (sets.length > 0) {
@@ -215,9 +175,20 @@ function tryAddSet(exIdx) {
     }
     addSet(exIdx);
 }
-function tryAddDropSet(exIdx) { const sets = state.activeWorkout.exercises[exIdx].sets || []; if (sets.length === 0) { showAlert('Сначала добавьте обычный подход'); return; } const last = sets[sets.length - 1]; if (!last.weight || Number(last.weight) <= 0 || !last.reps || Number(last.reps) <= 0) { showAlert('Заполните предыдущий подход'); return; } addDropSet(exIdx); }
+
+function tryAddDropSet(exIdx) {
+    const sets = state.activeWorkout.exercises[exIdx].sets || [];
+    if (sets.length === 0) { showAlert('Сначала добавьте обычный подход'); return; }
+    const last = sets[sets.length - 1];
+    if (!last.weight || Number(last.weight) <= 0 || !last.reps || Number(last.reps) <= 0) {
+        showAlert('Заполните предыдущий подход'); return;
+    }
+    addDropSet(exIdx);
+}
+
 function renderWorkout() {
-    const workout = state.activeWorkout; if (!workout) { openProgramsScreen(); return; }
+    const workout = state.activeWorkout;
+    if (!workout) { openProgramsScreen(); return; }
     const exercises = workout.exercises || [];
     const allSsIds = exercises.map(function (e) { return e.supersetId; });
     const groups = []; const processed = new Set();
@@ -242,33 +213,65 @@ function renderWorkout() {
         '<button data-action="add-workout-exercise" class="btn btn-dashed mt-2 mb-2"><i class="fa-solid fa-plus"></i> Добавить упражнение</button>' +
         '<button data-action="finish-workout" class="btn btn-danger mt-2 mb-4"><i class="fa-solid fa-stop"></i> Завершить тренировку</button>';
     startTimer(); clearMainButton();
-    // Принудальная привязка свайп-зон к freshly-отрисованным строкам — не полагаемся
-    // только на MutationObserver (см. ui/swipe-delete.js).
     if (typeof window.bindSwipeZones === 'function') window.bindSwipeZones();
 }
-function adjustSet(exIdx, setIdx, field, delta) { const ex = state.activeWorkout && state.activeWorkout.exercises ? state.activeWorkout.exercises[exIdx] : null; if (!ex) return; const set = ex.sets ? ex.sets[setIdx] : null; if (!set) return; const current = Number(set[field]) || 0; set[field] = field === 'weight' ? adjustWeight(current, delta) : adjustReps(current, delta); saveActiveWorkout(); haptic('light'); const input = document.getElementById('set-' + exIdx + '-' + setIdx + '-' + field); if (input) input.value = set[field]; updateExerciseBadge(exIdx); }
-function addSet(exIdx) { const ex = state.activeWorkout.exercises[exIdx]; const sets = ex.sets; let w = 0, r = ex.targetReps ?? 10; if (sets.length > 0) { w = sets[sets.length - 1].weight; r = sets[sets.length - 1].reps; } sets.push({ weight: w, reps: r, setType: 'regular' }); saveActiveWorkout(); haptic('light'); updateExerciseCardInDOM(exIdx, ex); }
-function addDropSet(exIdx) { const ex = state.activeWorkout.exercises[exIdx]; const sets = ex.sets; const last = sets[sets.length - 1]; const drop = Math.max(0, Math.round((last.weight * 0.75) / 2.5) * 2.5); sets.push({ weight: drop, reps: last.reps, setType: 'drop' }); saveActiveWorkout(); haptic('medium'); updateExerciseCardInDOM(exIdx, ex); }
-// Удаление подхода — только с подтверждением (вызывается из контекстного меню long-press).
+
+function adjustSet(exIdx, setIdx, field, delta) {
+    const ex = state.activeWorkout && state.activeWorkout.exercises ? state.activeWorkout.exercises[exIdx] : null;
+    if (!ex) return;
+    const set = ex.sets ? ex.sets[setIdx] : null;
+    if (!set) return;
+    const current = Number(set[field]) || 0;
+    set[field] = field === 'weight' ? adjustWeight(current, delta) : adjustReps(current, delta);
+    saveActiveWorkout(); haptic('light');
+    if (typeof saveSetDraft === 'function') saveSetDraft(exIdx, setIdx, field, String(set[field]));
+    const input = document.getElementById('set-' + exIdx + '-' + setIdx + '-' + field);
+    if (input) input.value = set[field];
+    updateExerciseBadge(exIdx);
+}
+
+function addSet(exIdx) {
+    const ex = state.activeWorkout.exercises[exIdx];
+    const sets = ex.sets;
+    let w = 0, r = ex.targetReps ?? 10;
+    if (sets.length > 0) { w = sets[sets.length - 1].weight; r = sets[sets.length - 1].reps; }
+    const created = { weight: w, reps: r, setType: 'regular' };
+    sets.push(created);
+    if (typeof shiftSetDraftsAfterInsertion === 'function') shiftSetDraftsAfterInsertion(exIdx, sets.length - 1);
+    seedNewSetDrafts(exIdx, sets.length - 1, created);
+    saveActiveWorkout(); haptic('light');
+    updateExerciseCardInDOM(exIdx, ex);
+}
+
+function addDropSet(exIdx) {
+    const ex = state.activeWorkout.exercises[exIdx];
+    const sets = ex.sets;
+    const last = sets[sets.length - 1];
+    const drop = Math.max(0, Math.round((last.weight * 0.75) / 2.5) * 2.5);
+    const created = { weight: drop, reps: last.reps, setType: 'drop' };
+    sets.push(created);
+    if (typeof shiftSetDraftsAfterInsertion === 'function') shiftSetDraftsAfterInsertion(exIdx, sets.length - 1);
+    seedNewSetDrafts(exIdx, sets.length - 1, created);
+    saveActiveWorkout(); haptic('medium');
+    updateExerciseCardInDOM(exIdx, ex);
+}
+
+// Удаление подхода через меню долгого нажатия — с подтверждением.
 function confirmRemoveSet(exIdx, setIdx) {
     const ex = state.activeWorkout && state.activeWorkout.exercises ? state.activeWorkout.exercises[exIdx] : null;
     if (!ex || !ex.sets || !ex.sets[setIdx]) return;
     showConfirm('Удалить подход ' + (setIdx + 1) + '?', function (ok) { if (ok) removeSet(exIdx, setIdx); });
 }
-// Удаление подхода. Данные (state + localStorage) меняются сразу; DOM-строку
-// убирает свайп-модуль после анимации схлопывания — syncSetsListInPlace трогает
-// только строки без флага swipeAnimating, поэтому «возврат» подхода невозможен.
+
 function removeSet(exIdx, setIdx) {
     const sets = state.activeWorkout.exercises[exIdx].sets;
     if (sets.length <= 1) sets[0] = { weight: 0, reps: 10, setType: 'regular' };
     else sets.splice(setIdx, 1);
-    saveActiveWorkout();
-    haptic('light');
+    if (typeof shiftSetDraftsAfterRemoval === 'function') shiftSetDraftsAfterRemoval(exIdx, setIdx);
+    saveActiveWorkout(); haptic('light');
     updateExerciseCardInDOM(exIdx, state.activeWorkout.exercises[exIdx]);
 }
-// Свайп влево по строке подхода — удаление сразу, как в Telegram (жест сам по себе
-// осознанный): ui/swipe-delete.js показывает красную зону, долёт строки и схлопывание,
-// и только затем вызывает этот обработчик — данные меняются и карточка перерисовывается.
+
 registerSwipeLeftHandler('delete-set', function (action, payload) {
     const p = String(payload).split(':');
     const exIdx = parseInt(p[0], 10), setIdx = parseInt(p[1], 10);
@@ -277,8 +280,9 @@ registerSwipeLeftHandler('delete-set', function (action, payload) {
     if (!ex || !ex.sets || !ex.sets[setIdx]) return;
     removeSet(exIdx, setIdx);
 });
+
 function updateSet(exIdx, setIdx, field, value) { state.activeWorkout.exercises[exIdx].sets[setIdx][field] = value; saveActiveWorkout(); }
 function startWorkout(programId) { const program = DataAPI.getProgramById(programId); if (!program || !(program.exercises || []).length) { showAlert('Нет упражнений'); return; } state.activeWorkout = { programId: program.id, programName: program.name, startTime: Date.now(), exercises: program.exercises.map(function (ex) { return { name: ex.name, muscleGroup: ex.muscleGroup, exerciseType: ex.exerciseType || 'weighted', supersetId: ex.supersetId || null, targetSets: ex.targetSets, targetReps: ex.targetReps, sets: [{ weight: 0, reps: ex.targetReps || 10, setType: 'regular' }] }; }) }; saveActiveWorkout(); navigate('workout'); }
 function startTimer() { stopWorkoutTimer(); const update = function () { if (!state.activeWorkout) return; const elapsed = Math.max(0, Date.now() - state.activeWorkout.startTime); const h = Math.floor(elapsed / 3600000), m = Math.floor((elapsed % 3600000) / 60000), s = Math.floor((elapsed % 60000) / 1000); const el = document.getElementById('workout-timer'); if (el) el.innerText = String(h).padStart(2, '0') + ':' + String(m).padStart(2, '0') + ':' + String(s).padStart(2, '0'); }; update(); state.workoutTimer = setInterval(update, 1000); }
 function stopWorkoutTimer() { if (state.workoutTimer) { clearInterval(state.workoutTimer); state.workoutTimer = null; } }
-function clearWorkoutState() { stopWorkoutTimer(); state.activeWorkout = null; saveActiveWorkout(); clearMainButton(); }
+function clearWorkoutState() { stopWorkoutTimer(); state.activeWorkout = null; if (typeof clearAllSetDrafts === 'function') clearAllSetDrafts(); saveActiveWorkout(); clearMainButton(); }

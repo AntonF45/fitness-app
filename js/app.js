@@ -1,11 +1,9 @@
-/* js/app.js — точка входа: последовательность загрузки модулей и инициализация приложения.
-   Порядок <script>-тегов в index.html задаёт зависимости (классический режим без ES-модулей,
-   т.к. Telegram WebApp отдаёт один HTML без сборки). */
+/* js/app.js — точка входа. Порядок <script>-тегов в index.html задаёт зависимости. */
 'use strict';
 
-// === ЗАПУСК С ЗАЩИТОЙ ОТ ОШИБОК ===
 (function init() {
     try {
+        resetSetDraftsOnLoad();
         if (restoreActiveWorkout()) navigate('workout'); else navigateToTab('programs');
     } catch (err) {
         console.error('Init error:', err);
