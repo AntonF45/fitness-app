@@ -134,59 +134,90 @@ function swipeIsFieldTarget(target, z) {
             if (l.bg) setTimeout(function () { if (curDx === 0) l.bg.classList.remove('visible'); }, SWIPE_GLIDE_MS);
         }
 
-        // Финальная стадия: сначала изменяем ДАННЫЕ (обработчик), затем схлопываем
-        // именно тот DOM-узел, который пользователь свайпнул, и удаляем его из дерева.
+        // Финальная стадия. ПОРЯДОК КРИТИЧЕН:
+        //   1) сначала визуально схлопываем и удаляем из DOM ИМЕННО ту строку,
+        //      которую свайпнул пользователь;
+        //   2) только потом меняем данные (handler → removeSet → sync/pererisovka).
+        // Если делать наоборот (как было раньше), перерисовка могла отсоединить
+        // наш узел до анимации: transitionend не наступал, и пользователь видел
+        // либо мгновенный «телепорт», либо «ничего не произошло».
+        // Дополнительно ставится guard-таймер: если через N мс после handler()
+        // строка с тем же id снова появилась в DOM (перерисовка вернула её),
+        // она удаляется принудительно — подход не может «воскреснуть».
         function collapseAndDelete(action, payload) {
             removed = true;
 
-            // 0) Переводим строку в статичный режим: отвязываем анимацию появления
-            //    (card-enter), чтобы keyframes «both» с финальным opacity:1 не
-            //    перебивал inline opacity:0 при схлопывании, и убираем сдвиг по X
-            //    (строка остаётся на месте, пока высота «съедается» соседями).
-            zone.classList.remove('card-enter');
-            setTransform(0, false);
-
-            // 1) Меняем данные. Обработчик вызывает removeSet → updateExerciseCardInDOM
-            //    → syncSetsListInPlace. Чтобы перерисовка НЕ удалила эту строку раньше
-            //    времени (иначе анимация срывается и выглядит как «ничего не произошло»),
-            //    строка помечается заранее: swipeAnimating + dataset.swipeRemoving —
-            //    оба флага syncSetsListInPlace учитывает (см. workout.controller.js).
+            // Защита от «воскрешения»: узел заморожен для sync до самой финализации.
             zone.swipeAnimating = true;
             zone.dataset.swipeRemoving = '1';
-            const handler = swipeLeftHandlers[action];
-            if (!handler) { console.warn('Unhandled swipe-left action:', action); resetZone(zone); return; }
-            try { handler(action, payload); }
-            catch (err) { console.error('Swipe-left handler error:', action, err); resetZone(zone); return; }
 
-            // 2) Схлопываем узел, свайпнутый пользователем.
+            // 1) Готовим схлопывание: отвязываем анимацию появления (card-enter),
+            //    чтобы keyframes «both» с финальным opacity:1 не перебивал inline
+            //    opacity:0; обнуляем transform (строка встаёт на место) и фиксируем
+            //    стартовую высоту ЯВНО — переход max-height работает только между
+            //    двумя конкретными значениями (none → 0 анимируется скачком).
+            zone.classList.remove('card-enter');
+            const l = layers();
+            if (l.inner) l.inner.style.transform = '';
+            if (l.bg) { l.bg.style.transform = ''; l.bg.classList.remove('visible'); }
             const h = zone.offsetHeight || 48;
             zone.style.maxHeight = h + 'px';
             void zone.offsetHeight;                                   // reflow: фиксируем стартовую высоту
-            zone.classList.add('set-collapsing');
+            zone.classList.add('set-collapsing');                     // класс содержит transition по max-height
             nextFrame(function () {
                 zone.style.maxHeight = '0px';
                 zone.style.marginBottom = '0px';
                 zone.style.opacity = '0';
             });
 
-            // 3) Убираем строку из DOM ровно один раз (колбэк или страховочный таймер).
+            // 2) Завершение: ровно один раз.
             let finalized = false;
             function finalize() {
                 if (finalized) return;
                 finalized = true;
                 zone.removeEventListener('transitionend', onEnd);
                 zone.removeEventListener('webkitTransitionEnd', onEnd);
-                zone.swipeAnimating = false;                          // снимаем защиту перед sync
-                delete zone.dataset.swipeRemoving;
                 if (zone.parentNode) zone.remove();                   // parentNode, а не body.contains:
                                                                       // узел может быть внутри shadow-DOM/иного корня
-                // Данные уже удалены; если экран всё же перерисован целиком —
-                // подход в новом дереве не появится. Подстрахуемся на всякий случай.
-                const twin = zone.id ? document.getElementById(zone.id) : null;
-                if (twin && twin !== zone) twin.remove();
-                // После удаления строки перенумеровываем оставшиеся подходы и
-                // обновляем их data-payload (иначе свайп следующей строки удалит
-                // подход со старым индексом).
+                zone.swipeAnimating = false;                          // снимаем защиту ПЕРЕД обработчиком данных
+                delete zone.dataset.swipeRemoving;
+
+                // 3) Теперь можно менять данные: removeSet → updateExerciseCardInDOM
+                //    → syncSetsListInPlace. Строка уже вне DOM, поэтому sync просто
+                //    перенумерует оставшиеся ряды и обновит payload'ы.
+                const handler = swipeLeftHandlers[action];
+                if (!handler) {
+                    console.warn('Unhandled swipe-left action:', action);
+                    resetZone(zone);
+                    return;
+                }
+                try { handler(action, payload); }
+                catch (err) { console.error('Swipe-left handler error:', action, err); }
+
+                // Guard против «воскрешения»: если перерисовка (sync или полная
+                // отрисовка экрана) всё же вернула в DOM узел с тем же id, что и
+                // схлопнутая строка, — убираем его. ВАЖНО: id новых строк при
+                // перенумерации СДВИГАЕТСЯ ВЛЕВО (подход 3-й становится 2-м и
+                // получает id удалённой строки), поэтому guard запускается ПОЗЖЕ
+                // обработчика данных, когда нумерация уже финальная, и проверяет,
+                // что узел с этим id действительно лишний (payload >= числа подходов).
+                const rowId = zone.id;
+                setTimeout(function () {
+                    try {
+                        if (!rowId) return;
+                        const twin = document.getElementById(rowId);
+                        if (!twin || twin === zone) return;
+                        const tp = String(twin.dataset.payload || '').split(':');
+                        const p = String(payload).split(':');
+                        const exIdxT = parseInt(p[0], 10);
+                        const exT = (typeof state !== 'undefined' && state.activeWorkout &&
+                                     state.activeWorkout.exercises) ? state.activeWorkout.exercises[exIdxT] : null;
+                        const nSetsT = exT && exT.sets ? exT.sets.length : 0;
+                        const sIdxT = parseInt(tp[1], 10);
+                        // Узел легален, если его payload соответствует реальному количеству подходов.
+                        if (isNaN(sIdxT) || sIdxT >= nSetsT) twin.remove();
+                    } catch (err) {}
+                }, 60);
                 try {
                     const p = String(payload).split(':');
                     const exIdx = parseInt(p[0], 10);
@@ -199,12 +230,13 @@ function swipeIsFieldTarget(target, z) {
             function onEnd(e) {
                 // Реагируем только на завершение схлопывания самой строки.
                 if (e && e.target !== zone) return;
-                if (e && e.propertyName && e.propertyName.indexOf('height') === -1 &&
-                          e.propertyName !== 'max-height') return;
+                if (e && e.propertyName && e.propertyName.indexOf('height') === -1) return;
                 clearTimeout(safety);
                 finalize();
             }
-            const safety = setTimeout(finalize, SWIPE_COLLAPSE_MS + 140);
+            // Страховка ВСЕГДА срабатывает, даже если WebView не прислал transitionend
+            // (фоновые табы, reduced motion, особенности WKWebView).
+            const safety = setTimeout(finalize, SWIPE_COLLAPSE_MS + 120);
             zone.addEventListener('transitionend', onEnd);
             zone.addEventListener('webkitTransitionEnd', onEnd);
         }
@@ -232,8 +264,11 @@ function swipeIsFieldTarget(target, z) {
                 // Первый ход: определяем ориентацию жеста.
                 if (Math.abs(dx) < SWIPE_START_SLOP && Math.abs(dy) < SWIPE_START_SLOP) return;
                 decided = true;
-                if (dx >= 0 || Math.abs(dy) > Math.abs(dx)) {
-                    tracking = false;                                 // вертикаль/вправо — пусть скроллит
+                // Вправо — точно не наше. Влево с умеренным наклоном — всё ещё свайп:
+                // на телефоне палец почти никогда не идёт идеально горизонтально,
+                // прежний строгий фильтр (|dy| > |dx|) молча отменял большинство жестов.
+                if (dx >= 0 || Math.abs(dy) > Math.abs(dx) * 2) {
+                    tracking = false;                                 // крутой вертикальный скролл — пусть скроллит
                     return;
                 }
                 engaged = true;                                       // свайп влево — перехватываем
@@ -276,6 +311,11 @@ function swipeIsFieldTarget(target, z) {
         }
 
         zone.addEventListener('touchend', finish, { passive: true });
+        // Дубль на window: если в момент жеста строка была заменена в DOM
+        // (перерисовка карточки), touchend приходит уже на другой узел и до
+        // zone не доплывает — без этого жест «зависал» и удаление не срабатывало.
+        function onTouchEndWindow(e) { finish(e); }
+        window.addEventListener('touchend', onTouchEndWindow, { passive: true, capture: true });
         function onTouchCancel() {
             if (!tracking || removed) return;
             const wasEngaged = engaged;
@@ -287,6 +327,11 @@ function swipeIsFieldTarget(target, z) {
         // Страховка: touchcancel приходит не во всех WebView (например, при системном
         // прерывании) — дублируем сброс на window в фазе всплытия.
         window.addEventListener('touchcancel', onTouchCancel, { passive: true });
+        // При повторном касании этой же строки снимаем прежний window-dubler,
+        // чтобы finish не вызывался несколько раз на одно касание.
+        zone.addEventListener('touchstart', function () {
+            window.removeEventListener('touchend', onTouchEndWindow, { capture: true });
+        }, { passive: true });
     } // ── конец attachZone ──
 
     // Возврат зоны в исходное состояние (если удаление не произошло).
