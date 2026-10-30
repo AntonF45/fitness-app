@@ -40,6 +40,8 @@ function openSetNoteModal(exIdx) {
     const note = getExerciseNote(ex);
 
     const modal = document.createElement('div');
+    // версия модалки: v2 — одно общее поле, без подсказок и RPE (для отладки кеша в Telegram WebView)
+    modal.dataset.noteModalVersion = 'v2-single-field';
     modal.id = NOTE_MODAL_ID;
     modal.className = 'modal-backdrop';
     modal.innerHTML =
