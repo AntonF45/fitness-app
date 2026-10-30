@@ -39,11 +39,13 @@ function registerLongPressHandler(action, fn) { longPressHandlers[action] = fn; 
     // Теперь поднимаемся от точки касания только до самой зоны [data-longpress].
     const INTERACTIVE = ['INPUT', 'TEXTAREA', 'SELECT', 'BUTTON', 'LABEL', 'A'];
 
+    // hasAttribute, а не attributes['data-action']: в некоторых WebView (и в мини-DOM
+    // тестах) NamedNodeMap ведёт себя иначе — hasAttribute надёжнее.
     function isInteractiveTarget(target, z) {
         let cur = target;
         while (cur && cur !== document.body) {
             if (INTERACTIVE.indexOf(cur.tagName) !== -1) return true;
-            if (cur.attributes && cur.attributes['data-action']) return true;   // чужие клики — не наш жест
+            if (cur.hasAttribute && cur.hasAttribute('data-action')) return true;   // чужие клики — не наш жест
             if (cur === z) break;                       // выше зоны long-press решений не принимаем
             cur = cur.parentElement;
         }
@@ -54,7 +56,7 @@ function registerLongPressHandler(action, fn) { longPressHandlers[action] = fn; 
     function hasOwnAction(el) {
         let cur = el;
         while (cur && cur !== document.body) {
-            if (cur.attributes && cur.attributes['data-action']) return true;
+            if (cur.hasAttribute && cur.hasAttribute('data-action')) return true;
             cur = cur.parentElement;
         }
         return false;
