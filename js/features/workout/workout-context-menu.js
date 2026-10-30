@@ -62,16 +62,18 @@ function openExerciseContextMenu(exIdx) {
     ]);
 }
 
-function openSetContextMenu(exIdx, setIdx) {
+function openSetContextMenu(exIdx, setId) {
     const ex = _ctxExercise(exIdx);
-    if (!ex || !ex.sets || !ex.sets[setIdx]) return;
-    openWorkoutContextMenu(ex.name, formatSetSummary(ex.sets[setIdx]), [
+    if (!ex || !Array.isArray(ex.sets)) return;
+    const set = ex.sets.find(function (s) { return s.id === setId; });
+    if (!set) return;
+    openWorkoutContextMenu(ex.name, formatSetSummary(set), [
         { action: 'note-exercise', payload: String(exIdx), label: 'Добавить комментарий', icon: 'fa-comment-dots', cls: 'btn-primary' },
-        { action: 'remove-set', payload: exIdx + ':' + setIdx, label: 'Удалить подход', icon: 'fa-trash-can', cls: 'btn-danger' }
+        { action: 'remove-set', payload: exIdx + ':' + setId, label: 'Удалить подход', icon: 'fa-trash-can', cls: 'btn-danger' }
     ]);
 }
 
 registerLongPressHandler('context-set', function (action, payload) {
     const p = String(payload).split(':');
-    openSetContextMenu(parseInt(p[0], 10), parseInt(p[1], 10));
+    openSetContextMenu(parseInt(p[0], 10), p.slice(1).join(':'));
 });

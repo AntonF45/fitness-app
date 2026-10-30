@@ -82,7 +82,11 @@ function swipeIsFieldTarget(target, z) {
         function collapseAndDelete(action, payload) {
             removed = true;
             zone.swipeAnimating = true;
+            // Строка исключена из DOM до finalize: commitVisibleSetInputs/sync не должны
+            // видеть её устаревшие значения. Визуально это скрытая анимируемая копия.
+            zone.hidden = true;
             zone.dataset.swipeRemoving = '1';
+            window.__swipeDeleteInProgress = true;
 
             zone.classList.remove('card-enter');
             const l = layers();
@@ -106,8 +110,10 @@ function swipeIsFieldTarget(target, z) {
                 zone.removeEventListener('webkitTransitionEnd', onEnd);
                 if (zone.parentNode) zone.remove();
                 zone.swipeAnimating = false;
+                zone.hidden = false;
                 delete zone.dataset.swipeRemoving;
 
+                window.__swipeDeleteInProgress = false;
                 const handler = swipeLeftHandlers[action];
                 if (!handler) {
                     console.warn('Unhandled swipe-left action:', action);
@@ -202,6 +208,7 @@ function swipeIsFieldTarget(target, z) {
     }
 
     function resetZone(z) {
+        z.hidden = false;
         z.classList.remove('swipe-open', 'set-collapsing');
         const i = z.querySelector('.set-line-inner');
         const b = z.querySelector('.set-swipe-bg');

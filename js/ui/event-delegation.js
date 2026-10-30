@@ -32,11 +32,11 @@ document.addEventListener('click', function (event) {
             case 'adjust-param': { const p = payload.split(':'); adjustProgramParam(parseInt(p[0], 10), p[1], parseInt(p[2], 10)); break; }
             case 'add-set': tryAddSet(parseInt(payload, 10)); break;
             case 'add-drop-set': tryAddDropSet(parseInt(payload, 10)); break;
-            case 'remove-set': { const p = payload.split(':'); confirmRemoveSet(parseInt(p[0], 10), parseInt(p[1], 10)); break; }
+            case 'remove-set': { const p = payload.split(':'); confirmRemoveSet(parseInt(p[0], 10), p.slice(1).join(':')); break; }
             // ── контекстные действия ──
             case 'exercise-menu': openExerciseContextMenu(parseInt(payload, 10)); break;
             case 'note-exercise': openSetNoteModal(parseInt(payload, 10)); break;
-            case 'adjust-set': { const p = payload.split(':'); adjustSet(parseInt(p[0], 10), parseInt(p[1], 10), p[2], parseFloat(p[3])); break; }
+            case 'adjust-set': { const p = payload.split(':'); adjustSet(parseInt(p[0], 10), p[1], p[2], parseFloat(p[3])); break; }
             case 'remove-workout-exercise': removeWorkoutExercise(parseInt(payload, 10)); break;
             case 'note-save': saveSetNotes(parseInt(payload, 10)); break;
             case 'note-skip': skipSetNotes(parseInt(payload, 10)); break;
@@ -81,8 +81,8 @@ document.addEventListener('input', function (e) {
         }
         if (t.classList.contains('exercise-input')) updateExercise(parseInt(t.dataset.exerciseIndex, 10), t.dataset.field, t.value);
         if (t.classList.contains('set-input')) {
-            const exIdx = parseInt(t.dataset.exercise, 10), setIdx = parseInt(t.dataset.set, 10);
-            saveSetDraft(exIdx, setIdx, t.dataset.field, t.value);
+            const exIdx = parseInt(t.dataset.exercise, 10);
+            saveSetDraft(t.dataset.setId, t.dataset.field, t.value);
             updateExerciseBadge(exIdx);
         }
     } catch (err) {
@@ -108,11 +108,12 @@ document.addEventListener('change', function (e) {
         if (t.classList.contains('exercise-select')) { updateExercise(parseInt(t.dataset.exerciseIndex, 10), t.dataset.field, t.value); return; }
         if (t.classList.contains('exercise-checkbox')) { updateExercise(parseInt(t.dataset.exerciseIndex, 10), t.dataset.field, t.checked ? 'bodyweight' : 'weighted'); return; }
         if (t.classList.contains('set-input')) {
-            const exIdx = parseInt(t.dataset.exercise, 10), setIdx = parseInt(t.dataset.set, 10), field = t.dataset.field;
+            const exIdx = parseInt(t.dataset.exercise, 10), setId = t.dataset.setId, field = t.dataset.field;
             const value = field === 'weight' ? parseWeight(t.value) : parseReps(t.value);
-            const set = state.activeWorkout && state.activeWorkout.exercises && state.activeWorkout.exercises[exIdx] ? state.activeWorkout.exercises[exIdx].sets[setIdx] : null;
-            if (value === null) { showAlert('Недопустимое значение'); if (set) { t.value = set[field]; saveSetDraft(exIdx, setIdx, field, String(set[field])); } return; }
-            if (set) { updateSet(exIdx, setIdx, field, value); saveSetDraft(exIdx, setIdx, field, String(value)); updateExerciseBadge(exIdx); }
+            const ex = state.activeWorkout && state.activeWorkout.exercises ? state.activeWorkout.exercises[exIdx] : null;
+            const set = ex && Array.isArray(ex.sets) ? ex.sets.find(function (s) { return s.id === setId; }) : null;
+            if (value === null) { showAlert('Недопустимое значение'); if (set) { t.value = set[field]; saveSetDraft(setId, field, String(set[field])); } return; }
+            if (set) { updateSet(exIdx, setId, field, value); saveSetDraft(setId, field, String(value)); updateExerciseBadge(exIdx); }
         }
     } catch (err) {
         console.error('Change handler error:', err);
