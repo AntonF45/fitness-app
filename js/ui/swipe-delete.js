@@ -1,20 +1,4 @@
-/* ui/swipe-delete.js — жест «свайп влево» для удаления строк (как чат в Telegram):
-   красная подложка раскрывается вслед за пальцем, при превышении порога строка
-   долетает до открытия, схлопывается по высоте и только затем удаляется из данных.
-
-   Подключение: data-swipe-left="<действие>" data-payload="<данные>", внутри строки
-   слои .set-swipe-bg (подложка) и .set-line-inner (контент).
-
-   Реализация на Touch Events: в iOS WKWebView (Telegram) нет pointerup/pointercancel,
-   поэтому pointer-версия жеста на iPhone не завершалась. touchmove слушается на window
-   в фазе захвата с passive:false — иначе preventDefault не отменяет системный скролл.
-   Касание внутри поля ввода игнорируется; свайп отменяет ожидаемое долгое нажатие.
-
-   Порядок финализации критичен: сначала схлопывание и удаление узла из DOM, затем
-   снятие защиты (swipeAnimating), затем обработчик данных. Иначе перерисовка
-   отсоединяет анимируемый узел и жест выглядит незавершённым.
-
-   Обработчики действий регистрирует фича через registerSwipeLeftHandler(). */
+/* ui/swipe-delete.js — свайп влево для удаления строк. */
 'use strict';
 
 const SWIPE_TRIGGER_DX = 50;
@@ -130,16 +114,9 @@ function swipeIsFieldTarget(target, z) {
                     resetZone(zone);
                     return;
                 }
+                // Единственный источник изменений — обработчик данных (splice + пересборка списка).
                 try { handler(action, payload); }
                 catch (err) { console.error('Swipe-left handler error:', action, err); }
-
-                try {
-                    const exIdx = parseInt(String(payload).split(':')[0], 10);
-                    const ex = (typeof state !== 'undefined' && state.activeWorkout &&
-                                state.activeWorkout.exercises) ? state.activeWorkout.exercises[exIdx] : null;
-                    if (ex && typeof syncSetsListInPlace === 'function') syncSetsListInPlace(exIdx, ex);
-                    if (typeof window.bindSwipeZones === 'function') window.bindSwipeZones();
-                } catch (err) {}
             }
             function onEnd(e) {
                 if (e && e.target !== zone) return;
@@ -213,9 +190,6 @@ function swipeIsFieldTarget(target, z) {
         }
 
         zone.addEventListener('touchend', finish, { passive: true });
-        // Дубль на window: touchend может уйти на другой узел после перерисовки строки.
-        function onTouchEndWindow(e) { finish(e); }
-        window.addEventListener('touchend', onTouchEndWindow, { passive: true, capture: true });
         function onTouchCancel() {
             if (!tracking || removed) return;
             const wasEngaged = engaged;
@@ -225,12 +199,8 @@ function swipeIsFieldTarget(target, z) {
         }
         zone.addEventListener('touchcancel', onTouchCancel, { passive: true });
         window.addEventListener('touchcancel', onTouchCancel, { passive: true });
-        zone.addEventListener('touchstart', function () {
-            window.removeEventListener('touchend', onTouchEndWindow, { capture: true });
-        }, { passive: true });
     }
 
-    // Возврат зоны в исходное состояние, если удаление не произошло.
     function resetZone(z) {
         z.classList.remove('swipe-open', 'set-collapsing');
         const i = z.querySelector('.set-line-inner');
