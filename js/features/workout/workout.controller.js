@@ -61,43 +61,80 @@ function generateExerciseCardHTML(exIdx, ex) {
         '<div class="exercise-actions"><button data-action="add-set" data-payload="' + exIdx + '" class="btn btn-sm btn-secondary">+ Подход</button><button data-action="add-drop-set" data-payload="' + exIdx + '" class="btn btn-sm btn-warn"><i class="fa-solid fa-fire"></i> Дроп-сет</button></div>' +
     '</div>';
 }
+// Инкрементальное обновление списка подходов карточки БЕЗ замены узлов целиком.
+// Ключевой момент для свайп-удаления: схлопнутая строка (data-swipe-removing="1")
+// остаётся в DOM и плавно доанимируется к нулю — соседи «выедают» её место, как в
+// Telegram. Раньше здесь стояла полная перерисовка через outerHTML: она пересоздавала
+// все <li>, схлопнутая строка терялась, а подход визуально «возвращался» — удаление
+// не отрабатывало. Теперь удаляемая строка вообще не затрагивается, поэтому возврат
+// невозможен ни теоретически, ни практически.
+// Функция идемпотентна: повторный вызов ничего лишнего не меняет.
+function syncSetsListInPlace(exIdx, ex) {
+    const list = document.getElementById('sets-container-' + exIdx);
+    if (!list) return false;
+
+    // 1) Удаляем из DOM строки, помеченные свайпом как «удаляемые» (и любые строки,
+    //    чей setIdx больше числа подходов в данных — на случай рассинхронизации).
+    const nSets = ex.sets.length;
+    let cur = list.firstElementChild;
+    while (cur) {
+        const next = cur.nextElementSibling;
+        const p = String(cur.dataset.payload || '').split(':');
+        const sIdx = parseInt(p[1], 10);
+        if (cur.dataset.swipeRemoving === '1' || (!isNaN(sIdx) && sIdx >= nSets)) {
+            cur.remove();
+        }
+        cur = next;
+    }
+
+    // 2) Синхронизируем оставшиеся строки с данными по позиции (i ↔ sets[i]).
+    for (let i = 0; i < nSets; i++) {
+        let li = list.children[i];
+        if (!li) {                                   // не хватает — добавляем новую строку
+            const tmp = document.createElement('ol');
+            tmp.innerHTML = generateSetHTML(exIdx, i, ex.sets[i], ex.exerciseType);
+            list.appendChild(tmp.firstElementChild);
+            li = list.children[i];
+        } else {                                     // обновляем содержимое существующей
+            const srcTmp = document.createElement('ol');
+            srcTmp.innerHTML = generateSetHTML(exIdx, i, ex.sets[i], ex.exerciseType);
+            const src = srcTmp.firstElementChild;
+            li.id = src.id;
+            li.className = src.className;            // card-enter/set-drop и т.п.
+            li.dataset.payload = src.dataset.payload;
+            const inner = li.querySelector('.set-line-inner');
+            const srcInner = src.querySelector('.set-line-inner');
+            if (inner && srcInner) inner.innerHTML = srcInner.innerHTML;
+        }
+    }
+    // 3) Лишние видимые строки (если данных стало меньше без пометки свайпом).
+    while (list.children.length > nSets) list.removeChild(list.lastElementChild);
+    return true;
+}
+
 function updateExerciseCardInDOM(exIdx, ex) {
     const card = document.getElementById('exercise-card-' + exIdx);
     if (!card) { renderWorkout(); return; }   // карточки нет в DOM — перерисовываем экран
 
-    // Перерисовка ПОСЛЕ свайп-удаления: схлопнутая строка (data-swipe-removing="1") уже
-    // анимируется к нулевой высоте. Если заменить карточку целиком (outerHTML), удалённая
-    // строка будет пересоздана из новых данных и «вернётся» — визуально удаление не
-    // отработает. Поэтому до перерисовки запоминаем позиции схлопнутых строк (по id) и
-    // после вставки новой разметки вырезаем соответствующие строки — они уже показаны
-    // пользователю как «удаляемые», а данные об них уже обновлены.
-    const removing = [];
-    const removingRows = card.querySelectorAll('[data-swipe-removing="1"]');
-    for (let i = 0; i < removingRows.length; i++) {
-        const r = removingRows[i];
-        removing.push({ id: r.id, index: Array.prototype.indexOf.call(r.parentElement.children, r) });
-    }
-
-    card.outerHTML = generateExerciseCardHTML(exIdx, ex);
-
-    if (removing.length) {
-        const newCard = document.getElementById('exercise-card-' + exIdx);
-        if (newCard) {
-            for (let i = 0; i < removing.length; i++) {
-                const row = newCard.querySelector('#' + CSS.escape(removing[i].id));
-                if (!row) continue;
-                // Позиция схлопнутой строки среди соседей — чтобы анимация «выедания»
-                // соседями выглядела корректно даже если id перестал совпадать с данными.
-                const parent = row.parentElement;
-                parent.insertBefore(row, parent.children[Math.min(removing[i].index, parent.children.length)] || null);
-                row.dataset.swipeRemoving = '1';
-                row.classList.add('set-collapsing');
-                row.style.maxHeight = '0px';
-                row.style.marginBottom = '0px';
-                row.style.opacity = '0';
-            }
+    // Свайп-удаление (есть схлопнутая строка) или обычная инкрементальная синхронизация.
+    const hasRemoving = !!card.querySelector('[data-swipe-removing="1"]');
+    if (syncSetsListInPlace(exIdx, ex)) {
+        // Бейдж «готово» обновляем всегда; при свайпе также пересобираем карточку
+        // ПОСЛЕ завершения анимации схлопывания — тогда DOM приходит к каноничной
+        // разметке без какого-либо визуального «возврата» удалённого подхода.
+        updateExerciseBadge(exIdx);
+        if (hasRemoving) {
+            setTimeout(function () {
+                const c = document.getElementById('exercise-card-' + exIdx);
+                if (c && c.querySelector('[data-swipe-removing="1"]')) {
+                    c.outerHTML = generateExerciseCardHTML(exIdx, state.activeWorkout &&
+                        state.activeWorkout.exercises ? state.activeWorkout.exercises[exIdx] : ex);
+                }
+            }, 320);
         }
+        return;
     }
+    card.outerHTML = generateExerciseCardHTML(exIdx, ex);
 }
 function updateExerciseBadge(exIdx) { const ex = state.activeWorkout && state.activeWorkout.exercises ? state.activeWorkout.exercises[exIdx] : null; if (!ex) return; const completed = ex.sets.filter(function (s) { return s.weight > 0 && s.reps > 0; }).length; const target = ex.targetSets ?? 3; const badge = document.getElementById('badge-' + exIdx); if (badge) { badge.className = 'text-xs font-medium px-2 py-1 rounded-md shrink-0 ' + (completed >= target ? 'bg-green-500/20 text-green-500' : 'app-inset text-tgHint'); badge.innerText = completed >= target ? '✓ Готово' : completed + '/' + target; } }
 function removeWorkoutExercise(exIdx) { closeWorkoutContextMenu(); showConfirm('Удалить это упражнение из тренировки?', function (ok) { if (ok) { state.activeWorkout.exercises.splice(exIdx, 1); saveActiveWorkout(); haptic('light'); renderWorkout(); } }); }
