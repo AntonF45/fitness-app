@@ -62,12 +62,10 @@ function generateExerciseCardHTML(exIdx, ex) {
     '</div>';
 }
 // Инкрементальное обновление списка подходов карточки БЕЗ замены узлов целиком.
-// Ключевой момент для свайп-удаления: схлопнутая строка (data-swipe-removing="1")
-// остаётся в DOM и плавно доанимируется к нулю — соседи «выедают» её место, как в
-// Telegram. Раньше здесь стояла полная перерисовка через outerHTML: она пересоздавала
-// все <li>, схлопнутая строка терялась, а подход визуально «возвращался» — удаление
-// не отрабатывало. Теперь удаляемая строка вообще не затрагивается, поэтому возврат
-// невозможен ни теоретически, ни практически.
+// Ключевой момент для свайп-удаления: sync НЕ удаляет строку, анимация схлопывания
+// которой ещё не завершена (свойство swipeAnimating выставляет ui/swipe-delete.js).
+// Такие «замороженные» строки также не участвуют в перенумерации — индексы
+// оставшихся строк приводятся в соответствие с данными только после финализации.
 // Функция идемпотентна: повторный вызов ничего лишнего не меняет.
 function syncSetsListInPlace(exIdx, ex) {
     const list = document.getElementById('sets-container-' + exIdx);
@@ -75,10 +73,12 @@ function syncSetsListInPlace(exIdx, ex) {
 
     // 1) Удаляем из DOM строки, помеченные свайпом как «удаляемые» (и любые строки,
     //    чей setIdx больше числа подходов в данных — на случай рассинхронизации).
+    //    Строки с незавершённой анимацией (swipeAnimating) не трогаем вовсе.
     const nSets = ex.sets.length;
     let cur = list.firstElementChild;
     while (cur) {
         const next = cur.nextElementSibling;
+        if (cur.swipeAnimating) { cur = next; continue; }
         const p = String(cur.dataset.payload || '').split(':');
         const sIdx = parseInt(p[1], 10);
         if (cur.dataset.swipeRemoving === '1' || (!isNaN(sIdx) && sIdx >= nSets)) {
@@ -87,14 +87,23 @@ function syncSetsListInPlace(exIdx, ex) {
         cur = next;
     }
 
-    // 2) Синхронизируем оставшиеся строки с данными по позиции (i ↔ sets[i]).
+    // 2) Синхронизируем оставшиеся видимые строки с данными по позиции.
+    //    Позиция считается среди строк без «заморозки», чтобы не переписывать
+    //    payload/разметку схлопываемой строки в разгар анимации.
+    const visible = [];
+    cur = list.firstElementChild;
+    while (cur) {
+        if (!cur.swipeAnimating && cur.dataset.swipeRemoving !== '1') visible.push(cur);
+        cur = cur.nextElementSibling;
+    }
     for (let i = 0; i < nSets; i++) {
-        let li = list.children[i];
+        let li = visible[i];
         if (!li) {                                   // не хватает — добавляем новую строку
             const tmp = document.createElement('ol');
             tmp.innerHTML = generateSetHTML(exIdx, i, ex.sets[i], ex.exerciseType);
             list.appendChild(tmp.firstElementChild);
-            li = list.children[i];
+            li = list.lastElementChild;
+            visible[i] = li;
         } else {                                     // обновляем содержимое существующей
             const srcTmp = document.createElement('ol');
             srcTmp.innerHTML = generateSetHTML(exIdx, i, ex.sets[i], ex.exerciseType);
@@ -108,7 +117,9 @@ function syncSetsListInPlace(exIdx, ex) {
         }
     }
     // 3) Лишние видимые строки (если данных стало меньше без пометки свайпом).
-    while (list.children.length > nSets) list.removeChild(list.lastElementChild);
+    for (let i = visible.length - 1; i >= nSets; i--) {
+        if (visible[i].parentNode === list) list.removeChild(visible[i]);
+    }
     return true;
 }
 
@@ -116,22 +127,9 @@ function updateExerciseCardInDOM(exIdx, ex) {
     const card = document.getElementById('exercise-card-' + exIdx);
     if (!card) { renderWorkout(); return; }   // карточки нет в DOM — перерисовываем экран
 
-    // Свайп-удаление (есть схлопнутая строка) или обычная инкрементальная синхронизация.
-    const hasRemoving = !!card.querySelector('[data-swipe-removing="1"]');
+    // Инкрементальная синхронизация (или no-op во время свайп-анимации).
     if (syncSetsListInPlace(exIdx, ex)) {
-        // Бейдж «готово» обновляем всегда; при свайпе также пересобираем карточку
-        // ПОСЛЕ завершения анимации схлопывания — тогда DOM приходит к каноничной
-        // разметке без какого-либо визуального «возврата» удалённого подхода.
         updateExerciseBadge(exIdx);
-        if (hasRemoving) {
-            setTimeout(function () {
-                const c = document.getElementById('exercise-card-' + exIdx);
-                if (c && c.querySelector('[data-swipe-removing="1"]')) {
-                    c.outerHTML = generateExerciseCardHTML(exIdx, state.activeWorkout &&
-                        state.activeWorkout.exercises ? state.activeWorkout.exercises[exIdx] : ex);
-                }
-            }, 320);
-        }
         return;
     }
     card.outerHTML = generateExerciseCardHTML(exIdx, ex);
@@ -177,6 +175,9 @@ function renderWorkout() {
         '<button data-action="add-workout-exercise" class="btn btn-dashed mt-2 mb-2"><i class="fa-solid fa-plus"></i> Добавить упражнение</button>' +
         '<button data-action="finish-workout" class="btn btn-danger mt-2 mb-4"><i class="fa-solid fa-stop"></i> Завершить тренировку</button>';
     startTimer(); clearMainButton();
+    // Принудальная привязка свайп-зон к freshly-отрисованным строкам — не полагаемся
+    // только на MutationObserver (см. ui/swipe-delete.js).
+    if (typeof window.bindSwipeZones === 'function') window.bindSwipeZones();
 }
 function adjustSet(exIdx, setIdx, field, delta) { const ex = state.activeWorkout && state.activeWorkout.exercises ? state.activeWorkout.exercises[exIdx] : null; if (!ex) return; const set = ex.sets ? ex.sets[setIdx] : null; if (!set) return; const current = Number(set[field]) || 0; set[field] = field === 'weight' ? adjustWeight(current, delta) : adjustReps(current, delta); saveActiveWorkout(); haptic('light'); const input = document.getElementById('set-' + exIdx + '-' + setIdx + '-' + field); if (input) input.value = set[field]; updateExerciseBadge(exIdx); }
 function addSet(exIdx) { const ex = state.activeWorkout.exercises[exIdx]; const sets = ex.sets; let w = 0, r = ex.targetReps ?? 10; if (sets.length > 0) { w = sets[sets.length - 1].weight; r = sets[sets.length - 1].reps; } sets.push({ weight: w, reps: r, setType: 'regular' }); saveActiveWorkout(); haptic('light'); updateExerciseCardInDOM(exIdx, ex); }
@@ -187,7 +188,17 @@ function confirmRemoveSet(exIdx, setIdx) {
     if (!ex || !ex.sets || !ex.sets[setIdx]) return;
     showConfirm('Удалить подход ' + (setIdx + 1) + '?', function (ok) { if (ok) removeSet(exIdx, setIdx); });
 }
-function removeSet(exIdx, setIdx) { const sets = state.activeWorkout.exercises[exIdx].sets; if (sets.length <= 1) sets[0] = { weight: 0, reps: 10, setType: 'regular' }; else sets.splice(setIdx, 1); saveActiveWorkout(); haptic('light'); updateExerciseCardInDOM(exIdx, state.activeWorkout.exercises[exIdx]); }
+// Удаление подхода. Данные (state + localStorage) меняются сразу; DOM-строку
+// убирает свайп-модуль после анимации схлопывания — syncSetsListInPlace трогает
+// только строки без флага swipeAnimating, поэтому «возврат» подхода невозможен.
+function removeSet(exIdx, setIdx) {
+    const sets = state.activeWorkout.exercises[exIdx].sets;
+    if (sets.length <= 1) sets[0] = { weight: 0, reps: 10, setType: 'regular' };
+    else sets.splice(setIdx, 1);
+    saveActiveWorkout();
+    haptic('light');
+    updateExerciseCardInDOM(exIdx, state.activeWorkout.exercises[exIdx]);
+}
 // Свайп влево по строке подхода — удаление сразу, как в Telegram (жест сам по себе
 // осознанный): ui/swipe-delete.js показывает красную зону, долёт строки и схлопывание,
 // и только затем вызывает этот обработчик — данные меняются и карточка перерисовывается.

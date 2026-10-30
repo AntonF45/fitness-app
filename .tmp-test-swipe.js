@@ -95,6 +95,6 @@ setTimeout(() => {
       check('второй свайп: видимых строк 2', vis.length === 2);
       console.log(failures === 0 ? 'ALL PASS' : failures + ' FAILURES');
       process.exit(failures === 0 ? 0 : 1);
-    }, 550);
-  }, 550);
-}, 450);
+    }, 700);
+  }, 700);
+}, 600);

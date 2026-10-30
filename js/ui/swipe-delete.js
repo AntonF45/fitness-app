@@ -48,6 +48,14 @@ const SWIPE_COLLAPSE_MS = 220;      // мс: схлопывание высоты
 const swipeLeftHandlers = {};
 function registerSwipeLeftHandler(action, fn) { swipeLeftHandlers[action] = fn; }
 
+// Кросс-платформенный «следующий кадр»: в Telegram WebView и обычных браузерах
+// это requestAnimationFrame; если rAF недоступен — мгновенный setTimeout(0),
+// чтобы схлопывание никогда не зависело от наличия этой API.
+function nextFrame(fn) {
+    if (typeof requestAnimationFrame === 'function') { requestAnimationFrame(fn); return; }
+    setTimeout(fn, 0);
+}
+
 // Отмена долгого нажатия на этой же строке, когда распознан свайп (жесты не должны спорить).
 function cancelLongPressOn(zone) {
     try { if (typeof cancelLongPress === 'function') cancelLongPress(zone); } catch (err) {}
@@ -96,7 +104,8 @@ function swipeIsFieldTarget(target, z) {
         }
 
         // Ширина красной зоны = вся ширина строки (с запасом по краям), раскрывается от правого края.
-        function bgWidth() { return (zone.clientWidth || 320) + 12; }
+        // clientWidth может быть 0, если строка ещё не отрисована — берём offsetWidth как резерв.
+        function bgWidth() { return (zone.clientWidth || zone.offsetWidth || 320) + 12; }
 
         // Строка сдвинута на px; подложка раскрывается вслед за пальцем (scaleX от правого края),
         // поэтому надпись «Удалить» остаётся на месте — как при удалении чата в Telegram.
@@ -125,70 +134,75 @@ function swipeIsFieldTarget(target, z) {
             if (l.bg) setTimeout(function () { if (curDx === 0) l.bg.classList.remove('visible'); }, SWIPE_GLIDE_MS);
         }
 
-        // Финальная стадия: схлопываем высоту (соседи плавно подтягиваются), затем
-        // перерисовка от обработчика — строка исчезает без «прыжка».
-        // ВАЖНО: строке проставляется data-swipe-removing="1" — по этому атрибуту
-        // updateExerciseCardInDOM сохраняет схлопнутую строку при перерисовке карточки
-        // (иначе outerHTML пересоздал бы её из новых данных и удалённый подход «вернулся»
-        // бы на экран — визуально свайп не отрабатывал бы до конца).
+        // Финальная стадия: сначала изменяем ДАННЫЕ (обработчик), затем схлопываем
+        // именно тот DOM-узел, который пользователь свайпнул, и удаляем его из дерева.
         function collapseAndDelete(action, payload) {
             removed = true;
-            const h = zone.offsetHeight;
+
+            // 0) Переводим строку в статичный режим: отключаем анимацию появления
+            //    (card-enter), чтобы keyframes не перебивали maxHeight/opacity при
+            //    схлопывании, и убираем сдвиг по X (строка остаётся на месте, пока
+            //    высота «съедается» соседями — как в Telegram).
+            zone.classList.remove('card-enter');
+            setTransform(0, false);
+
+            // 1) Меняем данные. sync-функция помечена окном удаления (см. workout.controller.js),
+            //    поэтому DOM-строка этого подхода сейчас НЕ трогается.
+            const handler = swipeLeftHandlers[action];
+            if (!handler) { console.warn('Unhandled swipe-left action:', action); resetZone(zone); return; }
+            try { handler(action, payload); }
+            catch (err) { console.error('Swipe-left handler error:', action, err); resetZone(zone); return; }
+
+            // 2) Схлопываем узел, свайпнутый пользователем.
+            //    Флаг swipeAnimating защищает строку от syncSetsListInPlace: пока
+            //    анимация не завершена, перерисовка карточки не трогает этот узел.
+            const h = zone.offsetHeight || 48;
+            zone.swipeAnimating = true;
             zone.dataset.swipeRemoving = '1';
             zone.style.maxHeight = h + 'px';
             void zone.offsetHeight;                                   // reflow: фиксируем стартовую высоту
             zone.classList.add('set-collapsing');
-            zone.style.maxHeight = '0px';
-            zone.style.marginBottom = '0px';
-            zone.style.opacity = '0';
+            nextFrame(function () {
+                zone.style.maxHeight = '0px';
+                zone.style.marginBottom = '0px';
+                zone.style.opacity = '0';
+            });
 
-            // Критично: анимация схлопывания НЕ должна прерываться перерисовкой DOM.
-            // Обработчик удаления обновляет данные инкрементально (syncSetsListInPlace),
-            // поэтому схлопнутая строка остаётся в дереве и доанимируется до нуля.
-            // Страховка на случай, если обработчик всё же пересобрал карточку целиком:
-            // находим строку с тем же id в новом дереве и «доматываем» схлопывание на ней.
-            function finalizeDom() {
-                if (document.body.contains(zone)) { zone.remove(); return; }
-                const replacement = document.getElementById(zone.id);
-                if (replacement) {
-                    replacement.dataset.swipeRemoving = '1';
-                    replacement.classList.add('set-collapsing');
-                    replacement.style.maxHeight = '0px';
-                    replacement.style.marginBottom = '0px';
-                    replacement.style.opacity = '0';
-                    setTimeout(function () {
-                        if (document.body.contains(replacement)) replacement.remove();
-                    }, SWIPE_COLLAPSE_MS + 60);
-                }
+            // 3) Убираем строку из DOM ровно один раз (колбэк или страховочный таймер).
+            let finalized = false;
+            function finalize() {
+                if (finalized) return;
+                finalized = true;
+                zone.swipeAnimating = false;                          // снимаем защиту перед sync
+                if (document.body.contains(zone)) zone.remove();
+                // Данные уже удалены; если экран всё же перерисован целиком —
+                // подход в новом дереве не появится. Подстрахуемся на всякий случай.
+                const twin = zone.id ? document.getElementById(zone.id) : null;
+                if (twin && twin !== zone) { twin.style.display = 'none'; twin.remove(); }
+                // После удаления строки перенумеровываем оставшиеся подходы и
+                // обновляем их data-payload (иначе свайп следующей строки удалит
+                // подход со старым индексом). syncSetsListInPlace к этому моменту
+                // уже вне «окна блокировки» либо выполнит синхронизацию напрямую.
+                try {
+                    const p = String(payload).split(':');
+                    const exIdx = parseInt(p[0], 10);
+                    const ex = (typeof state !== 'undefined' && state.activeWorkout &&
+                                state.activeWorkout.exercises) ? state.activeWorkout.exercises[exIdx] : null;
+                    if (ex && typeof syncSetsListInPlace === 'function') syncSetsListInPlace(exIdx, ex);
+                    if (typeof window.bindSwipeZones === 'function') window.bindSwipeZones();
+                } catch (err) {}
             }
-
-            let handlerCalled = false;
-            function callHandler() {
-                if (handlerCalled) return;                            // ровно один раз: без двойного splice
-                handlerCalled = true;
-                const handler = swipeLeftHandlers[action];
-                if (!handler) { console.warn('Unhandled swipe-left action:', action); resetZone(zone); return; }
-                try { handler(action, payload); }                     // обработчик меняет данные и точечно обновляет DOM
-                catch (err) { console.error('Swipe-left handler error:', action, err); resetZone(zone); }
-                setTimeout(finalizeDom, SWIPE_COLLAPSE_MS + 120);     // финал: схлопнутая строка уходит из DOM окончательно
-            }
-
-            // Таймер — страховка; transitionend/animationend — основной сигнал окончания схлопывания.
-            const safety = setTimeout(callHandler, SWIPE_COLLAPSE_MS + 80);
-            let endedEarly = false;
+            const safety = setTimeout(finalize, SWIPE_COLLAPSE_MS + 140);
             function onEnd(e) {
-                if (endedEarly) return;
-                // Реакция только на завершение схлопывания самой строки (max-height).
-                if (!e || e.target !== zone || e.propertyName === 'max-height') {
-                    endedEarly = true;
-                    clearTimeout(safety);
-                    callHandler();
-                }
+                // Реагируем только на завершение схлопывания самой строки.
+                if (e && e.target !== zone) return;
+                if (e && e.propertyName && e.propertyName.indexOf('max-height') === -1 &&
+                          e.propertyName.indexOf('height') === -1) return;
+                clearTimeout(safety);
+                finalize();
             }
             zone.addEventListener('transitionend', onEnd);
             zone.addEventListener('webkitTransitionEnd', onEnd);
-            // Если переход не запустился вовсе (например, prefers-reduced-motion или
-            // строка скрыта) — сработает страховочный таймер выше.
         }
 
         // ── touchstart: начинаем следить за касанием этой строки ──
@@ -269,21 +283,31 @@ function swipeIsFieldTarget(target, z) {
         // Страховка: touchcancel приходит не во всех WebView (например, при системном
         // прерывании) — дублируем сброс на window в фазе всплытия.
         window.addEventListener('touchcancel', onTouchCancel, { passive: true });
+    } // ── конец attachZone ──
+
+    // Возврат зоны в исходное состояние (если удаление не произошло).
+    // ВАЖНО: функция объявлена на том же уровне видимости, что и attachZone —
+    // иначе вызов resetZone(zone) изнутри attachZone падал бы с ReferenceError
+    // и весь путь удаления молча прерывался (подход не удалялся).
+    function resetZone(z) {
+        z.classList.remove('swipe-open', 'set-collapsing');
+        const i = z.querySelector('.set-line-inner');
+        const b = z.querySelector('.set-swipe-bg');
+        if (i) { i.style.transition = 'transform 0.2s ease'; i.style.transform = ''; }
+        if (b) { b.style.transition = 'transform 0.2s ease, opacity .15s ease'; b.style.transform = ''; b.classList.remove('visible'); }
+        z.style.maxHeight = '';
+        z.style.marginBottom = '';
+        z.style.opacity = '';
+        z.dataset.removedBySwipe = '';
+        delete z.dataset.swipeRemoving;
     }
 
-        // Возврат зоны в исходное состояние (если удаление не произошло).
-        function resetZone(z) {
-            z.classList.remove('swipe-open', 'set-collapsing');
-            const i = z.querySelector('.set-line-inner');
-            const b = z.querySelector('.set-swipe-bg');
-            if (i) { i.style.transition = 'transform 0.2s ease'; i.style.transform = ''; }
-            if (b) { b.style.transition = 'transform 0.2s ease, opacity .15s ease'; b.style.transform = ''; b.classList.remove('visible'); }
-            z.style.maxHeight = '';
-            z.style.marginBottom = '';
-            z.style.opacity = '';
-            z.dataset.removedBySwipe = '';
-            delete z.dataset.swipeRemoving;
-        }
+    // Привязка всех уже существующих строк (вызывается при старте и после каждой
+    // перерисовки экрана — attachZone идемпотентен благодаря data-swipe-bound).
+    function bindAllExisting() {
+        const list = document.querySelectorAll('[data-swipe-left]');
+        for (let i = 0; i < list.length; i++) attachZone(list[i]);
+    }
 
     // Глобальная делегирующая привязка: работает и для новых строк после перерисовки карточки.
     const MO = new MutationObserver(function (muts) {
@@ -300,10 +324,17 @@ function swipeIsFieldTarget(target, z) {
             }
         }
     });
-    function startObserving() { MO.observe(document.body, { childList: true, subtree: true }); }
+    function startObserving() {
+        MO.observe(document.body, { childList: true, subtree: true });
+        bindAllExisting();   // строки, отрисованные до старта наблюдателя
+    }
     if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', startObserving);
     } else {
         startObserving();
     }
+    // Страховка: если экран тренировки уже смонтирован и наблюдатель по какой-то
+    // причине не привязал строки — привязать их напрямую.
+    window.bindSwipeZones = bindAllExisting;
+    document.addEventListener('workout:rendered', bindAllExisting);
 })();
