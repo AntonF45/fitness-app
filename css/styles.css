@@ -181,8 +181,13 @@ body.keyboard-open .sticky-bottom-action { display: none !important; }
 /* Основной слой строки: сдвигается пальцем при свайпе; заливка — в цвет карточки упражнения. */
 .set-line-inner { position: relative; z-index: 1; background: var(--card-bg); border-radius: 12px; padding: 6px 10px; will-change: transform; }
 .set-line-main { display: flex; align-items: stretch; gap: 8px; }
-/* Удаление строки подходом «как в Telegram»: сначала схлопываем высоту, потом убираем из DOM. */
-.set-line.set-collapsing { margin-bottom: 0 !important; max-height: 0 !important; padding-top: 0; padding-bottom: 0; overflow: hidden; transition: max-height .22s ease-out, margin-bottom .22s ease-out, opacity .18s ease-out; }
+/* Удаление строки подходом «как в Telegram»: сначала схлопываем высоту, потом убираем из DOM.
+   ВАЖНО: здесь НЕ должно быть правила max-height — любое статичное max-height с !important
+   делало переход к нему невозможным (стартовое и конечные значения совпадали), анимация
+   схлопывания не запускалась, а inline-стили из JS перебивались этим правилом.
+   Анимационные значения задаёт только JS (inline maxHeight/opacity), класс отвечает
+   за переходы и обрезку содержимого. */
+.set-line.set-collapsing { padding-top: 0; padding-bottom: 0; overflow: hidden; pointer-events: none; transition: max-height .22s ease-out, margin-bottom .22s ease-out, opacity .18s ease-out, padding .22s ease-out; }
 /* Порядковый номер подхода — часть единого блока строки (по центру высоты). */
 .set-num { width: 18px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 700; line-height: 1; color: var(--tg-theme-hint-color, #8e8e93); }
 /* Группа «− [поле] + кг» — ОДНА линия: единицы («кг», «повт») стоят вплотную сразу
