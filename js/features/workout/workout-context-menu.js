@@ -1,12 +1,13 @@
 /* features/workout/workout-context-menu.js — контекстные действия экрана тренировки.
 
    Архитектурное место: слой features/workout (view + controller одного блока).
-   Подключается к разметке карточек через data-longpress="context-exercise|context-set"
-   (распознавание жеста — ui/long-press.js, здесь только бизнес-логика меню).
 
    Поведение:
-     • долгое нажатие на название упражнения → «Добавить комментарий» / «Удалить упражнение»;
-     • долгое нажатие на строку подхода      → «Добавить комментарий» / «Удалить подход»;
+     • клик по кнопке «⋮» в углу карточки упражнения → «Добавить комментарий» / «Удалить упражнение»;
+       (data-action="exercise-menu" → ui/event-delegation.js → openExerciseContextMenu;
+        долгое нажатие на заголовок убрано — жест не срабатывал в Telegram WebView);
+     • долгое нажатие на строку подхода              → «Добавить комментарий» / «Удалить подход»
+       (data-longpress="context-set", распознавание жеста — ui/long-press.js);
      • оба удаления идут через подтверждение (showConfirm), случайное удаление исключено;
      • комментарий открывает модалку ощущений (set-note-modal.js) с фокусом на нужном подходе.
 
@@ -74,10 +75,7 @@ function openSetContextMenu(exIdx, setIdx) {
     ]);
 }
 
-// ---------- реестр жестов long-press ----------
-registerLongPressHandler('context-exercise', function (action, payload) {
-    openExerciseContextMenu(parseInt(payload, 10));
-});
+// ---------- реестр жестов long-press (только подходы; меню упражнения — по клику «⋮») ----------
 registerLongPressHandler('context-set', function (action, payload) {
     const p = String(payload).split(':');
     openSetContextMenu(parseInt(p[0], 10), parseInt(p[1], 10));

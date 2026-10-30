@@ -33,7 +33,9 @@ document.addEventListener('click', function (event) {
             case 'add-set': tryAddSet(parseInt(payload, 10)); break;
             case 'add-drop-set': tryAddDropSet(parseInt(payload, 10)); break;
             case 'remove-set': { const p = payload.split(':'); confirmRemoveSet(parseInt(p[0], 10), parseInt(p[1], 10)); break; }
-            // ── контекстные действия долгого нажания (features/workout/workout-context-menu.js) ──
+            // ── контекстные действия (features/workout/workout-context-menu.js) ──
+            // Меню упражнения — по клику на кнопку «⋮» в углу карточки.
+            case 'exercise-menu': openExerciseContextMenu(parseInt(payload, 10)); break;
             case 'note-exercise': { const p = payload.split(':'); openSetNoteModal(parseInt(p[0], 10), parseInt(p[1], 10)); break; }
             case 'adjust-set': { const p = payload.split(':'); adjustSet(parseInt(p[0], 10), parseInt(p[1], 10), p[2], parseFloat(p[3])); break; }
             case 'remove-workout-exercise': removeWorkoutExercise(parseInt(payload, 10)); break;

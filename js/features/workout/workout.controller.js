@@ -36,14 +36,17 @@ function generateExerciseCardHTML(exIdx, ex) {
     // Кнопка «крестик» убрана, удаление упражнения — только через контекст с подтверждением.
     // Отдельная кнопка «Ощущения» убрана: комментарий добавляется тем же долгим нажатием,
     // наличие заметки показывается иконкой в заголовке и под строкой подхода.
+    // Меню упражнения открывается обычной кнопкой «⋮» (data-action="exercise-menu") —
+    // надёжный клик вместо долгого нажатия, которое не срабатывало в Telegram WebView.
     return '<div id="exercise-card-' + exIdx + '" class="app-card mb-4 card-enter">' +
         '<div class="flex justify-between items-center mb-3 gap-2">' +
-            '<div class="exercise-header flex items-center gap-2 flex-1 min-w-0 flex-wrap" data-longpress="context-exercise" data-payload="' + exIdx + '">' +
+            '<div class="exercise-header flex items-center gap-2 flex-1 min-w-0 flex-wrap">' +
                 '<h3 class="font-bold text-sm leading-snug break-words flex-1">' + escHtml(ex.name) + '</h3>' +
                 (ex.exerciseType === 'bodyweight' ? '<span class="bodyweight-badge shrink-0">Собственный вес</span>' : '') +
                 (hasNotes ? '<i class="fa-solid fa-comment-dots note-indicator shrink-0" title="Есть комментарий"></i>' : '') +
             '</div>' +
             '<span id="badge-' + exIdx + '" class="text-xs font-medium px-2 py-1 rounded-md shrink-0 ' + (isComplete ? 'bg-green-500/20 text-green-500' : 'app-inset text-tgHint') + '">' + (isComplete ? '✓ Готово' : completed + '/' + target) + '</span>' +
+            '<button data-action="exercise-menu" data-payload="' + exIdx + '" class="menu-btn shrink-0" aria-label="Меню упражнения"><i class="fa-solid fa-ellipsis-vertical"></i></button>' +
         '</div>' +
         '<ol id="sets-container-' + exIdx + '" class="sets-list">' + sets.map(function (s, i) { return generateSetHTML(exIdx, i, s, ex.exerciseType); }).join('') + '</ol>' +
         '<div class="flex gap-2 mt-2 flex-wrap"><button data-action="add-set" data-payload="' + exIdx + '" class="btn btn-sm btn-secondary btn-auto">+ Подход</button><button data-action="add-drop-set" data-payload="' + exIdx + '" class="btn btn-sm btn-warn btn-auto"><i class="fa-solid fa-fire"></i> Дроп-сет</button></div>' +
