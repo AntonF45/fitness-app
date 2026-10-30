@@ -188,4 +188,5 @@ body.keyboard-open .sticky-bottom-action { display: none !important; }
 .exercise-actions .btn { flex: 1 1 0% !important; width: auto !important; min-width: 0; }
 .btn.has-note { border-color: var(--accent-border); }
 .set-note { margin-top: 6px; font-size: 12px; line-height: 1.4; color: var(--tg-theme-hint-color, #8e8e93); background: var(--inset-bg); border-left: 2px solid var(--warn); border-radius: 8px; padding: 6px 10px; }
+.exercise-note { margin-top: 0; }
 .note-indicator { font-size: 12px; color: var(--warn); opacity: 0.9; }
