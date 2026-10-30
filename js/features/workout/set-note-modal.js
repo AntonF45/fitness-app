@@ -16,9 +16,8 @@
 'use strict';
 
 const NOTE_MODAL_ID = 'set-note-modal';
-const NOTE_MAX_LEN = 300;          // жёсткий лимит: заметки уходят в localStorage вместе с историей
+const NOTE_MAX_LEN = 300;
 
-// ---------- helpers ----------
 // Текст общего комментария: ex.note, либо (для старых черновиков) заметки подходов через «; ».
 function getExerciseNote(ex) {
     if (!ex) return '';
@@ -29,18 +28,16 @@ function getExerciseNote(ex) {
     return legacy.join('; ');
 }
 
-// ---------- modal (view) ----------
 function openSetNoteModal(exIdx) {
     const ex = state.activeWorkout && state.activeWorkout.exercises ? state.activeWorkout.exercises[exIdx] : null;
     if (!ex) return;
-    closeSetNoteModal();                       // одна модалка за раз
+    closeSetNoteModal();
 
     const sets = ex.sets || [];
     const doneCount = sets.filter(function (s) { return s.weight > 0 && s.reps > 0; }).length;
     const note = getExerciseNote(ex);
 
     const modal = document.createElement('div');
-    // версия модалки: v2 — одно общее поле, без подсказок и RPE (для отладки кеша в Telegram WebView)
     modal.dataset.noteModalVersion = 'v2-single-field';
     modal.id = NOTE_MODAL_ID;
     modal.className = 'modal-backdrop';
@@ -59,32 +56,28 @@ function openSetNoteModal(exIdx) {
     document.body.appendChild(modal);
     const ta = document.getElementById('note-input');
     if (ta) { ta.focus(); try { ta.setSelectionRange(ta.value.length, ta.value.length); } catch (e) {} }
-    // клик по затемнению = закрыть (без потери ввода: заметка читается из textarea только при «Сохранить»)
     modal.addEventListener('click', function (e) { if (e.target === modal) closeSetNoteModal(); });
     haptic('light');
 }
 
 function closeSetNoteModal() { const m = document.getElementById(NOTE_MODAL_ID); if (m) m.remove(); }
 
-// ---------- controller ----------
-// Сохранить: пишем общий комментарий в стейт активной тренировки + помечаем упражнение завершённым.
+// Сохранение: общий комментарий упражнения + отметка о завершении.
 function saveSetNotes(exIdx) {
     const ex = state.activeWorkout && state.activeWorkout.exercises ? state.activeWorkout.exercises[exIdx] : null;
     if (!ex) { closeSetNoteModal(); return; }
     const ta = document.getElementById('note-input');
     const v = String((ta && ta.value) || '').trim().slice(0, NOTE_MAX_LEN);
     if (v) ex.note = v; else delete ex.note;
-    (ex.sets || []).forEach(function (s) { if (s && s.note) delete s.note; });   // legacy-заметки больше не нужны
-    ex.completed = true;                     // «ощущения внесены» — сохраняется в историю (data-management)
-    saveActiveWorkout();                     // заметка живёт в state.activeWorkout → restore её вернёт
+    (ex.sets || []).forEach(function (s) { if (s && s.note) delete s.note; });
+    ex.completed = true;
+    saveActiveWorkout();
     closeSetNoteModal();
     haptic('success');
     updateExerciseCardInDOM(exIdx, ex);
 }
 
 function skipSetNotes(exIdx) {
-    // «Пропустить» только закрывает модалку: состояние упражнения не меняем,
-    // иначе ранее сохранённая заметка терялась бы при случайном нажатии.
     closeSetNoteModal();
     haptic('light');
 }
