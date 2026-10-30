@@ -194,6 +194,20 @@ function swipeIsFieldTarget(target, z) {
                 try { handler(action, payload); }
                 catch (err) { console.error('Swipe-left handler error:', action, err); }
 
+                // Данные уже обновлены обработчиком; дополнительно синхронизируем
+                // список на месте и перепривязываем свайп-зоны. ВАЖНО: badge НЕ
+                // трогаем — это ответственность updateExerciseCardInDOM внутри
+                // removeSet (иначе здесь считали бы countCompletedSets по уже
+                // устаревшей нумерации строк и «закрепляли» неверный статус).
+                try {
+                    const p = String(payload).split(':');
+                    const exIdx = parseInt(p[0], 10);
+                    const ex = (typeof state !== 'undefined' && state.activeWorkout &&
+                                state.activeWorkout.exercises) ? state.activeWorkout.exercises[exIdx] : null;
+                    if (ex && typeof syncSetsListInPlace === 'function') syncSetsListInPlace(exIdx, ex);
+                    if (typeof window.bindSwipeZones === 'function') window.bindSwipeZones();
+                } catch (err) {}
+
                 // Guard против «воскрешения»: если перерисовка (sync или полная
                 // отрисовка экрана) всё же вернула в DOM узел с тем же id, что и
                 // схлопнутая строка, — убираем его. ВАЖНО: id новых строк при
@@ -218,14 +232,6 @@ function swipeIsFieldTarget(target, z) {
                         if (isNaN(sIdxT) || sIdxT >= nSetsT) twin.remove();
                     } catch (err) {}
                 }, 60);
-                try {
-                    const p = String(payload).split(':');
-                    const exIdx = parseInt(p[0], 10);
-                    const ex = (typeof state !== 'undefined' && state.activeWorkout &&
-                                state.activeWorkout.exercises) ? state.activeWorkout.exercises[exIdx] : null;
-                    if (ex && typeof syncSetsListInPlace === 'function') syncSetsListInPlace(exIdx, ex);
-                    if (typeof window.bindSwipeZones === 'function') window.bindSwipeZones();
-                } catch (err) {}
             }
             function onEnd(e) {
                 // Реагируем только на завершение схлопывания самой строки.
