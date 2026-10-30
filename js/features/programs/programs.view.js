@@ -24,3 +24,5 @@ function renderPrograms() {
     document.getElementById('app-content').innerHTML = label + listHTML +
         '<div style="height: 110px"></div>' +
         '<div class="sticky-bottom-action"><button data-action="create-program" class="btn btn-primary"><i class="fa-solid fa-plus"></i> Создать программу</button></div>';
+
+}
