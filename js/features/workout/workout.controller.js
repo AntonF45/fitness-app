@@ -2,27 +2,32 @@
    таймер, старт/завершение сессии. */
 'use strict';
 
-// Строка подхода — компактная, в одну линию: номер (ol > li), вес, повторения.
-// Удаление подхода — по долгому нажатию на строку (ui/long-press.js → context-set).
+// Строка подхода — единый блок без границы, с заливкой в цвет карточки упражнения:
+// порядковый номер, группы кнопок − / + и поля ввода (вес, повторения).
+// Удаление подхода — свайпом влево по строке (swipe-left) либо долгим нажатием (context-set).
 function generateSetHTML(exIdx, setIdx, set, exType) {
     const isDrop = set.setType === 'drop';
     const bw = exType === 'bodyweight';
     // Заметка-комментарий теперь одна на упражнение (ex.note) — под списком подходов, не у каждой строки.
-    return '<li id="set-row-' + exIdx + '-' + setIdx + '" class="set-line card-enter' + (isDrop ? ' set-drop' : '') + '" data-longpress="context-set" data-payload="' + exIdx + ':' + setIdx + '">' +
+    return '<li id="set-row-' + exIdx + '-' + setIdx + '" class="set-line card-enter' + (isDrop ? ' set-drop' : '') + '" data-swipe-left="delete-set" data-payload="' + exIdx + ':' + setIdx + '" data-longpress="context-set">' +
+        '<div class="set-swipe-bg"><i class="fa-solid fa-trash-can"></i><span>Удалить</span></div>' +
+        '<div class="set-line-inner">' +
         '<div class="set-line-main">' +
-            '<span class="set-num">' + (isDrop ? '<i class="fa-solid fa-fire set-num-drop" title="Дроп-подход"></i>' : '') + '</span>' +
-            '<div class="flex items-center gap-1 flex-1 min-w-0">' +
+            '<span class="set-num">' + (setIdx + 1) + '</span>' +
+            (isDrop ? '<i class="fa-solid fa-fire set-num-drop" title="Дроп-подход"></i>' : '') +
+            '<div class="set-field">' +
                 '<button data-action="adjust-set" data-payload="' + exIdx + ':' + setIdx + ':weight:-2.5" class="step-btn" aria-label="Меньше вес">−</button>' +
                 '<input type="number" id="set-' + exIdx + '-' + setIdx + '-weight" inputmode="decimal" value="' + set.weight + '" data-exercise="' + exIdx + '" data-set="' + setIdx + '" data-field="weight" class="set-input input-bare w-full h-9 text-center text-base font-semibold min-w-0" aria-label="' + (bw ? 'Доп. вес, кг' : 'Вес, кг') + '">' +
                 '<button data-action="adjust-set" data-payload="' + exIdx + ':' + setIdx + ':weight:2.5" class="step-btn" aria-label="Больше вес">+</button>' +
                 '<span class="unit-hint">кг</span>' +
             '</div>' +
-            '<div class="flex items-center gap-1 flex-1 min-w-0">' +
+            '<div class="set-field">' +
                 '<button data-action="adjust-set" data-payload="' + exIdx + ':' + setIdx + ':reps:-1" class="step-btn" aria-label="Меньше повторов">−</button>' +
                 '<input type="number" id="set-' + exIdx + '-' + setIdx + '-reps" inputmode="numeric" value="' + set.reps + '" data-exercise="' + exIdx + '" data-set="' + setIdx + '" data-field="reps" class="set-input input-bare w-full h-9 text-center text-base font-semibold min-w-0" aria-label="Повторения">' +
                 '<button data-action="adjust-set" data-payload="' + exIdx + ':' + setIdx + ':reps:1" class="step-btn" aria-label="Больше повторов">+</button>' +
                 '<span class="unit-hint">повт</span>' +
             '</div>' +
+        '</div>' +
         '</div>' +
     '</li>';
 }
@@ -107,6 +112,15 @@ function confirmRemoveSet(exIdx, setIdx) {
     showConfirm('Удалить подход ' + (setIdx + 1) + '?', function (ok) { if (ok) removeSet(exIdx, setIdx); });
 }
 function removeSet(exIdx, setIdx) { const sets = state.activeWorkout.exercises[exIdx].sets; if (sets.length <= 1) sets[0] = { weight: 0, reps: 10, setType: 'regular' }; else sets.splice(setIdx, 1); saveActiveWorkout(); haptic('light'); updateExerciseCardInDOM(exIdx, state.activeWorkout.exercises[exIdx]); }
+// Свайп влево по строке подхода — удаление сразу (жест сам по себе осознанный, см. ui/swipe-delete.js).
+registerSwipeLeftHandler('delete-set', function (action, payload) {
+    const p = String(payload).split(':');
+    const exIdx = parseInt(p[0], 10), setIdx = parseInt(p[1], 10);
+    if (isNaN(exIdx) || isNaN(setIdx)) return;
+    const ex = state.activeWorkout && state.activeWorkout.exercises ? state.activeWorkout.exercises[exIdx] : null;
+    if (!ex || !ex.sets || !ex.sets[setIdx]) return;
+    removeSet(exIdx, setIdx);
+});
 function updateSet(exIdx, setIdx, field, value) { state.activeWorkout.exercises[exIdx].sets[setIdx][field] = value; saveActiveWorkout(); }
 function startWorkout(programId) { const program = DataAPI.getProgramById(programId); if (!program || !(program.exercises || []).length) { showAlert('Нет упражнений'); return; } state.activeWorkout = { programId: program.id, programName: program.name, startTime: Date.now(), exercises: program.exercises.map(function (ex) { return { name: ex.name, muscleGroup: ex.muscleGroup, exerciseType: ex.exerciseType || 'weighted', supersetId: ex.supersetId || null, targetSets: ex.targetSets, targetReps: ex.targetReps, sets: [{ weight: 0, reps: ex.targetReps || 10, setType: 'regular' }] }; }) }; saveActiveWorkout(); navigate('workout'); }
 function startTimer() { stopWorkoutTimer(); const update = function () { if (!state.activeWorkout) return; const elapsed = Math.max(0, Date.now() - state.activeWorkout.startTime); const h = Math.floor(elapsed / 3600000), m = Math.floor((elapsed % 3600000) / 60000), s = Math.floor((elapsed % 60000) / 1000); const el = document.getElementById('workout-timer'); if (el) el.innerText = String(h).padStart(2, '0') + ':' + String(m).padStart(2, '0') + ':' + String(s).padStart(2, '0'); }; update(); state.workoutTimer = setInterval(update, 1000); }
