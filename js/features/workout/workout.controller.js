@@ -4,7 +4,9 @@
 
 // Строка подхода — единый блок без границы, с заливкой в цвет карточки упражнения:
 // порядковый номер, группы кнопок − / + и поля ввода (вес, повторения).
-// Удаление подхода — свайпом влево по строке (swipe-left) либо долгим нажатием (context-set).
+// Единицы («кг», «повт») стоят в той же строке сразу после кнопки «+» (см. .set-field в css).
+// Удаление подхода — свайпом влево по строке (жест как в Telegram: открытие → схлопывание),
+// долгим нажатием доступно меню (комментарий / удалить с подтверждением).
 function generateSetHTML(exIdx, setIdx, set, exType) {
     const isDrop = set.setType === 'drop';
     const bw = exType === 'bodyweight';
@@ -19,13 +21,13 @@ function generateSetHTML(exIdx, setIdx, set, exType) {
                 '<button data-action="adjust-set" data-payload="' + exIdx + ':' + setIdx + ':weight:-2.5" class="step-btn" aria-label="Меньше вес">−</button>' +
                 '<input type="number" id="set-' + exIdx + '-' + setIdx + '-weight" inputmode="decimal" value="' + set.weight + '" data-exercise="' + exIdx + '" data-set="' + setIdx + '" data-field="weight" class="set-input input-bare w-full h-9 text-center text-base font-semibold min-w-0" aria-label="' + (bw ? 'Доп. вес, кг' : 'Вес, кг') + '">' +
                 '<button data-action="adjust-set" data-payload="' + exIdx + ':' + setIdx + ':weight:2.5" class="step-btn" aria-label="Больше вес">+</button>' +
-                '<span class="unit-hint">кг</span>' +
+                '<span class="unit-hint shrink-0">кг</span>' +
             '</div>' +
             '<div class="set-field">' +
                 '<button data-action="adjust-set" data-payload="' + exIdx + ':' + setIdx + ':reps:-1" class="step-btn" aria-label="Меньше повторов">−</button>' +
                 '<input type="number" id="set-' + exIdx + '-' + setIdx + '-reps" inputmode="numeric" value="' + set.reps + '" data-exercise="' + exIdx + '" data-set="' + setIdx + '" data-field="reps" class="set-input input-bare w-full h-9 text-center text-base font-semibold min-w-0" aria-label="Повторения">' +
                 '<button data-action="adjust-set" data-payload="' + exIdx + ':' + setIdx + ':reps:1" class="step-btn" aria-label="Больше повторов">+</button>' +
-                '<span class="unit-hint">повт</span>' +
+                '<span class="unit-hint shrink-0">повт</span>' +
             '</div>' +
         '</div>' +
         '</div>' +
@@ -112,7 +114,9 @@ function confirmRemoveSet(exIdx, setIdx) {
     showConfirm('Удалить подход ' + (setIdx + 1) + '?', function (ok) { if (ok) removeSet(exIdx, setIdx); });
 }
 function removeSet(exIdx, setIdx) { const sets = state.activeWorkout.exercises[exIdx].sets; if (sets.length <= 1) sets[0] = { weight: 0, reps: 10, setType: 'regular' }; else sets.splice(setIdx, 1); saveActiveWorkout(); haptic('light'); updateExerciseCardInDOM(exIdx, state.activeWorkout.exercises[exIdx]); }
-// Свайп влево по строке подхода — удаление сразу (жест сам по себе осознанный, см. ui/swipe-delete.js).
+// Свайп влево по строке подхода — удаление сразу, как в Telegram (жест сам по себе
+// осознанный): ui/swipe-delete.js показывает красную зону, долёт строки и схлопывание,
+// и только затем вызывает этот обработчик — данные меняются и карточка перерисовывается.
 registerSwipeLeftHandler('delete-set', function (action, payload) {
     const p = String(payload).split(':');
     const exIdx = parseInt(p[0], 10), setIdx = parseInt(p[1], 10);
