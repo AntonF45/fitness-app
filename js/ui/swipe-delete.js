@@ -53,18 +53,22 @@ function cancelLongPressOn(zone) {
     try { if (typeof cancelLongPress === 'function') cancelLongPress(zone); } catch (err) {}
 }
 
-(function initSwipeDelete() {
-    const INTERACTIVE = ['INPUT', 'TEXTAREA', 'SELECT'];
+// Служебная DOM-утилита: касание внутри поля ввода игнорируется — ввод веса/повторов
+// работает как обычно.
+const SWIPE_INTERACTIVE = ['INPUT', 'TEXTAREA', 'SELECT'];
 
-    function isFieldTarget(target, z) {
-        let cur = target;
-        while (cur && cur !== document.body) {
-            if (INTERACTIVE.indexOf(cur.tagName) !== -1) return true;   // ввод веса/повторов — не трогаем
-            if (cur === z) break;
-            cur = cur.parentElement;
-        }
-        return false;
+function swipeIsFieldTarget(target, z) {
+    let cur = target;
+    while (cur && cur !== document.body) {
+        if (SWIPE_INTERACTIVE.indexOf(cur.tagName) !== -1) return true;
+        if (cur === z) break;
+        cur = cur.parentElement;
     }
+    return false;
+}
+
+(function initSwipeDelete() {
+    function isFieldTarget(target, z) { return swipeIsFieldTarget(target, z); }
 
     function pointOf(e) {
         const t = (e.touches && e.touches[0]) || (e.changedTouches && e.changedTouches[0]);
@@ -123,9 +127,14 @@ function cancelLongPressOn(zone) {
 
         // Финальная стадия: схлопываем высоту (соседи плавно подтягиваются), затем
         // перерисовка от обработчика — строка исчезает без «прыжка».
+        // ВАЖНО: строке проставляется data-swipe-removing="1" — по этому атрибуту
+        // updateExerciseCardInDOM сохраняет схлопнутую строку при перерисовке карточки
+        // (иначе outerHTML пересоздал бы её из новых данных и удалённый подход «вернулся»
+        // бы на экран — визуально свайп не отрабатывал бы до конца).
         function collapseAndDelete(action, payload) {
             removed = true;
             const h = zone.offsetHeight;
+            zone.dataset.swipeRemoving = '1';
             zone.style.maxHeight = h + 'px';
             void zone.offsetHeight;                                   // reflow: фиксируем стартовую высоту
             zone.classList.add('set-collapsing');
@@ -135,8 +144,13 @@ function cancelLongPressOn(zone) {
             setTimeout(function () {
                 const handler = swipeLeftHandlers[action];
                 if (!handler) { console.warn('Unhandled swipe-left action:', action); resetZone(zone); return; }
-                try { handler(action, payload); }                     // обработчик перерисовывает карточку
+                try { handler(action, payload); }                     // обработчик меняет данные и перерисовывает карточку
                 catch (err) { console.error('Swipe-left handler error:', action, err); resetZone(zone); }
+                // Финал анимации: если схлопнутая строка всё ещё в DOM (перерисовка могла
+                // вернуть её на место) — убираем окончательно, соседние строки займут её место.
+                setTimeout(function () {
+                    if (document.body.contains(zone)) zone.remove();
+                }, 350);
             }, SWIPE_COLLAPSE_MS);
         }
 
@@ -220,18 +234,19 @@ function cancelLongPressOn(zone) {
         window.addEventListener('touchcancel', onTouchCancel, { passive: true });
     }
 
-    // Возврат зоны в исходное состояние (если удаление не произошло).
-    function resetZone(z) {
-        z.classList.remove('swipe-open', 'set-collapsing');
-        const i = z.querySelector('.set-line-inner');
-        const b = z.querySelector('.set-swipe-bg');
-        if (i) { i.style.transition = 'transform 0.2s ease'; i.style.transform = ''; }
-        if (b) { b.style.transition = 'transform 0.2s ease, opacity .15s ease'; b.style.transform = ''; b.classList.remove('visible'); }
-        z.style.maxHeight = '';
-        z.style.marginBottom = '';
-        z.style.opacity = '';
-        z.dataset.removedBySwipe = '';
-    }
+        // Возврат зоны в исходное состояние (если удаление не произошло).
+        function resetZone(z) {
+            z.classList.remove('swipe-open', 'set-collapsing');
+            const i = z.querySelector('.set-line-inner');
+            const b = z.querySelector('.set-swipe-bg');
+            if (i) { i.style.transition = 'transform 0.2s ease'; i.style.transform = ''; }
+            if (b) { b.style.transition = 'transform 0.2s ease, opacity .15s ease'; b.style.transform = ''; b.classList.remove('visible'); }
+            z.style.maxHeight = '';
+            z.style.marginBottom = '';
+            z.style.opacity = '';
+            z.dataset.removedBySwipe = '';
+            delete z.dataset.swipeRemoving;
+        }
 
     // Глобальная делегирующая привязка: работает и для новых строк после перерисовки карточки.
     const MO = new MutationObserver(function (muts) {
