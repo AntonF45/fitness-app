@@ -30,20 +30,23 @@ function generateExerciseCardHTML(exIdx, ex) {
     const sets = ex.sets || [];
     const completed = sets.filter(function (s) { return s.weight > 0 && s.reps > 0; }).length;
     const target = ex.targetSets ?? 3;
-    const isComplete = completed >= target || ex.completed === true;   // ex.completed - ощущения внесены (set-note-modal.js)
+    const isComplete = completed >= target;   // «✓ Готово» — только по числу заполненных подходов
     const hasNotes = sets.some(function (st) { return !!(st && st.note); });
     // Заголовок: название — зона долгого нажатия (контекстное меню: удалить / комментарий).
     // Кнопка «крестик» убрана, удаление упражнения — только через контекст с подтверждением.
+    // Отдельная кнопка «Ощущения» убрана: комментарий добавляется тем же долгим нажатием,
+    // наличие заметки показывается иконкой в заголовке и под строкой подхода.
     return '<div id="exercise-card-' + exIdx + '" class="app-card mb-4 card-enter">' +
         '<div class="flex justify-between items-center mb-3 gap-2">' +
             '<div class="exercise-header flex items-center gap-2 flex-1 min-w-0 flex-wrap" data-longpress="context-exercise" data-payload="' + exIdx + '">' +
                 '<h3 class="font-bold text-sm leading-snug break-words flex-1">' + escHtml(ex.name) + '</h3>' +
                 (ex.exerciseType === 'bodyweight' ? '<span class="bodyweight-badge shrink-0">Собственный вес</span>' : '') +
+                (hasNotes ? '<i class="fa-solid fa-comment-dots note-indicator shrink-0" title="Есть комментарий"></i>' : '') +
             '</div>' +
             '<span id="badge-' + exIdx + '" class="text-xs font-medium px-2 py-1 rounded-md shrink-0 ' + (isComplete ? 'bg-green-500/20 text-green-500' : 'app-inset text-tgHint') + '">' + (isComplete ? '✓ Готово' : completed + '/' + target) + '</span>' +
         '</div>' +
         '<ol id="sets-container-' + exIdx + '" class="sets-list">' + sets.map(function (s, i) { return generateSetHTML(exIdx, i, s, ex.exerciseType); }).join('') + '</ol>' +
-        '<div class="flex gap-2 mt-2 flex-wrap"><button data-action="add-set" data-payload="' + exIdx + '" class="btn btn-sm btn-secondary btn-auto">+ Подход</button><button data-action="add-drop-set" data-payload="' + exIdx + '" class="btn btn-sm btn-warn btn-auto"><i class="fa-solid fa-fire"></i> Дроп-сет</button><button data-action="open-set-notes" data-payload="' + exIdx + '" class="btn btn-sm ' + (hasNotes ? 'btn-secondary btn-auto has-note' : 'btn-dashed btn-auto') + '"><i class="fa-solid fa-comment-dots"></i> Ощущения' + (hasNotes ? ' <i class="fa-solid fa-check text-[10px]"></i>' : '') + '</button></div>' +
+        '<div class="flex gap-2 mt-2 flex-wrap"><button data-action="add-set" data-payload="' + exIdx + '" class="btn btn-sm btn-secondary btn-auto">+ Подход</button><button data-action="add-drop-set" data-payload="' + exIdx + '" class="btn btn-sm btn-warn btn-auto"><i class="fa-solid fa-fire"></i> Дроп-сет</button></div>' +
     '</div>';
 }
 function updateExerciseCardInDOM(exIdx, ex) { const cardHTML = generateExerciseCardHTML(exIdx, ex); const existing = document.getElementById('exercise-card-' + exIdx); if (existing) existing.outerHTML = cardHTML; }
