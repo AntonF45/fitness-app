@@ -186,8 +186,8 @@ body.keyboard-open .sticky-bottom-action { display: none !important; }
     color: var(--tg-theme-hint-color, #8e8e93);
     pointer-events: none;
 }
-/* Группа дроп-подходов — визуально как контейнер суперсета: оранжевая полоса слева, лёгкая заливка, скругление справа. */
-.drop-group { list-style: none; margin-bottom: 6px; padding: 6px 8px 6px 12px; border-left: 3px solid var(--warn); border-radius: 0 14px 14px 0; background: rgba(249, 115, 22, 0.08); }
+/* Группа дроп-подходов — стиль контейнера суперсета: скруглённая со всех сторон карточка, оранжевая полоса слева, аккуратная градиентная заливка (справа растворяется). */
+.drop-group { list-style: none; margin-bottom: 6px; padding: 6px 8px; border-left: 4px solid var(--warn); border-radius: 12px; background: linear-gradient(90deg, rgba(249, 115, 22, 0.08), transparent); }
 .drop-group .set-line { margin-bottom: 4px; }
 .drop-group .set-line:last-child { margin-bottom: 0; }
 /* Бейдж прогресса упражнения («2/3» / «✓ Готово»): стиль как у чипа «Собственный вес»; «Готово» — зелёная заливка. */
