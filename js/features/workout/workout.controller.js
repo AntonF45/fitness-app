@@ -35,13 +35,13 @@ function generateSetHTML(exIdx, setIdx, set, exType) {
             (isDrop ? '<i class="fa-solid fa-fire set-num-drop" title="Дроп-подход"></i>' : '') +
             '<div class="set-field">' +
                 '<button data-action="adjust-set" data-payload="' + exIdx + ':' + sid + ':weight:-2.5" class="step-btn" aria-label="Меньше вес">−</button>' +
-                '<input type="number" id="set-' + sid + '-weight" inputmode="decimal" value="' + w + '" data-exercise="' + exIdx + '" data-set-id="' + sid + '" data-field="weight" class="set-input input-bare h-9 text-center text-base font-semibold min-w-0" aria-label="' + (bw ? 'Доп. вес, кг' : 'Вес, кг') + '">' +
+                '<input type="number" id="set-' + sid + '-weight" inputmode="decimal" value="' + w + '" data-exercise="' + exIdx + '" data-set-id="' + sid + '" data-field="weight" class="set-input input-bare h-9 text-center font-semibold min-w-0 px-0" aria-label="' + (bw ? 'Доп. вес, кг' : 'Вес, кг') + '">' +
                 '<button data-action="adjust-set" data-payload="' + exIdx + ':' + sid + ':weight:2.5" class="step-btn" aria-label="Больше вес">+</button>' +
                 '<span class="unit-hint shrink-0">кг</span>' +
             '</div>' +
             '<div class="set-field">' +
                 '<button data-action="adjust-set" data-payload="' + exIdx + ':' + sid + ':reps:-1" class="step-btn" aria-label="Меньше повторов">−</button>' +
-                '<input type="number" id="set-' + sid + '-reps" inputmode="numeric" value="' + r + '" data-exercise="' + exIdx + '" data-set-id="' + sid + '" data-field="reps" class="set-input input-bare h-9 text-center text-base font-semibold min-w-0" aria-label="Повторения">' +
+                '<input type="number" id="set-' + sid + '-reps" inputmode="numeric" value="' + r + '" data-exercise="' + exIdx + '" data-set-id="' + sid + '" data-field="reps" class="set-input input-bare h-9 text-center font-semibold min-w-0 px-0" aria-label="Повторения">' +
                 '<button data-action="adjust-set" data-payload="' + exIdx + ':' + sid + ':reps:1" class="step-btn" aria-label="Больше повторов">+</button>' +
                 '<span class="unit-hint shrink-0">повт</span>' +
             '</div>' +
