@@ -33,42 +33,22 @@ function swipeIsFieldTarget(target, z) {
     return false;
 }
 
-// Анимация схлопывания: высота -> 0, затем колбэк.
-// ВАЖНО: анимируется КОПИЯ строки, вставленная вместо оригинала. Оригинальный
-// узел немедленно скрывается и помечается mswipeDead — syncSetsListInPlace
-// обязан удалять такие строки безусловно. Если бы анимировался сам оригинал,
-// любое падение transitionend/таймера оставляло бы «живую» строку в DOM, а
-// повторный свайп по ней уже не срабатывал (узел помечен удалённым). Копия
-// гарантированно убирается страховочным таймером независимо от событий.
+// Анимация схлопывания: высота -> 0, затем колбэк. Анимируется КОПИЯ строки;
+// оригинал скрывается немедленно и удаляется сразу после запуска анимации —
+// к моменту изменения state в DOM не остаётся «живых» старых строк. Копия
+// убирается по transitionend или страховочным таймером.
 function collapseZoneRow(zone, onDone) {
     const ghost = zone.cloneNode(true);
     ghost.removeAttribute('id');
-    ghost.dataset.swipeLeft = '';
     ghost.removeAttribute('data-swipe-left');
-    ghost.classList.remove('card-enter', 'swipe-active');
+    ghost.classList.remove('card-enter', 'swipe-active', 'set-line');
     ghost.classList.add('set-collapsing', 'set-ghost');
-    // Копия не должна быть строкой списка: без set-line её не видят ни
-    // commitVisibleSetInputs, ни syncSetsListInPlace — она не может «вернуть»
-    // удалённый подход и не участвует в сверке DOM<->state.
-    ghost.classList.remove('set-line');
     ghost.style.pointerEvents = 'none';
     ghost.style.maxHeight = (zone.offsetHeight || 48) + 'px';
     ghost.style.marginBottom = getComputedStyle(zone).marginBottom || '6px';
     ghost.style.opacity = '1';
     const inner = ghost.querySelector('.set-line-inner');
     if (inner) inner.style.transform = 'none';
-    zone.parentNode.insertBefore(ghost, zone.nextSibling);
-
-    zone.style.display = 'none';
-    zone.dataset.swipeRemoving = '1';
-    zone.mswipeDead = true;
-
-    void ghost.offsetHeight; // фиксируем стартовое значение до перехода
-    nextFrame(function () {
-        ghost.style.maxHeight = '0px';
-        ghost.style.marginBottom = '0px';
-        ghost.style.opacity = '0';
-    });
 
     let done = false;
     function finish() {
@@ -85,7 +65,18 @@ function collapseZoneRow(zone, onDone) {
         if (e && e.propertyName && e.propertyName.indexOf('height') === -1) return;
         finish();
     }
-    const safety = setTimeout(finish, SWIPE_COLLAPSE_MS + 200);
+
+    zone.parentNode.insertBefore(ghost, zone);
+    zone.remove();
+
+    void ghost.offsetHeight; // фиксируем стартовое значение до перехода
+    nextFrame(function () {
+        ghost.style.maxHeight = '0px';
+        ghost.style.marginBottom = '0px';
+        ghost.style.opacity = '0';
+    });
+
+    const safety = setTimeout(finish, SWIPE_COLLAPSE_MS + 300);
     ghost.addEventListener('transitionend', onEnd);
     ghost.addEventListener('webkitTransitionEnd', onEnd);
 }
@@ -100,16 +91,7 @@ function initSwipeDelete() {
 
     function attachZone(zone) {
         if (!zone || zone.dataset.swipeBound === '1') return;
-        if (zone.mswipeDead || !zone.dataset.swipeLeft) return;
-        // Привязка к строке, которая уже удалена из state (например, строка
-        // перерисована во время анимации удаления), — гарантированно чистим
-        // её из DOM. Иначе «призрачная» строка остаётся видна, повторный
-        // свайп по ней не срабатывает, а следующий рендер восстанавливает
-        // удалённый подход в списке.
-        if (zone.dataset.swipeRemoving === '1' || zone.style.display === 'none') {
-            if (zone.parentNode) zone.remove();
-            return;
-        }
+        if (!zone.dataset.swipeLeft) return;
         zone.dataset.swipeBound = '1';
 
         let tracking = false, engaged = false, decided = false, removed = false;
@@ -150,13 +132,11 @@ function initSwipeDelete() {
             if (l.bg) setTimeout(function () { if (curDx === 0) l.bg.classList.remove('visible'); }, SWIPE_GLIDE_MS);
         }
 
-        // Порядок: жест → анимация схлопывания (на копии) → данные (state).
-        // Данные меняются ПОСЛЕ начала анимации: splice() выполняется в момент,
-        // когда оригинальная строка уже скрыта и помечена mswipeDead, поэтому
-        // syncSetsListInPlace удалит её безусловно — «воскрешение» невозможно.
+        // Порядок: жест → схлопывание копии (оригинал удалён из DOM сразу) →
+        // изменение state. К моменту splice() в контейнере нет старой строки,
+        // а sync пересобирает список строго из state — «воскрешение» невозможно.
         function commitDelete(action, payload) {
             removed = true;
-            zone.swipeAnimating = true;
             window.__swipeDeleteInProgress = Date.now();
 
             let done = false;
@@ -165,8 +145,7 @@ function initSwipeDelete() {
                 done = true;
                 clearTimeout(safetyTimer);
                 if (window.__mswipeSafety) { clearTimeout(window.__mswipeSafety); window.__mswipeSafety = null; }
-                if (zone.parentNode) zone.remove();
-                zone.swipeAnimating = false;
+                window.__swipeDeleteInProgress = 0;
 
                 const handler = swipeLeftHandlers[action];
                 if (!handler) {
