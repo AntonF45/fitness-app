@@ -78,12 +78,8 @@ function generateExerciseCardHTML(exIdx, ex) {
 // Синхронизация списка подходов из state — единственного источника истины.
 // Ключеванная сверка по стабильному id: переиспользуем существующие строки
 // (сохраняем фокус и несохранённый ввод), создаём недостающие, позиционируем
-// строго по порядку state.
-// Удаление строки: если над ней идёт анимация свайпа (swipeAnimating /
-// data-swipe-removing), узел НЕ трогаем — swipe-delete сам уберёт его после
-// схлопывания. Если свайп-модуль по какой-то причине этого не сделал (например,
-// обработчик упал), гарантированно доудаляем «осиротевшую» строку сразу: она
-// уже удалена из state и никогда не должна вернуться при следующем рендере.
+// строго по порядку state. Строки со следом свайпа (mswipeDead) удаляются
+// безусловно — они уже убраны из state и не должны «воскресать».
 // Возвращает false, если контейнера нет в DOM — вызывающий перерисовывает экран.
 function syncSetsListInPlace(exIdx, ex) {
     const list = document.getElementById('sets-container-' + exIdx);
@@ -94,26 +90,22 @@ function syncSetsListInPlace(exIdx, ex) {
     const stateIds = {};
     ex.sets.forEach(function (st) { stateIds[st.id] = true; });
 
-    // 1. Строки, отсутствующие в state.
+    // 1. Строки, отсутствующие в state. mswipeDead — строка, по которой уже
+    // выполнен свайп: она скрыта и анимируется копией, удаляется безусловно.
     const staleRows = Array.prototype.filter.call(
         list.querySelectorAll('.set-line'),
-        function (row) { return !stateIds[row.dataset.setId]; }
+        function (row) { return row.mswipeDead || !stateIds[row.dataset.setId]; }
     );
-    // Анимация идёт только над первой осиротевшей строкой; остальные убираем сразу.
-    staleRows.forEach(function (row, i) {
-        const isAnimating = !!row.swipeAnimating || row.dataset.swipeRemoving === '1';
-        if (isAnimating && i === 0) return;
-        row.remove();
-    });
+    staleRows.forEach(function (row) { row.remove(); });
 
-    // 2. Матчинг оставшихся живых строк по id.
+    // 2. Матчинг живых строк по id.
     const existing = {};
     Array.prototype.forEach.call(list.querySelectorAll('.set-line'), function (row) {
         const sid = row.dataset.setId;
         if (sid && !existing[sid]) existing[sid] = row;
     });
 
-    // 3. Пересобираем порядок строго по state; анимируемую строку не двигаем.
+    // 3. Порядок узлов — строго по state.
     let prevNode = null;
     ex.sets.forEach(function (st, i) {
         const shouldBeNum = String(i + 1);
@@ -121,10 +113,6 @@ function syncSetsListInPlace(exIdx, ex) {
         let node = existing[st.id];
         if (node) {
             delete existing[st.id];
-            if (node.swipeAnimating || node.dataset.swipeRemoving === '1') {
-                prevNode = node;
-                return;
-            }
             const numEl = node.querySelector('.set-num');
             if (numEl && numEl.textContent !== shouldBeNum) numEl.textContent = shouldBeNum;
             if (node.dataset.payload !== shouldBePayload) node.dataset.payload = shouldBePayload;
@@ -142,11 +130,10 @@ function syncSetsListInPlace(exIdx, ex) {
         prevNode = node;
     });
 
-    // 4. Дубликаты/id-мусор вне state — удалить (анимируемые не трогаем).
+    // 4. Дубликаты/id-мусор вне state — удалить.
     Object.keys(existing).forEach(function (sid) {
         const n = existing[sid];
-        if ((n.swipeAnimating || n.dataset.swipeRemoving === '1')) return;
-        if (n.parentNode === list) n.remove();
+        if (n.mswipeDead || n.parentNode === list) n.remove();
     });
 
     return true;
@@ -233,10 +220,20 @@ function commitVisibleSetInputs(exIdx) {
     if (state.activeWorkout) saveActiveWorkout();
 }
 
+// Пока идёт анимация удаления, добавление блокируется (иначе addSet работает
+// с state, где подход ещё не удалён, и строка «воскресает»). Флаг протухает
+// через 1.5 с — зависнуть навсегда не может.
+function swipeDeleteLocked() {
+    return !!window.__swipeDeleteInProgress &&
+        (Date.now() - window.__swipeDeleteInProgress) < 1500;
+}
+
 function tryAddSet(exIdx) {
-    if (window.__swipeDeleteInProgress) return;
+    if (swipeDeleteLocked()) return;
     commitVisibleSetInputs(exIdx);
-    const sets = state.activeWorkout.exercises[exIdx].sets || [];
+    const ex = state.activeWorkout && state.activeWorkout.exercises ? state.activeWorkout.exercises[exIdx] : null;
+    if (!ex) return;
+    const sets = ex.sets || [];
     if (sets.length > 0) {
         const last = sets[sets.length - 1];
         if (!last.weight || Number(last.weight) <= 0 || !last.reps || Number(last.reps) <= 0) {
@@ -249,9 +246,11 @@ function tryAddSet(exIdx) {
 }
 
 function tryAddDropSet(exIdx) {
-    if (window.__swipeDeleteInProgress) return;
+    if (swipeDeleteLocked()) return;
     commitVisibleSetInputs(exIdx);
-    const sets = state.activeWorkout.exercises[exIdx].sets || [];
+    const ex = state.activeWorkout && state.activeWorkout.exercises ? state.activeWorkout.exercises[exIdx] : null;
+    if (!ex) return;
+    const sets = ex.sets || [];
     if (sets.length === 0) { showAlert('Сначала добавьте обычный подход'); return; }
     const last = sets[sets.length - 1];
     if (!last.weight || Number(last.weight) <= 0 || !last.reps || Number(last.reps) <= 0) {
@@ -313,8 +312,9 @@ function adjustSet(exIdx, setId, field, delta) {
 }
 
 function addSet(exIdx) {
-    const ex = state.activeWorkout.exercises[exIdx];
-    const sets = ex.sets;
+    const ex = state.activeWorkout && state.activeWorkout.exercises ? state.activeWorkout.exercises[exIdx] : null;
+    if (!ex) return;
+    const sets = ex.sets || (ex.sets = []);
     ensureSetIds(ex);
     let w = 0, r = ex.targetReps ?? 10;
     if (sets.length > 0) { w = sets[sets.length - 1].weight; r = sets[sets.length - 1].reps; }
@@ -326,8 +326,9 @@ function addSet(exIdx) {
 }
 
 function addDropSet(exIdx) {
-    const ex = state.activeWorkout.exercises[exIdx];
-    const sets = ex.sets;
+    const ex = state.activeWorkout && state.activeWorkout.exercises ? state.activeWorkout.exercises[exIdx] : null;
+    if (!ex) return;
+    const sets = ex.sets || (ex.sets = []);
     ensureSetIds(ex);
     const last = sets[sets.length - 1];
     const drop = Math.max(0, Math.round((last.weight * 0.75) / 2.5) * 2.5);
@@ -350,9 +351,10 @@ function confirmRemoveSet(exIdx, setId) {
 // затем пересобираем список. Последний подход тоже удаляется — список может
 // стать пустым, «+ Подход» тогда добавляет первый подход с нулевым весом.
 function removeSet(exIdx, setId) {
-    commitVisibleSetInputs(exIdx);
-    const ex = state.activeWorkout.exercises[exIdx];
+    const ex = state.activeWorkout && state.activeWorkout.exercises ? state.activeWorkout.exercises[exIdx] : null;
     if (!ex || !Array.isArray(ex.sets)) return;
+    try { commitVisibleSetInputs(exIdx); }
+    catch (err) { console.error('commitVisibleSetInputs failed', err); }
     const idx = ex.sets.findIndex(function (s) { return s.id === setId; });
     if (idx === -1) return;
     ex.sets.splice(idx, 1);
