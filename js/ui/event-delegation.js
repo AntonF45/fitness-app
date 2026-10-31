@@ -94,6 +94,8 @@ document.addEventListener('input', function (e) {
 document.addEventListener('focusin', function (e) {
     try {
         const t = e.target;
+        // При переходе фокуса на поле с подсказками скрываем дропдауны всех остальных полей.
+        if (t.classList.contains('muscle-input') || t.classList.contains('exercise-name-input')) hideAllAutocomplete();
         if (t.classList.contains('muscle-input')) { updateMuscleAutocomplete(t); return; }
         if (t.classList.contains('exercise-name-input')) { updateAutocomplete(t); return; }
     } catch (err) {
