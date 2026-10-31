@@ -93,7 +93,6 @@ input[type=number] { -moz-appearance: textfield; }
 .achievement-icon.blue { background: var(--accent-bg); color: #60a5fa; }
 .achievement-icon.green { background: rgba(34, 197, 94, 0.15); color: #4ade80; }
 .achievement-icon.purple { background: rgba(168, 85, 247, 0.15); color: #c084fc; }
-.set-drop { border-left: 3px solid #f97316; background: linear-gradient(90deg, rgba(249, 115, 22, 0.08), transparent); }
 .bodyweight-badge { display: inline-flex; align-items: center; background: rgba(34, 197, 94, 0.15); color: #4ade80; padding: 4px 10px; border-radius: 8px; font-size: 11px; font-weight: 600; }
 .drop-badge { display: inline-flex; align-items: center; gap: 4px; background: var(--warn-bg); color: var(--warn); padding: 2px 8px; border-radius: 6px; font-size: 10px; font-weight: 700; letter-spacing: 0.5px; }
 .checkbox-label { display: flex; align-items: center; gap: 8px; cursor: pointer; user-select: none; }
@@ -186,12 +185,14 @@ body.keyboard-open .sticky-bottom-action { display: none !important; }
     color: var(--tg-theme-hint-color, #8e8e93);
     pointer-events: none;
 }
-.set-drop { box-shadow: inset 3px 0 0 var(--warn); }
+/* Группа дроп-сетов: одна оранжевая рамка на все подряд идущие дроп-подходы. */
+.drop-group { margin-bottom: 6px; padding: 0 2px; border: 1px solid var(--warn); border-radius: 14px; background: rgba(249, 115, 22, 0.08); }
+.drop-group .set-line { margin-bottom: 2px; }
+.drop-group .set-line:last-child { margin-bottom: 0; }
 /* Бейдж прогресса упражнения («2/3» / «✓ Готово»): стиль как у чипа «Собственный вес»; «Готово» — зелёная заливка. */
 .set-progress-badge { font-size: 11px; font-weight: 600; padding: 4px 10px; border-radius: 8px; background: var(--card-bg); border: none; flex-shrink: 0; }
 .set-progress-badge.done { color: #4ade80; background: rgba(34, 197, 94, 0.15); }
 .set-progress-badge.pending { color: var(--tg-theme-hint-color, #8e8e93); }
-.set-num-drop { position: static; font-size: 10px; line-height: 1; color: var(--warn); opacity: 0.9; }
 /* Крестик удаления подхода — в конце строки, вертикально по центру. */
 .set-del-btn { flex: 0 0 auto; width: 26px; display: flex; align-items: center; justify-content: center; background: transparent; border: none; color: var(--danger); font-size: 13px; opacity: .7; padding: 0; cursor: pointer; -webkit-tap-highlight-color: transparent; touch-action: manipulation; transition: opacity .15s ease, transform .1s ease; }
 .set-del-btn:active { opacity: 1; transform: scale(.88); }
@@ -218,5 +219,5 @@ body.keyboard-open .sticky-bottom-action { display: none !important; }
 .exercise-actions .btn { flex: 1 1 0% !important; width: auto !important; min-width: 0; }
 .btn.has-note { border-color: var(--accent-border); }
 .set-note { margin-top: 6px; font-size: 12px; line-height: 1.4; color: var(--tg-theme-hint-color, #8e8e93); background: var(--inset-bg); border-left: 2px solid var(--warn); border-radius: 8px; padding: 6px 10px; }
-.exercise-note { margin-top: 0; }
-.note-indicator { font-size: 12px; color: var(--warn); opacity: 0.9; }
+/* Комментарий упражнения: отступ как между подходами (6px), без иконки. */
+.exercise-note { margin-top: 6px; }
