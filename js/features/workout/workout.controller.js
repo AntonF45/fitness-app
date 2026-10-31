@@ -75,12 +75,15 @@ function generateExerciseCardHTML(exIdx, ex) {
     '</div>';
 }
 
-// Синхронизация списка подходов из state — единственный источник истины.
+// Синхронизация списка подходов из state — единственного источника истины.
 // Ключеванная сверка по стабильному id: переиспользуем существующие строки
-// (сохраняем фокус и несохранённый ввод), создаём недостающие, удаляем лишние,
-// позиционируем строго по порядку state. Строки, анимируемые свайпом
-// (swipeAnimating), на время пересборки отвязываются от DOM и возвращаются на
-// свои позиции — так ghost-копия не может быть задета перерисовкой.
+// (сохраняем фокус и несохранённый ввод), создаём недостающие, позиционируем
+// строго по порядку state.
+// Удаление строки: если над ней идёт анимация свайпа (swipeAnimating /
+// data-swipe-removing), узел НЕ трогаем — swipe-delete сам уберёт его после
+// схлопывания. Если свайп-модуль по какой-то причине этого не сделал (например,
+// обработчик упал), гарантированно доудаляем «осиротевшую» строку сразу: она
+// уже удалена из state и никогда не должна вернуться при следующем рендере.
 // Возвращает false, если контейнера нет в DOM — вызывающий перерисовывает экран.
 function syncSetsListInPlace(exIdx, ex) {
     const list = document.getElementById('sets-container-' + exIdx);
@@ -88,37 +91,50 @@ function syncSetsListInPlace(exIdx, ex) {
 
     ensureSetIds(ex);
 
-    // 1. Временно убираем анимируемые узлы из DOM.
-    const removingNodes = Array.prototype.filter.call(
-        list.querySelectorAll('.set-line'),
-        function (row) { return !!row.swipeAnimating; }
-    );
-    removingNodes.forEach(function (row) { row.remove(); });
+    const stateIds = {};
+    ex.sets.forEach(function (st) { stateIds[st.id] = true; });
 
-    // 2. Матчинг живых строк по id.
+    // 1. Строки, отсутствующие в state.
+    const staleRows = Array.prototype.filter.call(
+        list.querySelectorAll('.set-line'),
+        function (row) { return !stateIds[row.dataset.setId]; }
+    );
+    // Анимация идёт только над первой осиротевшей строкой; остальные убираем сразу.
+    staleRows.forEach(function (row, i) {
+        const isAnimating = !!row.swipeAnimating || row.dataset.swipeRemoving === '1';
+        if (isAnimating && i === 0) return;
+        row.remove();
+    });
+
+    // 2. Матчинг оставшихся живых строк по id.
     const existing = {};
     Array.prototype.forEach.call(list.querySelectorAll('.set-line'), function (row) {
         const sid = row.dataset.setId;
         if (sid && !existing[sid]) existing[sid] = row;
     });
 
+    // 3. Пересобираем порядок строго по state; анимируемую строку не двигаем.
     let prevNode = null;
-    ex.sets.forEach(function (s, i) {
+    ex.sets.forEach(function (st, i) {
         const shouldBeNum = String(i + 1);
-        const shouldBePayload = exIdx + ':' + s.id;
-        let node = existing[s.id];
+        const shouldBePayload = exIdx + ':' + st.id;
+        let node = existing[st.id];
         if (node) {
-            delete existing[s.id];
+            delete existing[st.id];
+            if (node.swipeAnimating || node.dataset.swipeRemoving === '1') {
+                prevNode = node;
+                return;
+            }
             const numEl = node.querySelector('.set-num');
             if (numEl && numEl.textContent !== shouldBeNum) numEl.textContent = shouldBeNum;
             if (node.dataset.payload !== shouldBePayload) node.dataset.payload = shouldBePayload;
             const wi = node.querySelector('[data-field="weight"]');
-            if (wi) { const v = effectiveSetValue(s.id, 'weight', s.weight); if (wi.value !== v) wi.value = v; }
+            if (wi) { const v = effectiveSetValue(st.id, 'weight', st.weight); if (wi.value !== v) wi.value = v; }
             const ri = node.querySelector('[data-field="reps"]');
-            if (ri) { const v = effectiveSetValue(s.id, 'reps', s.reps); if (ri.value !== v) ri.value = v; }
+            if (ri) { const v = effectiveSetValue(st.id, 'reps', st.reps); if (ri.value !== v) ri.value = v; }
         } else {
             const tmp = document.createElement('ol');
-            tmp.innerHTML = generateSetHTML(exIdx, i, s, ex.exerciseType);
+            tmp.innerHTML = generateSetHTML(exIdx, i, st, ex.exerciseType);
             node = tmp.firstElementChild;
         }
         const ref = prevNode ? prevNode.nextSibling : list.firstElementChild;
@@ -126,24 +142,11 @@ function syncSetsListInPlace(exIdx, ex) {
         prevNode = node;
     });
 
-    // 3. Удаляем строки, которых больше нет в state.
+    // 4. Дубликаты/id-мусор вне state — удалить (анимируемые не трогаем).
     Object.keys(existing).forEach(function (sid) {
         const n = existing[sid];
+        if ((n.swipeAnimating || n.dataset.swipeRemoving === '1')) return;
         if (n.parentNode === list) n.remove();
-    });
-
-    // 4. Возвращаем анимируемые узлы на позиции из state.
-    removingNodes.forEach(function (row) {
-        const sid = row.dataset.setId;
-        const idx = ex.sets.findIndex(function (s) { return s.id === sid; });
-        let anchor = null;
-        if (idx !== -1) {
-            for (let j = idx + 1; j < ex.sets.length && !anchor; j++) {
-                anchor = list.querySelector('.set-line[data-set-id="' + ex.sets[j].id + '"]');
-            }
-        }
-        if (anchor) list.insertBefore(row, anchor);
-        else list.appendChild(row);
     });
 
     return true;
