@@ -18,11 +18,18 @@ function getMuscleSuggestions(query) {
 function hideAllAutocomplete() {
     document.querySelectorAll('.autocomplete-dropdown').forEach(function (d) { d.style.display = 'none'; d.innerHTML = ''; });
 }
+function hideAllAutocompleteExcept(keepDrop) {
+    document.querySelectorAll('.autocomplete-dropdown').forEach(function (d) {
+        if (d !== keepDrop) { d.style.display = 'none'; d.innerHTML = ''; }
+    });
+}
 function updateAutocomplete(inputEl) {
     const scope = inputEl.dataset.scope || 'editor';
     const index = inputEl.dataset.exerciseIndex || '0';
     const drop = document.getElementById('ac-drop-' + scope + '-' + index);
     if (!drop) return;
+    // Подсказки должны быть активны только у одного поля: прячем чужие дропдауны.
+    hideAllAutocompleteExcept(drop);
     let group = '';
     if (scope === 'editor') {
         const ex = state.editingProgram && state.editingProgram.exercises ? state.editingProgram.exercises[parseInt(index, 10)] : null;
@@ -43,6 +50,8 @@ function updateMuscleAutocomplete(inputEl) {
     const index = inputEl.dataset.exerciseIndex || '0';
     const drop = document.getElementById('ac-drop-muscle-' + scope + '-' + index);
     if (!drop) return;
+    // Подсказки должны быть активны только у одного поля: прячем чужие дропдауны.
+    hideAllAutocompleteExcept(drop);
     const suggestions = getMuscleSuggestions(inputEl.value);
     if (!suggestions.length) { drop.style.display = 'none'; drop.innerHTML = ''; return; }
     drop.innerHTML = suggestions.map(function (g) {
