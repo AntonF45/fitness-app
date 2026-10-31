@@ -193,29 +193,33 @@ function seedSetDraft(set) {
 }
 
 // Перед изменением состояния переносим незакрытые значения полей ввода в state.
-// Идентификация — по стабильному data-set-id (не по позиции). Строки, которые
-// свайп уже снял с DOM-потока (zone.swipeAnimating) или которые отсоединены,
-// пропускаются: они больше не источник истины и не должны перезаписывать state.
+// Идентификация — по стабильному data-set-id (не по позиции). Берём только
+// реально видимые строки списка этого упражнения: ghost-копии свайпа скрыты
+// (display:none) и не являются источником данных.
 function commitVisibleSetInputs(exIdx) {
-    const inputs = document.querySelectorAll('[data-exercise="' + exIdx + '"].set-input');
+    const list = document.getElementById('sets-container-' + exIdx);
+    if (!list) return;
     const ex = state.activeWorkout && state.activeWorkout.exercises ? state.activeWorkout.exercises[exIdx] : null;
     if (!ex || !Array.isArray(ex.sets)) return;
-    for (let i = 0; i < inputs.length; i++) {
-      try {
-        const t = inputs[i];
-        if (!t.isConnected) continue;
-        const row = t.closest('.set-line');
-        if (row && row.swipeAnimating) continue;
-        const field = t.dataset.field;
-        const set = findSetById(ex, t.dataset.setId);
-        if (!set || !field) continue;
-        const raw = String(t.value);
-        if (raw.trim() === '') continue;
-        const value = field === 'weight' ? parseWeight(raw) : parseReps(raw);
-        if (value === null) continue;
-        if (String(value) !== String(set[field])) set[field] = value;
-        if (typeof saveSetDraft === 'function') saveSetDraft(set.id, field, String(value));
-      } catch (err) {}
+    const rows = list.querySelectorAll('.set-line:not(.set-ghost)');
+    for (let i = 0; i < rows.length; i++) {
+      const row = rows[i];
+      if (row.mswipeDead || row.style.display === 'none') continue;
+      const inputs = row.querySelectorAll('.set-input');
+      for (let j = 0; j < inputs.length; j++) {
+        try {
+          const t = inputs[j];
+          const field = t.dataset.field;
+          const set = findSetById(ex, row.dataset.setId);
+          if (!set || !field) continue;
+          const raw = String(t.value);
+          if (raw.trim() === '') continue;
+          const value = field === 'weight' ? parseWeight(raw) : parseReps(raw);
+          if (value === null) continue;
+          if (String(value) !== String(set[field])) set[field] = value;
+          if (typeof saveSetDraft === 'function') saveSetDraft(set.id, field, String(value));
+        } catch (err) {}
+      }
     }
     if (state.activeWorkout) saveActiveWorkout();
 }
@@ -350,17 +354,20 @@ function confirmRemoveSet(exIdx, setId) {
 // Единственный путь удаления подхода: удаляем по стабильному id из state,
 // затем пересобираем список. Последний подход тоже удаляется — список может
 // стать пустым, «+ Подход» тогда добавляет первый подход с нулевым весом.
+// Черновик удалённого подхода чистится ДО записи состояния в localStorage,
+// иначе следующий рендер (в т.ч. после «+ Подход») восстановит значение.
 function removeSet(exIdx, setId) {
     const ex = state.activeWorkout && state.activeWorkout.exercises ? state.activeWorkout.exercises[exIdx] : null;
     if (!ex || !Array.isArray(ex.sets)) return;
+    const idx = ex.sets.findIndex(function (s) { return s.id === setId; });
+    if (idx === -1) return; // уже удалён — повторный вызов безопасен
     try { commitVisibleSetInputs(exIdx); }
     catch (err) { console.error('commitVisibleSetInputs failed', err); }
-    const idx = ex.sets.findIndex(function (s) { return s.id === setId; });
-    if (idx === -1) return;
     ex.sets.splice(idx, 1);
-    // Черновик удалённого подхода больше не нужен — иначе он переживёт splice.
-    saveSetDraft(setId, 'weight', '');
-    saveSetDraft(setId, 'reps', '');
+    if (typeof saveSetDraft === 'function') {
+        saveSetDraft(setId, 'weight', '');
+        saveSetDraft(setId, 'reps', '');
+    }
     saveActiveWorkout(); haptic('light');
     updateExerciseCardInDOM(exIdx, ex);
 }
