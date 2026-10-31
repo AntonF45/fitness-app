@@ -39,7 +39,7 @@ function generateSetHTML(exIdx, setIdx, set, exType) {
             (isDrop ? '<i class="fa-solid fa-fire set-num-drop" title="Дроп-подход"></i>' : '') +
             '<div class="set-field">' +
                 '<button data-action="adjust-set" data-payload="' + exIdx + ':' + sid + ':weight:-2.5" class="step-btn" aria-label="Меньше вес">−</button>' +
-                '<div class="set-input-wrap">' +
+                '<div class="set-input-col">' +
                     '<input type="number" id="set-' + sid + '-weight" inputmode="decimal" value="' + (setFieldHasText(w) ? w : '') + '" data-exercise="' + exIdx + '" data-set-id="' + sid + '" data-field="weight" class="set-input input-bare font-semibold min-w-0 px-0" aria-label="' + (bw ? 'Доп. вес, кг' : 'Вес, кг') + '">' +
                     '<span class="unit-suffix">кг</span>' +
                 '</div>' +
@@ -47,7 +47,7 @@ function generateSetHTML(exIdx, setIdx, set, exType) {
             '</div>' +
             '<div class="set-field">' +
                 '<button data-action="adjust-set" data-payload="' + exIdx + ':' + sid + ':reps:-1" class="step-btn" aria-label="Меньше повторов">−</button>' +
-                '<div class="set-input-wrap">' +
+                '<div class="set-input-col">' +
                     '<input type="number" id="set-' + sid + '-reps" inputmode="numeric" value="' + (setFieldHasText(r) ? r : '') + '" data-exercise="' + exIdx + '" data-set-id="' + sid + '" data-field="reps" class="set-input input-bare font-semibold min-w-0 px-0" aria-label="Повторения">' +
                     '<span class="unit-suffix">повт</span>' +
                 '</div>' +
@@ -74,7 +74,7 @@ function generateExerciseCardHTML(exIdx, ex) {
                 (ex.exerciseType === 'bodyweight' ? '<span class="bodyweight-badge shrink-0">Собственный вес</span>' : '') +
                 (hasNotes ? '<i class="fa-solid fa-comment-dots note-indicator shrink-0" title="Есть комментарий"></i>' : '') +
             '</div>' +
-            '<span id="badge-' + exIdx + '" class="text-xs font-medium px-2 py-1 rounded-md shrink-0 ' + (isComplete ? 'bg-green-500/20 text-green-500' : 'app-inset text-tgHint') + '">' + (isComplete ? '✓ Готово' : completed + '/' + target) + '</span>' +
+            '<span id="badge-' + exIdx + '" class="set-progress-badge shrink-0 ' + (isComplete ? 'done' : 'pending') + '">' + (isComplete ? '✓ Готово' : completed + '/' + target) + '</span>' +
             '<button data-action="exercise-menu" data-payload="' + exIdx + '" class="menu-btn shrink-0" aria-label="Меню упражнения"><i class="fa-solid fa-ellipsis-vertical"></i></button>' +
         '</div>' +
         '<ol id="sets-container-' + exIdx + '" class="sets-list">' + sets.map(function (s, i) { return generateSetHTML(exIdx, i, s, ex.exerciseType); }).join('') + '</ol>' +
@@ -130,7 +130,7 @@ function updateExerciseBadge(exIdx) {
     const target = ex.targetSets ?? 3;
     const badge = document.getElementById('badge-' + exIdx);
     if (!badge) return;
-    badge.className = 'text-xs font-medium px-2 py-1 rounded-md shrink-0 ' + (completed >= target ? 'bg-green-500/20 text-green-500' : 'app-inset text-tgHint');
+    badge.className = 'set-progress-badge shrink-0 ' + (completed >= target ? 'done' : 'pending');
     badge.innerText = completed >= target ? '✓ Готово' : completed + '/' + target;
 }
 
