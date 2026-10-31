@@ -76,26 +76,76 @@ function generateExerciseCardHTML(exIdx, ex) {
 }
 
 // Синхронизация списка подходов из state — единственный источник истины.
-// Строку, удалённую свайпом (zone.remove() до вызова обработчика), здесь уже нет:
-// список пересобирается строго по актуальному ex.sets. Возвращает false, если
-// контейнера нет в DOM — вызывающий перерисовывает экран.
+// Ключеванная сверка по стабильному id: переиспользуем существующие строки
+// (сохраняем фокус и несохранённый ввод), создаём недостающие, удаляем лишние,
+// позиционируем строго по порядку state. Строки, анимируемые свайпом
+// (swipeAnimating), на время пересборки отвязываются от DOM и возвращаются на
+// свои позиции — так ghost-копия не может быть задета перерисовкой.
+// Возвращает false, если контейнера нет в DOM — вызывающий перерисовывает экран.
 function syncSetsListInPlace(exIdx, ex) {
     const list = document.getElementById('sets-container-' + exIdx);
     if (!list) return false;
 
-    // При пересборке теряется фокус/редактирование — сохраняем каретку по id подхода.
-    const ae = document.activeElement;
-    const savedFocus = (ae && /^set-set_/.test(String(ae.id))) ?
-        { id: ae.id, start: ae.selectionStart, end: ae.selectionEnd } : null;
-
     ensureSetIds(ex);
-    const rowsHtml = ex.sets.map(function (s, i) { return generateSetHTML(exIdx, i, s, ex.exerciseType); }).join('');
-    if (list.innerHTML !== rowsHtml) list.innerHTML = rowsHtml;
 
-    if (savedFocus) {
-        const el = document.getElementById(savedFocus.id);
-        if (el) { try { el.focus({ preventScroll: true }); el.setSelectionRange(savedFocus.start, savedFocus.end); } catch (err) {} }
-    }
+    // 1. Временно убираем анимируемые узлы из DOM.
+    const removingNodes = Array.prototype.filter.call(
+        list.querySelectorAll('.set-line'),
+        function (row) { return !!row.swipeAnimating; }
+    );
+    removingNodes.forEach(function (row) { row.remove(); });
+
+    // 2. Матчинг живых строк по id.
+    const existing = {};
+    Array.prototype.forEach.call(list.querySelectorAll('.set-line'), function (row) {
+        const sid = row.dataset.setId;
+        if (sid && !existing[sid]) existing[sid] = row;
+    });
+
+    let prevNode = null;
+    ex.sets.forEach(function (s, i) {
+        const shouldBeNum = String(i + 1);
+        const shouldBePayload = exIdx + ':' + s.id;
+        let node = existing[s.id];
+        if (node) {
+            delete existing[s.id];
+            const numEl = node.querySelector('.set-num');
+            if (numEl && numEl.textContent !== shouldBeNum) numEl.textContent = shouldBeNum;
+            if (node.dataset.payload !== shouldBePayload) node.dataset.payload = shouldBePayload;
+            const wi = node.querySelector('[data-field="weight"]');
+            if (wi) { const v = effectiveSetValue(s.id, 'weight', s.weight); if (wi.value !== v) wi.value = v; }
+            const ri = node.querySelector('[data-field="reps"]');
+            if (ri) { const v = effectiveSetValue(s.id, 'reps', s.reps); if (ri.value !== v) ri.value = v; }
+        } else {
+            const tmp = document.createElement('ol');
+            tmp.innerHTML = generateSetHTML(exIdx, i, s, ex.exerciseType);
+            node = tmp.firstElementChild;
+        }
+        const ref = prevNode ? prevNode.nextSibling : list.firstElementChild;
+        if (node !== ref) list.insertBefore(node, ref);
+        prevNode = node;
+    });
+
+    // 3. Удаляем строки, которых больше нет в state.
+    Object.keys(existing).forEach(function (sid) {
+        const n = existing[sid];
+        if (n.parentNode === list) n.remove();
+    });
+
+    // 4. Возвращаем анимируемые узлы на позиции из state.
+    removingNodes.forEach(function (row) {
+        const sid = row.dataset.setId;
+        const idx = ex.sets.findIndex(function (s) { return s.id === sid; });
+        let anchor = null;
+        if (idx !== -1) {
+            for (let j = idx + 1; j < ex.sets.length && !anchor; j++) {
+                anchor = list.querySelector('.set-line[data-set-id="' + ex.sets[j].id + '"]');
+            }
+        }
+        if (anchor) list.insertBefore(row, anchor);
+        else list.appendChild(row);
+    });
+
     return true;
 }
 
@@ -153,15 +203,19 @@ function seedSetDraft(set) {
 }
 
 // Перед изменением состояния переносим незакрытые значения полей ввода в state.
-// Идентификация — по стабильному data-set-id (не по позиции), поэтому строка,
-// оставшаяся от анимируемого свайпа, не может перезаписать другой подход: она
-// либо уже удалена из state (findSetById вернёт null), либо это тот же подход.
+// Идентификация — по стабильному data-set-id (не по позиции). Строки, которые
+// свайп уже снял с DOM-потока (zone.swipeAnimating) или которые отсоединены,
+// пропускаются: они больше не источник истины и не должны перезаписывать state.
 function commitVisibleSetInputs(exIdx) {
     const inputs = document.querySelectorAll('[data-exercise="' + exIdx + '"].set-input');
     const ex = state.activeWorkout && state.activeWorkout.exercises ? state.activeWorkout.exercises[exIdx] : null;
     if (!ex || !Array.isArray(ex.sets)) return;
     for (let i = 0; i < inputs.length; i++) {
+      try {
         const t = inputs[i];
+        if (!t.isConnected) continue;
+        const row = t.closest('.set-line');
+        if (row && row.swipeAnimating) continue;
         const field = t.dataset.field;
         const set = findSetById(ex, t.dataset.setId);
         if (!set || !field) continue;
@@ -171,6 +225,7 @@ function commitVisibleSetInputs(exIdx) {
         if (value === null) continue;
         if (String(value) !== String(set[field])) set[field] = value;
         if (typeof saveSetDraft === 'function') saveSetDraft(set.id, field, String(value));
+      } catch (err) {}
     }
     if (state.activeWorkout) saveActiveWorkout();
 }
