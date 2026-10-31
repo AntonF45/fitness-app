@@ -173,11 +173,11 @@ body.keyboard-open .sticky-bottom-action { display: none !important; }
 /* Группа «− [кг поле] +» — одна линия; подпись единицы внутри поля ввода. */
 .set-field { display: flex; flex-direction: row; flex-wrap: nowrap; align-items: stretch; gap: 1px; flex: 1 1 0%; min-width: 0; }
 .set-field .step-btn { flex: 0 0 auto; width: 24px; height: 34px; font-size: 16px; }
-/* Акцентные кнопки «−»/«+»: залиты акцентным цветом поверх фона строки. */
-.set-line .step-btn { background: var(--accent, #3b82f6); border: none; color: #ffffff; border-radius: 9px; }
-.set-line .step-btn:active { opacity: .85; transform: scale(.92); }
-/* Поле ввода: значение слева, постоянная подпись единицы («кг»/«повт») справа. */
-.set-field input { flex: 1 1 auto; min-width: 0; padding-left: 3px; padding-right: 1px; font-size: 17px; line-height: 34px; height: 34px; text-align: right; }
+/* Кнопки «−»/«+»: без заливки — фон как у блока подхода, граница как у карточки упражнения. */
+.set-line .step-btn { background: var(--card-bg); border: 1px solid var(--card-border); color: var(--tg-theme-text-color, #ffffff); border-radius: 9px; }
+.set-line .step-btn:active { opacity: .7; transform: scale(.92); }
+/* Поле ввода: значение по центру, постоянная подпись единицы («кг»/«повт») справа. */
+.set-field input { flex: 1 1 auto; min-width: 0; padding-left: 1px; padding-right: 1px; font-size: 17px; line-height: 34px; height: 34px; text-align: center; }
 .set-input-wrap { position: relative; flex: 1 1 auto; min-width: 0; display: flex; align-items: center; }
 .set-input-wrap .set-input { width: 100%; }
 .set-input-wrap .unit-suffix {
