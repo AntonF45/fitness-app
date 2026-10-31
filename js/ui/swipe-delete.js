@@ -92,6 +92,10 @@ function initSwipeDelete() {
     function attachZone(zone) {
         if (!zone || zone.dataset.swipeBound === '1') return;
         if (!zone.dataset.swipeLeft) return;
+        // Ghost-копии и уже удалённые свайпом строки не привязываются: иначе
+        // страховочный таймер предыдущего жеста может «съесть» следующий жест.
+        if (zone.classList.contains('set-ghost')) return;
+        if (zone.dataset.swipeRemoving === '1') return;
         zone.dataset.swipeBound = '1';
 
         let tracking = false, engaged = false, decided = false, removed = false;
@@ -136,6 +140,7 @@ function initSwipeDelete() {
         // изменение state. К моменту splice() в контейнере нет старой строки,
         // а sync пересобирает список строго из state — «воскрешение» невозможно.
         function commitDelete(action, payload) {
+            if (removed) return; // ровно один раз: основной путь или страховка
             removed = true;
             window.__swipeDeleteInProgress = Date.now();
 
@@ -158,6 +163,7 @@ function initSwipeDelete() {
             // Страховка: если колбэк схлопывания по любой причине не наступит,
             // удаление из state всё равно выполнится.
             const safetyTimer = setTimeout(finishDelete, SWIPE_GLIDE_MS + SWIPE_COLLAPSE_MS + 400);
+            zone.dataset.swipeRemoving = '1';
             collapseZoneRow(zone, finishDelete);
         }
 
