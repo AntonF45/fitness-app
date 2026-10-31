@@ -26,16 +26,14 @@ function setFieldValue(setId, field, setData) {
 function setFieldDisplay(v) { const s = String(v == null ? '' : v).trim(); if (s === '') return '0'; const n = Number(s); return isNaN(n) ? '0' : String(n); }
 
 function generateSetHTML(exIdx, setIdx, set, exType) {
-    const isDrop = set.setType === 'drop';
     const bw = exType === 'bodyweight';
     const sid = set.id;
     const w = setFieldDisplay(setFieldValue(sid, 'weight', set.weight));
     const r = setFieldDisplay(setFieldValue(sid, 'reps', set.reps));
-    return '<li id="set-row-' + sid + '" class="set-line card-enter' + (isDrop ? ' set-drop' : '') + '" data-set-id="' + sid + '" data-longpress="context-set">' +
+    return '<li id="set-row-' + sid + '" class="set-line card-enter" data-set-id="' + sid + '" data-longpress="context-set">' +
         '<div class="set-line-inner">' +
         '<div class="set-line-main">' +
             '<span class="set-num">' + (setIdx + 1) + '</span>' +
-            (isDrop ? '<i class="fa-solid fa-fire set-num-drop" title="Дроп-подход"></i>' : '') +
             '<div class="set-field">' +
                 '<button data-action="adjust-set" data-payload="' + exIdx + ':' + sid + ':weight:-2.5" class="step-btn" aria-label="Меньше вес">−</button>' +
                 '<div class="set-input-col">' +
@@ -67,21 +65,38 @@ function generateExerciseCardHTML(exIdx, ex) {
     const hasNotes = !!(ex.note && String(ex.note).trim());
     // Комментарий всегда в разметке (скрыт без текста): updateExerciseCardInDOM
     // пересобирает только список подходов, поэтому показ/скрытие делаем здесь.
-    const exNoteHTML = '<div class="set-note exercise-note mb-3"' + (hasNotes ? '' : ' hidden') + '><i class="fa-solid fa-comment-dots"></i> <span class="exercise-note-text">' + (hasNotes ? escHtml(ex.note) : '') + '</span></div>';
+    // Комментарий без иконки: текст сразу после отступов списка подходов.
+    const exNoteHTML = '<div class="set-note exercise-note"' + (hasNotes ? '' : ' hidden') + '><span class="exercise-note-text">' + (hasNotes ? escHtml(ex.note) : '') + '</span></div>';
     return '<div id="exercise-card-' + exIdx + '" class="app-card mb-4 card-enter">' +
         '<div class="flex justify-between items-center mb-3 gap-2">' +
             '<div class="exercise-header flex items-center gap-2 flex-1 min-w-0 flex-wrap">' +
                 '<h3 class="font-bold text-sm leading-snug break-words flex-1">' + escHtml(ex.name) + '</h3>' +
                 (ex.exerciseType === 'bodyweight' ? '<span class="bodyweight-badge shrink-0">Собственный вес</span>' : '') +
-                (hasNotes ? '<i class="fa-solid fa-comment-dots note-indicator shrink-0" title="Есть комментарий"></i>' : '') +
             '</div>' +
             '<span id="badge-' + exIdx + '" class="set-progress-badge shrink-0 ' + (isComplete ? 'done' : 'pending') + '">' + (isComplete ? '✓ Готово' : completed + '/' + target) + '</span>' +
             '<button data-action="exercise-menu" data-payload="' + exIdx + '" class="menu-btn shrink-0" aria-label="Меню упражнения"><i class="fa-solid fa-ellipsis-vertical"></i></button>' +
         '</div>' +
-        '<ol id="sets-container-' + exIdx + '" class="sets-list">' + sets.map(function (s, i) { return generateSetHTML(exIdx, i, s, ex.exerciseType); }).join('') + '</ol>' +
+        '<ol id="sets-container-' + exIdx + '" class="sets-list">' + renderSetsHTML(exIdx, ex) + '</ol>' +
         exNoteHTML +
         '<div class="exercise-actions"><button data-action="add-set" data-payload="' + exIdx + '" class="btn btn-sm btn-secondary">+ Подход</button><button data-action="add-drop-set" data-payload="' + exIdx + '" class="btn btn-sm btn-warn"><i class="fa-solid fa-fire"></i> Дроп-сет</button></div>' +
     '</div>';
+}
+
+// Подряд идущие дроп-подходы объединяются одной оранжевой рамкой (drop-group):
+// группа получает левую полосу и верхние/нижние скругления только на краях группы,
+// а отступ между строками внутри группы убирается — визуально это один блок.
+function renderSetsHTML(exIdx, ex) {
+    const sets = ex.sets || [];
+    let html = '';
+    for (let i = 0; i < sets.length; i++) {
+        const isDrop = sets[i].setType === 'drop';
+        const prevDrop = i > 0 && sets[i - 1].setType === 'drop';
+        const nextDrop = i < sets.length - 1 && sets[i + 1].setType === 'drop';
+        if (isDrop && !prevDrop) html += '<li class="drop-group">';
+        html += generateSetHTML(exIdx, i, sets[i], ex.exerciseType);
+        if (isDrop && !nextDrop) html += '</li>';
+    }
+    return html;
 }
 
 // Синхронизация списка подходов из state — единственного источника истины.
@@ -95,9 +110,7 @@ function syncSetsListInPlace(exIdx, ex) {
     if (!list) return false;
 
     ensureSetIds(ex);
-    list.innerHTML = ex.sets.map(function (st, i) {
-        return generateSetHTML(exIdx, i, st, ex.exerciseType);
-    }).join('');
+    list.innerHTML = renderSetsHTML(exIdx, ex);
 
     return true;
 }
@@ -116,8 +129,6 @@ function updateExerciseCardInDOM(exIdx, ex) {
         const span = noteEl.querySelector('.exercise-note-text');
         if (span) span.textContent = text;
     }
-    const indicator = card.querySelector('.note-indicator');
-    if (indicator) indicator.style.display = (ex.note && String(ex.note).trim()) ? '' : 'none';
 }
 
 // Badge считает заполненные подходы из state; черновик поля (введено в поле, но
