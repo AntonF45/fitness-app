@@ -33,37 +33,57 @@ function swipeIsFieldTarget(target, z) {
     return false;
 }
 
-// Анимация схлопывания самой строки: высота -> 0, затем колбэк удаления из DOM.
+// Анимация схлопывания: высота -> 0, затем колбэк.
+// ВАЖНО: анимируется КОПИЯ строки, вставленная вместо оригинала. Оригинальный
+// узел немедленно скрывается и помечается mswipeDead — syncSetsListInPlace
+// обязан удалять такие строки безусловно. Если бы анимировался сам оригинал,
+// любое падение transitionend/таймера оставляло бы «живую» строку в DOM, а
+// повторный свайп по ней уже не срабатывал (узел помечен удалённым). Копия
+// гарантированно убирается страховочным таймером независимо от событий.
 function collapseZoneRow(zone, onDone) {
-    zone.classList.remove('card-enter');
-    zone.classList.add('set-collapsing');
+    const ghost = zone.cloneNode(true);
+    ghost.removeAttribute('id');
+    ghost.dataset.swipeLeft = '';
+    ghost.removeAttribute('data-swipe-left');
+    ghost.classList.remove('card-enter', 'swipe-active');
+    ghost.classList.add('set-collapsing', 'set-ghost');
+    ghost.style.pointerEvents = 'none';
+    ghost.style.maxHeight = (zone.offsetHeight || 48) + 'px';
+    ghost.style.marginBottom = getComputedStyle(zone).marginBottom || '6px';
+    ghost.style.opacity = '1';
+    const inner = ghost.querySelector('.set-line-inner');
+    if (inner) inner.style.transform = 'none';
+    zone.parentNode.insertBefore(ghost, zone.nextSibling);
 
-    const h = zone.offsetHeight || 48;
-    zone.style.maxHeight = h + 'px';
-    void zone.offsetHeight; // фиксируем стартовое значение до перехода
+    zone.style.display = 'none';
+    zone.dataset.swipeRemoving = '1';
+    zone.mswipeDead = true;
+
+    void ghost.offsetHeight; // фиксируем стартовое значение до перехода
     nextFrame(function () {
-        zone.style.maxHeight = '0px';
-        zone.style.marginBottom = '0px';
-        zone.style.opacity = '0';
+        ghost.style.maxHeight = '0px';
+        ghost.style.marginBottom = '0px';
+        ghost.style.opacity = '0';
     });
 
     let done = false;
     function finish() {
         if (done) return;
         done = true;
-        zone.removeEventListener('transitionend', onEnd);
-        zone.removeEventListener('webkitTransitionEnd', onEnd);
+        ghost.removeEventListener('transitionend', onEnd);
+        ghost.removeEventListener('webkitTransitionEnd', onEnd);
         clearTimeout(safety);
+        if (ghost.parentNode) ghost.remove();
         if (onDone) onDone();
     }
     function onEnd(e) {
-        if (e && e.target !== zone) return;
+        if (e && e.target !== ghost) return;
         if (e && e.propertyName && e.propertyName.indexOf('height') === -1) return;
         finish();
     }
-    const safety = setTimeout(finish, SWIPE_COLLAPSE_MS + 150);
-    zone.addEventListener('transitionend', onEnd);
-    zone.addEventListener('webkitTransitionEnd', onEnd);
+    const safety = setTimeout(finish, SWIPE_COLLAPSE_MS + 200);
+    ghost.addEventListener('transitionend', onEnd);
+    ghost.addEventListener('webkitTransitionEnd', onEnd);
 }
 
 function initSwipeDelete() {
@@ -71,8 +91,12 @@ function initSwipeDelete() {
 
     function isFieldTarget(target, z) { return swipeIsFieldTarget(target, z); }
 
+    // Текущее активное движение (один жест одновременно).
+    let activeMove = null;
+
     function attachZone(zone) {
         if (!zone || zone.dataset.swipeBound === '1') return;
+        if (zone.mswipeDead || !zone.dataset.swipeLeft) return;
         zone.dataset.swipeBound = '1';
 
         let tracking = false, engaged = false, decided = false, removed = false;
@@ -113,46 +137,43 @@ function initSwipeDelete() {
             if (l.bg) setTimeout(function () { if (curDx === 0) l.bg.classList.remove('visible'); }, SWIPE_GLIDE_MS);
         }
 
-        // Порядок: жест → данные (state) → анимация схлопывания этой же строки.
-        // Строка помечается swipeAnimating/swipeRemoving ДО вызова обработчика:
-        // syncSetsListInPlace обязан оставить такой узел в покое и не пересобирать
-        // список «с нуля», иначе анимируемый узел отсоединится от DOM и визуально
-        // будет казаться, что удаление не произошло.
+        // Порядок: жест → анимация схлопывания (на копии) → данные (state).
+        // Данные меняются ПОСЛЕ начала анимации: splice() выполняется в момент,
+        // когда оригинальная строка уже скрыта и помечена mswipeDead, поэтому
+        // syncSetsListInPlace удалит её безусловно — «воскрешение» невозможно.
         function commitDelete(action, payload) {
             removed = true;
             zone.swipeAnimating = true;
-            zone.dataset.swipeRemoving = '1';
-            window.__swipeDeleteInProgress = true;
+            window.__swipeDeleteInProgress = Date.now();
 
-            const handler = swipeLeftHandlers[action];
-            if (!handler) {
-                console.warn('Unhandled swipe-left action:', action);
-                delete zone.dataset.swipeRemoving;
-                window.__swipeDeleteInProgress = false;
-                zone.swipeAnimating = false;
-                springBack();
-                return;
-            }
-
-            try { handler(action, payload); }
-            catch (err) { console.error('Swipe-left handler error:', action, err); }
-
-            // Если обработчик уже убрал строку из DOM (перерисовка экрана) — всё готово.
-            if (!zone.parentNode) {
-                zone.swipeAnimating = false;
-                window.__swipeDeleteInProgress = false;
-                return;
-            }
-
-            collapseZoneRow(zone, function () {
+            let done = false;
+            function finishDelete() {
+                if (done) return;
+                done = true;
+                clearTimeout(safetyTimer);
                 if (zone.parentNode) zone.remove();
                 zone.swipeAnimating = false;
-                window.__swipeDeleteInProgress = false;
-            });
+
+                const handler = swipeLeftHandlers[action];
+                if (!handler) {
+                    console.warn('Unhandled swipe-left action:', action);
+                    return;
+                }
+                try { handler(action, payload); }
+                catch (err) { console.error('Swipe-left handler error:', action, err); }
+            }
+            // Страховка: если колбэк схлопывания по любой причине не наступит,
+            // удаление из state всё равно выполнится.
+            const safetyTimer = setTimeout(finishDelete, SWIPE_GLIDE_MS + SWIPE_COLLAPSE_MS + 400);
+            collapseZoneRow(zone, finishDelete);
         }
 
         function begin(x, y) {
             if (removed) return;
+            // Одновременно отслеживаем только один жест: сбрасываем предыдущий.
+            if (activeMove && activeMove !== zone && activeMove.__onTouchCancel) activeMove.__onTouchCancel();
+            activeMove = zone;
+            zone.mswipeTracking = true;
             tracking = true; engaged = false; decided = false;
             startX = x; startY = y; curDx = 0; triggerDx = 0;
             setTransform(0, false);
@@ -167,7 +188,8 @@ function initSwipeDelete() {
                 decided = true;
                 // Наклонный жест оставляем браузеру (pan-y), чистая горизонталь — наша.
                 if (dx >= 0 || Math.abs(dy) > Math.abs(dx) * 2) {
-                    tracking = false;
+                    tracking = false; zone.mswipeTracking = false;
+                    if (activeMove === zone) activeMove = null;
                     return;
                 }
                 engaged = true;
@@ -185,7 +207,8 @@ function initSwipeDelete() {
 
         function end() {
             if (!tracking || removed) return;
-            tracking = false;
+            tracking = false; zone.mswipeTracking = false;
+            if (activeMove === zone) activeMove = null;
             const wasEngaged = engaged;
             engaged = false;
             zone.classList.remove('swipe-active');
@@ -194,7 +217,6 @@ function initSwipeDelete() {
             if (triggerDx <= -SWIPE_TRIGGER_DX) {
                 const action = zone.dataset.swipeLeft;
                 const payload = zone.dataset.payload || '';
-                zone.dataset.swipeRemoving = '1';
                 try { haptic('medium'); } catch (err) {}
                 showBg();
                 setTransform(-Math.round(bgWidth()), true);
@@ -207,7 +229,8 @@ function initSwipeDelete() {
         function cancel() {
             if (!tracking || removed) return;
             const wasEngaged = engaged;
-            tracking = false; decided = false; engaged = false;
+            tracking = false; zone.mswipeTracking = false; decided = false; engaged = false;
+            if (activeMove === zone) activeMove = null;
             zone.classList.remove('swipe-active');
             if (wasEngaged) springBack();
         }
@@ -245,7 +268,7 @@ function initSwipeDelete() {
 
             function onTouchMove(e) {
                 if (!tracking || removed) return;
-                const t = e.touches[0];
+                const t = e.touches && e.touches[0];
                 if (!t) return;
                 const dx = t.clientX - startX, dy = t.clientY - startY;
                 if (!decided) {
@@ -264,13 +287,24 @@ function initSwipeDelete() {
                 curDx = Math.max(-Math.round(bgWidth()), Math.min(0, dx));
                 setTransform(curDx, false);
             }
-            window.addEventListener('touchmove', onTouchMove, { passive: false, capture: true });
-
-            zone.addEventListener('touchend', function () { end(); }, { passive: true });
-            zone.addEventListener('touchcancel', cancel, { passive: true });
-            window.addEventListener('touchcancel', cancel, { passive: true });
+            zone.__onTouchMove = onTouchMove;
+            zone.__onTouchEnd = function () { end(); };
+            zone.__onTouchCancel = cancel;
         }
     }
+
+    // Единые глобальные слушатели Touch-фолбэка: события всегда доходят до модуля
+    // (даже если строка перерисована в середине жеста), а обрабатывает их зона,
+    // начавшая движение (activeMove).
+    window.addEventListener('touchmove', function (e) {
+        if (activeMove && activeMove.__onTouchMove) activeMove.__onTouchMove(e);
+    }, { passive: false, capture: true });
+    window.addEventListener('touchend', function () {
+        if (activeMove && activeMove.__onTouchEnd) activeMove.__onTouchEnd();
+    }, { passive: true, capture: true });
+    window.addEventListener('touchcancel', function () {
+        if (activeMove && activeMove.__onTouchCancel) activeMove.__onTouchCancel();
+    }, { passive: true, capture: true });
 
     function bindAllExisting() {
         const list = document.querySelectorAll('[data-swipe-left]');
