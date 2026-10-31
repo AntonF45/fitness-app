@@ -22,6 +22,10 @@ function setFieldValue(setId, field, setData) {
     return String(setData);
 }
 
+// Подпись единицы внутри поля скрыта, только когда в поле реально набрано
+// значение (пустой подход отдаёт effectiveSetValue = "0", и он не считается).
+function setFieldHasText(v) { const s = String(v).trim(); return s !== '' && Number(s) > 0; }
+
 function generateSetHTML(exIdx, setIdx, set, exType) {
     const isDrop = set.setType === 'drop';
     const bw = exType === 'bodyweight';
@@ -35,15 +39,17 @@ function generateSetHTML(exIdx, setIdx, set, exType) {
             (isDrop ? '<i class="fa-solid fa-fire set-num-drop" title="Дроп-подход"></i>' : '') +
             '<div class="set-field">' +
                 '<button data-action="adjust-set" data-payload="' + exIdx + ':' + sid + ':weight:-2.5" class="step-btn" aria-label="Меньше вес">−</button>' +
-                '<input type="number" id="set-' + sid + '-weight" inputmode="decimal" value="' + w + '" data-exercise="' + exIdx + '" data-set-id="' + sid + '" data-field="weight" class="set-input input-bare text-center font-semibold min-w-0 px-0" aria-label="' + (bw ? 'Доп. вес, кг' : 'Вес, кг') + '">' +
+                '<div class="set-input-wrap' + (setFieldHasText(w) ? ' has-value' : '') + '" data-unit="кг">' +
+                    '<input type="number" id="set-' + sid + '-weight" inputmode="decimal" value="' + (setFieldHasText(w) ? w : '') + '" data-exercise="' + exIdx + '" data-set-id="' + sid + '" data-field="weight" class="set-input input-bare text-center font-semibold min-w-0 px-0" aria-label="' + (bw ? 'Доп. вес, кг' : 'Вес, кг') + '">' +
+                '</div>' +
                 '<button data-action="adjust-set" data-payload="' + exIdx + ':' + sid + ':weight:2.5" class="step-btn" aria-label="Больше вес">+</button>' +
-                '<span class="unit-hint shrink-0">кг</span>' +
             '</div>' +
             '<div class="set-field">' +
                 '<button data-action="adjust-set" data-payload="' + exIdx + ':' + sid + ':reps:-1" class="step-btn" aria-label="Меньше повторов">−</button>' +
-                '<input type="number" id="set-' + sid + '-reps" inputmode="numeric" value="' + r + '" data-exercise="' + exIdx + '" data-set-id="' + sid + '" data-field="reps" class="set-input input-bare text-center font-semibold min-w-0 px-0" aria-label="Повторения">' +
+                '<div class="set-input-wrap' + (setFieldHasText(r) ? ' has-value' : '') + '" data-unit="повт">' +
+                    '<input type="number" id="set-' + sid + '-reps" inputmode="numeric" value="' + (setFieldHasText(r) ? r : '') + '" data-exercise="' + exIdx + '" data-set-id="' + sid + '" data-field="reps" class="set-input input-bare text-center font-semibold min-w-0 px-0" aria-label="Повторения">' +
+                '</div>' +
                 '<button data-action="adjust-set" data-payload="' + exIdx + ':' + sid + ':reps:1" class="step-btn" aria-label="Больше повторов">+</button>' +
-                '<span class="unit-hint shrink-0">повт</span>' +
             '</div>' +
             '<button data-action="remove-set" data-payload="' + exIdx + ':' + sid + '" class="set-del-btn" aria-label="Удалить подход"><i class="fa-solid fa-xmark"></i></button>' +
         '</div>' +
@@ -89,6 +95,14 @@ function syncSetsListInPlace(exIdx, ex) {
     list.innerHTML = ex.sets.map(function (st, i) {
         return generateSetHTML(exIdx, i, st, ex.exerciseType);
     }).join('');
+
+    // Синхронизируем видимость подписей «кг»/«повт» внутри полей: значение может
+    // быть набрано в поле, но ещё не записано в черновик/state (input не доходит
+    // до обработчика в Telegram WebView).
+    list.querySelectorAll('.set-input').forEach(function (inp) {
+        const wrap = inp.closest('.set-input-wrap');
+        if (wrap) wrap.classList.toggle('has-value', String(inp.value).trim() !== '');
+    });
 
     return true;
 }
@@ -250,7 +264,11 @@ function adjustSet(exIdx, setId, field, delta) {
     set[field] = field === 'weight' ? adjustWeight(current, delta) : adjustReps(current, delta);
     saveActiveWorkout(); haptic('light');
     if (typeof saveSetDraft === 'function') saveSetDraft(setId, field, String(set[field]));
-    if (input) input.value = set[field];
+    if (input) {
+        input.value = set[field];
+        const wrap = input.closest('.set-input-wrap');
+        if (wrap) wrap.classList.toggle('has-value', setFieldHasText(input.value));
+    }
     updateExerciseBadge(exIdx);
 }
 

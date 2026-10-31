@@ -83,6 +83,9 @@ document.addEventListener('input', function (e) {
         if (t.classList.contains('set-input')) {
             const exIdx = parseInt(t.dataset.exercise, 10);
             saveSetDraft(t.dataset.setId, t.dataset.field, t.value);
+            // Подпись единицы внутри поля видна только когда поле пусто.
+            const wrap = t.closest('.set-input-wrap');
+            if (wrap) wrap.classList.toggle('has-value', String(t.value).trim() !== '');
             updateExerciseBadge(exIdx);
         }
     } catch (err) {
