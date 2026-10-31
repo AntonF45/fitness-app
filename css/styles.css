@@ -135,7 +135,7 @@ body.keyboard-open #bottom-nav,
 body.keyboard-open .sticky-bottom-action { display: none !important; }
 
 /* ===== ЕДИНАЯ ДИЗАЙН-СИСТЕМА (эталон — вкладка «Статистика») ===== */
-.app-card { background: var(--card-bg); border: 1px solid var(--card-border); border-radius: var(--card-radius); padding: 16px; }
+.app-card { background: var(--card-bg); border: 1px solid var(--card-border); border-radius: var(--card-radius); padding: 14px 12px; }
 .app-inset { background: var(--inset-bg); border: 1px solid var(--inset-border); border-radius: 12px; }
 .app-divide > * + * { border-top: 1px solid var(--card-border); }
 .app-row { border-bottom: 1px solid var(--card-border); }
@@ -164,25 +164,25 @@ body.keyboard-open .sticky-bottom-action { display: none !important; }
 .set-line { position: relative; background: transparent; border: none; border-radius: 12px; margin-bottom: 6px; overflow: hidden; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; }
 .set-line:last-child { margin-bottom: 0; }
 /* Основной слой строки; заливка — в цвет карточки упражнения. */
-.set-line-inner { position: relative; z-index: 1; background: var(--card-bg); border-radius: 12px; padding: 6px 10px; }
-.set-line-main { display: flex; align-items: stretch; gap: 8px; }
+.set-line-inner { position: relative; z-index: 1; background: var(--card-bg); border-radius: 12px; padding: 6px 6px; }
+.set-line-main { display: flex; align-items: stretch; gap: 4px; }
 /* Удаление строки подхода: схлопывание высоты (значения задаёт JS inline-стилями). */
 .set-line.set-collapsing { padding-top: 0; padding-bottom: 0; overflow: hidden; pointer-events: none; transition: max-height .22s ease-out, margin-bottom .22s ease-out, opacity .18s ease-out, padding .22s ease-out; }
 /* Порядковый номер подхода — часть единого блока строки (по центру высоты). */
-.set-num { width: 18px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 700; line-height: 1; color: var(--tg-theme-hint-color, #8e8e93); }
+.set-num { width: 14px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; line-height: 1; color: var(--tg-theme-hint-color, #8e8e93); }
 /* Группа «− [поле] + кг» — ОДНА линия: единицы («кг», «повт») стоят вплотную сразу
    после кнопки «+». Только flex (без grid): сетка на узких экранах переносила
    подпись единицы на вторую строку — под поле ввода. */
-.set-field { display: flex; flex-direction: row; flex-wrap: nowrap; align-items: center; gap: 4px; flex: 1 1 0%; min-width: 0; }
-.set-field .step-btn { flex: 0 0 auto; }
-.set-field input { flex: 1 1 auto; min-width: 0; }
-.unit-hint { flex: 0 0 auto; white-space: nowrap; font-size: 15px; font-weight: 600; line-height: 1.2; color: var(--tg-theme-hint-color, #8e8e93); }
+.set-field { display: flex; flex-direction: row; flex-wrap: nowrap; align-items: center; gap: 1px; flex: 1 1 0%; min-width: 0; }
+.set-field .step-btn { flex: 0 0 auto; width: 24px; height: 34px; font-size: 15px; }
+.set-field input { flex: 1 1 auto; min-width: 0; padding-left: 1px; padding-right: 1px; font-size: 14px; }
+.unit-hint { flex: 0 0 auto; white-space: nowrap; font-size: 12px; font-weight: 600; line-height: 1.2; color: var(--tg-theme-hint-color, #8e8e93); margin-left: 1px; }
 /* Кнопки − / + и поля ввода — без собственной границы/заливки, в один блок со строкой. */
 .set-line .step-btn { background: transparent; border: none; }
 .set-drop { box-shadow: inset 3px 0 0 var(--warn); }
 .set-num-drop { position: static; font-size: 10px; line-height: 1; color: var(--warn); opacity: 0.9; }
 /* Крестик удаления подхода — в конце строки, вертикально по центру. */
-.set-del-btn { flex: 0 0 auto; width: 30px; display: flex; align-items: center; justify-content: center; background: transparent; border: none; color: var(--danger); font-size: 15px; opacity: .7; padding: 0; cursor: pointer; -webkit-tap-highlight-color: transparent; touch-action: manipulation; transition: opacity .15s ease, transform .1s ease; }
+.set-del-btn { flex: 0 0 auto; width: 26px; display: flex; align-items: center; justify-content: center; background: transparent; border: none; color: var(--danger); font-size: 13px; opacity: .7; padding: 0; cursor: pointer; -webkit-tap-highlight-color: transparent; touch-action: manipulation; transition: opacity .15s ease, transform .1s ease; }
 .set-del-btn:active { opacity: 1; transform: scale(.88); }
 .exercise-header { user-select: none; -webkit-user-select: none; }
 /* Кнопка «⋮» — меню упражнения (комментарий / удаление). Обычный клик: надёжнее long-press. */
