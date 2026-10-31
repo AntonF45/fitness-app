@@ -82,19 +82,18 @@ function generateExerciseCardHTML(exIdx, ex) {
     '</div>';
 }
 
-// Подряд идущие дроп-подходы объединяются одной оранжевой рамкой (drop-group):
-// группа получает левую полосу и верхние/нижние скругления только на краях группы,
-// а отступ между строками внутри группы убирается — визуально это один блок.
+// Подряд идущие дроп-подходы группируются так же, как суперсеты: общий контейнер
+// с оранжевой полосой слева, лёгкой оранжевой заливкой и скруглением по краям группы.
 function renderSetsHTML(exIdx, ex) {
     const sets = ex.sets || [];
     let html = '';
+    let inGroup = false;
     for (let i = 0; i < sets.length; i++) {
         const isDrop = sets[i].setType === 'drop';
-        const prevDrop = i > 0 && sets[i - 1].setType === 'drop';
         const nextDrop = i < sets.length - 1 && sets[i + 1].setType === 'drop';
-        if (isDrop && !prevDrop) html += '<li class="drop-group">';
+        if (isDrop && !inGroup) { html += '<li class="drop-group">'; inGroup = true; }
         html += generateSetHTML(exIdx, i, sets[i], ex.exerciseType);
-        if (isDrop && !nextDrop) html += '</li>';
+        if (inGroup && !nextDrop) { html += '</li>'; inGroup = false; }
     }
     return html;
 }

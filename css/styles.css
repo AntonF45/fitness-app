@@ -162,8 +162,9 @@ body.keyboard-open .sticky-bottom-action { display: none !important; }
 .sets-list { list-style: none; padding-left: 0; margin: 0; }
 .set-line { position: relative; background: transparent; border: none; border-radius: 12px; margin-bottom: 6px; overflow: hidden; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; }
 .set-line:last-child { margin-bottom: 0; }
-/* Основной слой строки; заливка — в цвет карточки упражнения. */
-.set-line-inner { position: relative; z-index: 1; background: var(--card-bg); border-radius: 12px; padding: 6px 6px; }
+/* Основной слой строки; прозрачный — фон наследуется от карточки упражнения,
+   а внутри группы дроп-сетов — от её оранжевой заливки. */
+.set-line-inner { position: relative; z-index: 1; background: transparent; border-radius: 12px; padding: 6px 6px; }
 .set-line-main { display: flex; align-items: stretch; gap: 4px; }
 /* Удаление строки подхода: схлопывание высоты (значения задаёт JS inline-стилями). */
 .set-line.set-collapsing { padding-top: 0; padding-bottom: 0; overflow: hidden; pointer-events: none; transition: max-height .22s ease-out, margin-bottom .22s ease-out, opacity .18s ease-out, padding .22s ease-out; }
@@ -172,8 +173,8 @@ body.keyboard-open .sticky-bottom-action { display: none !important; }
 /* Группа «− [поле+подпись] +» — одна линия; кнопки −/+ во всю высоту блока (поле + подпись). */
 .set-field { display: flex; flex-direction: row; flex-wrap: nowrap; align-items: stretch; gap: 1px; flex: 1 1 0%; min-width: 0; }
 .set-field .step-btn { flex: 0 0 auto; width: 24px; height: auto; align-self: stretch; font-size: 16px; line-height: 1; }
-/* Кнопки «−»/«+»: без заливки — фон как у блока подхода, граница как у карточки упражнения. */
-.set-line .step-btn { background: var(--card-bg); border: 1px solid var(--card-border); color: var(--tg-theme-text-color, #ffffff); border-radius: 9px; }
+/* Кнопки «−»/«+»: без заливки — прозрачные (фон блока подхода наследуется), граница как у карточки упражнения. */
+.set-line .step-btn { background: transparent; border: 1px solid var(--card-border); color: var(--tg-theme-text-color, #ffffff); border-radius: 9px; }
 .set-line .step-btn:active { opacity: .7; transform: scale(.92); }
 /* Поле ввода: значение по центру; подпись единицы — отдельной строкой снизу. */
 .set-field input { width: 100%; min-width: 0; padding-left: 1px; padding-right: 1px; font-size: 17px; line-height: 34px; height: 34px; text-align: center; }
@@ -185,9 +186,9 @@ body.keyboard-open .sticky-bottom-action { display: none !important; }
     color: var(--tg-theme-hint-color, #8e8e93);
     pointer-events: none;
 }
-/* Группа дроп-сетов: одна оранжевая рамка на все подряд идущие дроп-подходы. */
-.drop-group { margin-bottom: 6px; padding: 0 2px; border: 1px solid var(--warn); border-radius: 14px; background: rgba(249, 115, 22, 0.08); }
-.drop-group .set-line { margin-bottom: 2px; }
+/* Группа дроп-подходов — визуально как контейнер суперсета: оранжевая полоса слева, лёгкая заливка, скругление справа. */
+.drop-group { list-style: none; margin-bottom: 6px; padding: 6px 8px 6px 12px; border-left: 3px solid var(--warn); border-radius: 0 14px 14px 0; background: rgba(249, 115, 22, 0.08); }
+.drop-group .set-line { margin-bottom: 4px; }
 .drop-group .set-line:last-child { margin-bottom: 0; }
 /* Бейдж прогресса упражнения («2/3» / «✓ Готово»): стиль как у чипа «Собственный вес»; «Готово» — зелёная заливка. */
 .set-progress-badge { font-size: 11px; font-weight: 600; padding: 4px 10px; border-radius: 8px; background: var(--card-bg); border: none; flex-shrink: 0; }
