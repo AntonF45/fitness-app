@@ -151,6 +151,7 @@ function initSwipeDelete() {
                 if (done) return;
                 done = true;
                 clearTimeout(safetyTimer);
+                if (window.__mswipeSafety) { clearTimeout(window.__mswipeSafety); window.__mswipeSafety = null; }
                 if (zone.parentNode) zone.remove();
                 zone.swipeAnimating = false;
 
@@ -217,6 +218,13 @@ function initSwipeDelete() {
             if (triggerDx <= -SWIPE_TRIGGER_DX) {
                 const action = zone.dataset.swipeLeft;
                 const payload = zone.dataset.payload || '';
+                // Жёсткая страховка: даже если цепочка схлопывания/колбэков
+                // оборвётся (WebView, requestAnimationFrame), state будет
+                // изменён ровно один раз — removeSet идемпотентен.
+                window.__mswipeSafety = setTimeout(function () {
+                    window.__mswipeSafety = null;
+                    commitDelete(action, payload);
+                }, SWIPE_GLIDE_MS + SWIPE_COLLAPSE_MS + 600);
                 try { haptic('medium'); } catch (err) {}
                 showBg();
                 setTransform(-Math.round(bgWidth()), true);
