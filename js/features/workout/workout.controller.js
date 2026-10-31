@@ -22,16 +22,15 @@ function setFieldValue(setId, field, setData) {
     return String(setData);
 }
 
-// Подпись единицы внутри поля скрыта, только когда в поле реально набрано
-// значение (пустой подход отдаёт effectiveSetValue = "0", и он не считается).
-function setFieldHasText(v) { const s = String(v).trim(); return s !== '' && Number(s) > 0; }
+// Значение для поля: пустое/некорректное показываем как «0» — поле никогда не пусто.
+function setFieldDisplay(v) { const s = String(v == null ? '' : v).trim(); if (s === '') return '0'; const n = Number(s); return isNaN(n) ? '0' : String(n); }
 
 function generateSetHTML(exIdx, setIdx, set, exType) {
     const isDrop = set.setType === 'drop';
     const bw = exType === 'bodyweight';
     const sid = set.id;
-    const w = setFieldValue(sid, 'weight', set.weight);
-    const r = setFieldValue(sid, 'reps', set.reps);
+    const w = setFieldDisplay(setFieldValue(sid, 'weight', set.weight));
+    const r = setFieldDisplay(setFieldValue(sid, 'reps', set.reps));
     return '<li id="set-row-' + sid + '" class="set-line card-enter' + (isDrop ? ' set-drop' : '') + '" data-set-id="' + sid + '" data-longpress="context-set">' +
         '<div class="set-line-inner">' +
         '<div class="set-line-main">' +
@@ -40,7 +39,7 @@ function generateSetHTML(exIdx, setIdx, set, exType) {
             '<div class="set-field">' +
                 '<button data-action="adjust-set" data-payload="' + exIdx + ':' + sid + ':weight:-2.5" class="step-btn" aria-label="Меньше вес">−</button>' +
                 '<div class="set-input-col">' +
-                    '<input type="number" id="set-' + sid + '-weight" inputmode="decimal" value="' + (setFieldHasText(w) ? w : '') + '" data-exercise="' + exIdx + '" data-set-id="' + sid + '" data-field="weight" class="set-input input-bare font-semibold min-w-0 px-0" aria-label="' + (bw ? 'Доп. вес, кг' : 'Вес, кг') + '">' +
+                    '<input type="number" id="set-' + sid + '-weight" inputmode="decimal" value="' + w + '" data-exercise="' + exIdx + '" data-set-id="' + sid + '" data-field="weight" class="set-input input-bare font-semibold min-w-0 px-0" aria-label="' + (bw ? 'Доп. вес, кг' : 'Вес, кг') + '">' +
                     '<span class="unit-suffix">кг</span>' +
                 '</div>' +
                 '<button data-action="adjust-set" data-payload="' + exIdx + ':' + sid + ':weight:2.5" class="step-btn" aria-label="Больше вес">+</button>' +
@@ -48,7 +47,7 @@ function generateSetHTML(exIdx, setIdx, set, exType) {
             '<div class="set-field">' +
                 '<button data-action="adjust-set" data-payload="' + exIdx + ':' + sid + ':reps:-1" class="step-btn" aria-label="Меньше повторов">−</button>' +
                 '<div class="set-input-col">' +
-                    '<input type="number" id="set-' + sid + '-reps" inputmode="numeric" value="' + (setFieldHasText(r) ? r : '') + '" data-exercise="' + exIdx + '" data-set-id="' + sid + '" data-field="reps" class="set-input input-bare font-semibold min-w-0 px-0" aria-label="Повторения">' +
+                    '<input type="number" id="set-' + sid + '-reps" inputmode="numeric" value="' + r + '" data-exercise="' + exIdx + '" data-set-id="' + sid + '" data-field="reps" class="set-input input-bare font-semibold min-w-0 px-0" aria-label="Повторения">' +
                     '<span class="unit-suffix">повт</span>' +
                 '</div>' +
                 '<button data-action="adjust-set" data-payload="' + exIdx + ':' + sid + ':reps:1" class="step-btn" aria-label="Больше повторов">+</button>' +
@@ -66,7 +65,9 @@ function generateExerciseCardHTML(exIdx, ex) {
     const target = ex.targetSets ?? 3;
     const isComplete = completed >= target;
     const hasNotes = !!(ex.note && String(ex.note).trim());
-    const exNoteHTML = hasNotes ? '<div class="set-note exercise-note mb-3"><i class="fa-solid fa-comment-dots"></i> ' + escHtml(ex.note) + '</div>' : '';
+    // Комментарий всегда в разметке (скрыт без текста): updateExerciseCardInDOM
+    // пересобирает только список подходов, поэтому показ/скрытие делаем здесь.
+    const exNoteHTML = '<div class="set-note exercise-note mb-3"' + (hasNotes ? '' : ' hidden') + '><i class="fa-solid fa-comment-dots"></i> <span class="exercise-note-text">' + (hasNotes ? escHtml(ex.note) : '') + '</span></div>';
     return '<div id="exercise-card-' + exIdx + '" class="app-card mb-4 card-enter">' +
         '<div class="flex justify-between items-center mb-3 gap-2">' +
             '<div class="exercise-header flex items-center gap-2 flex-1 min-w-0 flex-wrap">' +
@@ -106,6 +107,17 @@ function updateExerciseCardInDOM(exIdx, ex) {
     if (!card) { renderWorkout(); return; }
     syncSetsListInPlace(exIdx, ex);
     updateExerciseBadge(exIdx);
+
+    // Комментарий: блок всегда в разметке — обновляем текст и видимость.
+    const noteEl = card.querySelector('.exercise-note');
+    if (noteEl) {
+        const text = (ex.note && String(ex.note).trim()) ? String(ex.note) : '';
+        noteEl.hidden = !text;
+        const span = noteEl.querySelector('.exercise-note-text');
+        if (span) span.textContent = text;
+    }
+    const indicator = card.querySelector('.note-indicator');
+    if (indicator) indicator.style.display = (ex.note && String(ex.note).trim()) ? '' : 'none';
 }
 
 // Badge считает заполненные подходы из state; черновик поля (введено в поле, но
