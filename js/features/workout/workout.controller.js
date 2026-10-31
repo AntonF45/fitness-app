@@ -76,65 +76,20 @@ function generateExerciseCardHTML(exIdx, ex) {
 }
 
 // Синхронизация списка подходов из state — единственного источника истины.
-// Ключеванная сверка по стабильному id: переиспользуем существующие строки
-// (сохраняем фокус и несохранённый ввод), создаём недостающие, позиционируем
-// строго по порядку state. Строки со следом свайпа (mswipeDead) удаляются
-// безусловно — они уже убраны из state и не должны «воскресать».
+// Полный rebuild контейнера из ex.sets: ни одна строка не может остаться или
+// «вернуться» помимо state. Переиспользование старых узлов невозможно, потому
+// что узлы хранят id подхода в замыканиях обработчиков свайпа: после splice()
+// переиспользованный узел удалял бы не тот подход.
 // Возвращает false, если контейнера нет в DOM — вызывающий перерисовывает экран.
 function syncSetsListInPlace(exIdx, ex) {
     const list = document.getElementById('sets-container-' + exIdx);
     if (!list) return false;
 
     ensureSetIds(ex);
-
-    const stateIds = {};
-    ex.sets.forEach(function (st) { stateIds[st.id] = true; });
-
-    // 1. Строки, отсутствующие в state. mswipeDead — строка, по которой уже
-    // выполнен свайп: она скрыта и анимируется копией, удаляется безусловно.
-    const staleRows = Array.prototype.filter.call(
-        list.querySelectorAll('.set-line'),
-        function (row) { return row.mswipeDead || !stateIds[row.dataset.setId]; }
-    );
-    staleRows.forEach(function (row) { row.remove(); });
-
-    // 2. Матчинг живых строк по id.
-    const existing = {};
-    Array.prototype.forEach.call(list.querySelectorAll('.set-line'), function (row) {
-        const sid = row.dataset.setId;
-        if (sid && !existing[sid]) existing[sid] = row;
-    });
-
-    // 3. Порядок узлов — строго по state.
-    let prevNode = null;
-    ex.sets.forEach(function (st, i) {
-        const shouldBeNum = String(i + 1);
-        const shouldBePayload = exIdx + ':' + st.id;
-        let node = existing[st.id];
-        if (node) {
-            delete existing[st.id];
-            const numEl = node.querySelector('.set-num');
-            if (numEl && numEl.textContent !== shouldBeNum) numEl.textContent = shouldBeNum;
-            if (node.dataset.payload !== shouldBePayload) node.dataset.payload = shouldBePayload;
-            const wi = node.querySelector('[data-field="weight"]');
-            if (wi) { const v = effectiveSetValue(st.id, 'weight', st.weight); if (wi.value !== v) wi.value = v; }
-            const ri = node.querySelector('[data-field="reps"]');
-            if (ri) { const v = effectiveSetValue(st.id, 'reps', st.reps); if (ri.value !== v) ri.value = v; }
-        } else {
-            const tmp = document.createElement('ol');
-            tmp.innerHTML = generateSetHTML(exIdx, i, st, ex.exerciseType);
-            node = tmp.firstElementChild;
-        }
-        const ref = prevNode ? prevNode.nextSibling : list.firstElementChild;
-        if (node !== ref) list.insertBefore(node, ref);
-        prevNode = node;
-    });
-
-    // 4. Дубликаты/id-мусор вне state — удалить.
-    Object.keys(existing).forEach(function (sid) {
-        const n = existing[sid];
-        if (n.mswipeDead || n.parentNode === list) n.remove();
-    });
+    list.innerHTML = ex.sets.map(function (st, i) {
+        return generateSetHTML(exIdx, i, st, ex.exerciseType);
+    }).join('');
+    if (typeof window.bindSwipeZones === 'function') window.bindSwipeZones();
 
     return true;
 }
@@ -193,45 +148,36 @@ function seedSetDraft(set) {
 }
 
 // Перед изменением состояния переносим незакрытые значения полей ввода в state.
-// Идентификация — по стабильному data-set-id (не по позиции). Берём только
-// реально видимые строки списка этого упражнения: ghost-копии свайпа скрыты
-// (display:none) и не являются источником данных.
+// Идентификация — по стабильному data-set-id (не по позиции). Ghost-копии
+// свайпа класса не имеют; строки, уже удалённые из state, игнорируются.
 function commitVisibleSetInputs(exIdx) {
     const list = document.getElementById('sets-container-' + exIdx);
     if (!list) return;
     const ex = state.activeWorkout && state.activeWorkout.exercises ? state.activeWorkout.exercises[exIdx] : null;
     if (!ex || !Array.isArray(ex.sets)) return;
-    // Только строки, актуальные по id для текущего state: ghost-копии свайпа и
-    // устаревшие узлы не должны писать значения в чужие подходы.
-    const stateIds = {};
-    ex.sets.forEach(function (st) { stateIds[st.id] = true; });
-    const rows = list.querySelectorAll('.set-line');
-    for (let i = 0; i < rows.length; i++) {
-      const row = rows[i];
-      if (row.classList.contains('set-ghost') || row.mswipeDead || row.style.display === 'none') continue;
-      const set = findSetById(ex, row.dataset.setId);
-      if (!set || !stateIds[set.id]) continue;
-      const inputs = row.querySelectorAll('.set-input');
-      for (let j = 0; j < inputs.length; j++) {
+    let changed = false;
+    const inputs = list.querySelectorAll('.set-input');
+    for (let i = 0; i < inputs.length; i++) {
         try {
-          const t = inputs[j];
-          const field = t.dataset.field;
-          if (!field) continue;
-          const raw = String(t.value);
-          if (raw.trim() === '') continue;
-          const value = field === 'weight' ? parseWeight(raw) : parseReps(raw);
-          if (value === null) continue;
-          if (String(value) !== String(set[field])) set[field] = value;
-          if (typeof saveSetDraft === 'function') saveSetDraft(set.id, field, String(value));
+            const t = inputs[i];
+            const set = findSetById(ex, t.dataset.setId);
+            if (!set) continue;
+            const field = t.dataset.field;
+            if (!field) continue;
+            const raw = String(t.value);
+            if (raw.trim() === '') continue;
+            const value = field === 'weight' ? parseWeight(raw) : parseReps(raw);
+            if (value === null) continue;
+            if (String(value) !== String(set[field])) { set[field] = value; changed = true; }
+            if (typeof saveSetDraft === 'function') saveSetDraft(set.id, field, String(value));
         } catch (err) {}
-      }
     }
-    if (state.activeWorkout) saveActiveWorkout();
+    if (changed && state.activeWorkout) saveActiveWorkout();
 }
 
-// Пока идёт анимация удаления, добавление блокируется (иначе addSet работает
-// с state, где подход ещё не удалён, и строка «воскресает»). Флаг протухает
-// через 1.5 с — зависнуть навсегда не может.
+// Пока идёт анимация удаления, добавление блокируется: addSet должен видеть
+// state уже без удалённого подхода, иначе строка «вернётся» в новом рендере.
+// Флаг протухает через 1.5 с — зависнуть навсегда не может.
 function swipeDeleteLocked() {
     return !!window.__swipeDeleteInProgress &&
         (Date.now() - window.__swipeDeleteInProgress) < 1500;
