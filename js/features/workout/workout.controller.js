@@ -201,17 +201,22 @@ function commitVisibleSetInputs(exIdx) {
     if (!list) return;
     const ex = state.activeWorkout && state.activeWorkout.exercises ? state.activeWorkout.exercises[exIdx] : null;
     if (!ex || !Array.isArray(ex.sets)) return;
-    const rows = list.querySelectorAll('.set-line:not(.set-ghost)');
+    // Только строки, актуальные по id для текущего state: ghost-копии свайпа и
+    // устаревшие узлы не должны писать значения в чужие подходы.
+    const stateIds = {};
+    ex.sets.forEach(function (st) { stateIds[st.id] = true; });
+    const rows = list.querySelectorAll('.set-line');
     for (let i = 0; i < rows.length; i++) {
       const row = rows[i];
-      if (row.mswipeDead || row.style.display === 'none') continue;
+      if (row.classList.contains('set-ghost') || row.mswipeDead || row.style.display === 'none') continue;
+      const set = findSetById(ex, row.dataset.setId);
+      if (!set || !stateIds[set.id]) continue;
       const inputs = row.querySelectorAll('.set-input');
       for (let j = 0; j < inputs.length; j++) {
         try {
           const t = inputs[j];
           const field = t.dataset.field;
-          const set = findSetById(ex, row.dataset.setId);
-          if (!set || !field) continue;
+          if (!field) continue;
           const raw = String(t.value);
           if (raw.trim() === '') continue;
           const value = field === 'weight' ? parseWeight(raw) : parseReps(raw);
