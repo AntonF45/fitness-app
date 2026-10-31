@@ -47,6 +47,10 @@ function collapseZoneRow(zone, onDone) {
     ghost.removeAttribute('data-swipe-left');
     ghost.classList.remove('card-enter', 'swipe-active');
     ghost.classList.add('set-collapsing', 'set-ghost');
+    // Копия не должна быть строкой списка: без set-line её не видят ни
+    // commitVisibleSetInputs, ни syncSetsListInPlace — она не может «вернуть»
+    // удалённый подход и не участвует в сверке DOM<->state.
+    ghost.classList.remove('set-line');
     ghost.style.pointerEvents = 'none';
     ghost.style.maxHeight = (zone.offsetHeight || 48) + 'px';
     ghost.style.marginBottom = getComputedStyle(zone).marginBottom || '6px';
@@ -97,6 +101,15 @@ function initSwipeDelete() {
     function attachZone(zone) {
         if (!zone || zone.dataset.swipeBound === '1') return;
         if (zone.mswipeDead || !zone.dataset.swipeLeft) return;
+        // Привязка к строке, которая уже удалена из state (например, строка
+        // перерисована во время анимации удаления), — гарантированно чистим
+        // её из DOM. Иначе «призрачная» строка остаётся видна, повторный
+        // свайп по ней не срабатывает, а следующий рендер восстанавливает
+        // удалённый подход в списке.
+        if (zone.dataset.swipeRemoving === '1' || zone.style.display === 'none') {
+            if (zone.parentNode) zone.remove();
+            return;
+        }
         zone.dataset.swipeBound = '1';
 
         let tracking = false, engaged = false, decided = false, removed = false;
