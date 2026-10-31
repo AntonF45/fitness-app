@@ -28,8 +28,7 @@ function generateSetHTML(exIdx, setIdx, set, exType) {
     const sid = set.id;
     const w = setFieldValue(sid, 'weight', set.weight);
     const r = setFieldValue(sid, 'reps', set.reps);
-    return '<li id="set-row-' + sid + '" class="set-line card-enter' + (isDrop ? ' set-drop' : '') + '" data-swipe-left="delete-set" data-payload="' + exIdx + ':' + sid + '" data-set-id="' + sid + '" data-longpress="context-set">' +
-        '<div class="set-swipe-bg"><i class="fa-solid fa-trash-can"></i><span>Удалить</span></div>' +
+    return '<li id="set-row-' + sid + '" class="set-line card-enter' + (isDrop ? ' set-drop' : '') + '" data-set-id="' + sid + '" data-longpress="context-set">' +
         '<div class="set-line-inner">' +
         '<div class="set-line-main">' +
             '<span class="set-num">' + (setIdx + 1) + '</span>' +
@@ -46,6 +45,7 @@ function generateSetHTML(exIdx, setIdx, set, exType) {
                 '<button data-action="adjust-set" data-payload="' + exIdx + ':' + sid + ':reps:1" class="step-btn" aria-label="Больше повторов">+</button>' +
                 '<span class="unit-hint shrink-0">повт</span>' +
             '</div>' +
+            '<button data-action="remove-set" data-payload="' + exIdx + ':' + sid + '" class="set-del-btn" aria-label="Удалить подход"><i class="fa-solid fa-xmark"></i></button>' +
         '</div>' +
         '</div>' +
     '</li>';
@@ -89,7 +89,6 @@ function syncSetsListInPlace(exIdx, ex) {
     list.innerHTML = ex.sets.map(function (st, i) {
         return generateSetHTML(exIdx, i, st, ex.exerciseType);
     }).join('');
-    if (typeof window.bindSwipeZones === 'function') window.bindSwipeZones();
 
     return true;
 }
@@ -175,16 +174,7 @@ function commitVisibleSetInputs(exIdx) {
     if (changed && state.activeWorkout) saveActiveWorkout();
 }
 
-// Пока идёт анимация удаления, добавление блокируется: addSet должен видеть
-// state уже без удалённого подхода, иначе строка «вернётся» в новом рендере.
-// Флаг протухает через 1.5 с — зависнуть навсегда не может.
-function swipeDeleteLocked() {
-    return !!window.__swipeDeleteInProgress &&
-        (Date.now() - window.__swipeDeleteInProgress) < 1500;
-}
-
 function tryAddSet(exIdx) {
-    if (swipeDeleteLocked()) return;
     commitVisibleSetInputs(exIdx);
     const ex = state.activeWorkout && state.activeWorkout.exercises ? state.activeWorkout.exercises[exIdx] : null;
     if (!ex) return;
@@ -201,7 +191,6 @@ function tryAddSet(exIdx) {
 }
 
 function tryAddDropSet(exIdx) {
-    if (swipeDeleteLocked()) return;
     commitVisibleSetInputs(exIdx);
     const ex = state.activeWorkout && state.activeWorkout.exercises ? state.activeWorkout.exercises[exIdx] : null;
     if (!ex) return;
@@ -241,7 +230,6 @@ function renderWorkout() {
         '<button data-action="add-workout-exercise" class="btn btn-dashed mt-2 mb-2"><i class="fa-solid fa-plus"></i> Добавить упражнение</button>' +
         '<button data-action="finish-workout" class="btn btn-danger mt-2 mb-4"><i class="fa-solid fa-stop"></i> Завершить тренировку</button>';
     startTimer(); clearMainButton();
-    if (typeof window.bindSwipeZones === 'function') window.bindSwipeZones();
 }
 
 function adjustSet(exIdx, setId, field, delta) {
@@ -322,13 +310,6 @@ function removeSet(exIdx, setId) {
     saveActiveWorkout(); haptic('light');
     updateExerciseCardInDOM(exIdx, ex);
 }
-
-registerSwipeLeftHandler('delete-set', function (action, payload) {
-    const p = String(payload).split(':');
-    const exIdx = parseInt(p[0], 10), setId = p.slice(1).join(':');
-    if (isNaN(exIdx) || !setId) return;
-    removeSet(exIdx, setId);
-});
 
 function updateSet(exIdx, setId, field, value) { const set = findSetById(state.activeWorkout.exercises[exIdx], setId); if (!set) return; set[field] = value; saveActiveWorkout(); }
 function startWorkout(programId) { const program = DataAPI.getProgramById(programId); if (!program || !(program.exercises || []).length) { showAlert('Нет упражнений'); return; } state.activeWorkout = { programId: program.id, programName: program.name, startTime: Date.now(), exercises: program.exercises.map(function (ex) { return { name: ex.name, muscleGroup: ex.muscleGroup, exerciseType: ex.exerciseType || 'weighted', supersetId: ex.supersetId || null, targetSets: ex.targetSets, targetReps: ex.targetReps, sets: [{ id: makeSetId(), weight: 0, reps: ex.targetReps || 10, setType: 'regular' }] }; }) }; saveActiveWorkout(); navigate('workout'); }

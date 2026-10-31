@@ -161,32 +161,12 @@ body.keyboard-open .sticky-bottom-action { display: none !important; }
 
 /* ===== Карточка упражнения: строки подходов — единый блок в цвет карточки, без границы ===== */
 .sets-list { list-style: none; padding-left: 0; margin: 0; }
-.set-line { position: relative; background: transparent; border: none; border-radius: 12px; margin-bottom: 6px; overflow: hidden; touch-action: pan-y pinch-zoom; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; }
-/* При активном свайпе разрешаем только вертикальный скролл страницы: горизонтальное
-   движение браузер не забирает себе, и touchmove доходит до обработчиков строки.
-   (pan-y оставлен вместо none, чтобы не ломать инерционный скролл списка.) */
-.set-line.swipe-active { touch-action: pan-y; }
-/* При свайпе строка уезжает влево за палец — горизонталь не должна обрезаться (иначе
-   «красная зона» Telegram-стиля не откроется). Возвращаем clip только в покое. */
-.set-line:not(.swipe-active) { overflow-x: clip; }
-/* Активная фаза свайпа: отключаем выделение текста/подсветку WebKit. */
-.set-line.swipe-active { -webkit-touch-callout: none; }
+.set-line { position: relative; background: transparent; border: none; border-radius: 12px; margin-bottom: 6px; overflow: hidden; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; }
 .set-line:last-child { margin-bottom: 0; }
-/* Красная подложка, открывающаяся при свайпе влево (жест удаления).
-   Telegram-стиль: зона занимает всю ширину строки и тянется за пальцем (scaleX),
-   надпись «Удалить» остаётся по центру — как в списке чатов. */
-.set-swipe-bg { position: absolute; top: 0; right: 0; bottom: 0; width: calc(100% + 12px); margin-right: -6px; display: flex; align-items: center; justify-content: center; gap: 6px; background: var(--danger); color: #ffffff; font-size: 13px; font-weight: 700; opacity: 0; transition: opacity .15s ease; pointer-events: none; transform-origin: right center; will-change: transform; }
-.set-swipe-bg.visible { opacity: 1; }
-.set-swipe-bg i { font-size: 15px; }
-/* Основной слой строки: сдвигается пальцем при свайпе; заливка — в цвет карточки упражнения. */
-.set-line-inner { position: relative; z-index: 1; background: var(--card-bg); border-radius: 12px; padding: 6px 10px; will-change: transform; }
+/* Основной слой строки; заливка — в цвет карточки упражнения. */
+.set-line-inner { position: relative; z-index: 1; background: var(--card-bg); border-radius: 12px; padding: 6px 10px; }
 .set-line-main { display: flex; align-items: stretch; gap: 8px; }
-/* Удаление строки подходом «как в Telegram»: сначала схлопываем высоту, потом убираем из DOM.
-   ВАЖНО: здесь НЕ должно быть правила max-height — любое статичное max-height с !important
-   делало переход к нему невозможным (стартовое и конечные значения совпадали), анимация
-   схлопывания не запускалась, а inline-стили из JS перебивались этим правилом.
-   Анимационные значения задаёт только JS (inline maxHeight/opacity), класс отвечает
-   за переходы и обрезку содержимого. */
+/* Удаление строки подхода: схлопывание высоты (значения задаёт JS inline-стилями). */
 .set-line.set-collapsing { padding-top: 0; padding-bottom: 0; overflow: hidden; pointer-events: none; transition: max-height .22s ease-out, margin-bottom .22s ease-out, opacity .18s ease-out, padding .22s ease-out; }
 /* Порядковый номер подхода — часть единого блока строки (по центру высоты). */
 .set-num { width: 18px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 700; line-height: 1; color: var(--tg-theme-hint-color, #8e8e93); }
@@ -201,6 +181,9 @@ body.keyboard-open .sticky-bottom-action { display: none !important; }
 .set-line .step-btn { background: transparent; border: none; }
 .set-drop { box-shadow: inset 3px 0 0 var(--warn); }
 .set-num-drop { position: static; font-size: 10px; line-height: 1; color: var(--warn); opacity: 0.9; }
+/* Крестик удаления подхода — в конце строки, вертикально по центру. */
+.set-del-btn { flex: 0 0 auto; width: 30px; display: flex; align-items: center; justify-content: center; background: transparent; border: none; color: var(--danger); font-size: 15px; opacity: .7; padding: 0; cursor: pointer; -webkit-tap-highlight-color: transparent; touch-action: manipulation; transition: opacity .15s ease, transform .1s ease; }
+.set-del-btn:active { opacity: 1; transform: scale(.88); }
 .exercise-header { user-select: none; -webkit-user-select: none; }
 /* Кнопка «⋮» — меню упражнения (комментарий / удаление). Обычный клик: надёжнее long-press. */
 .menu-btn { width: 32px; height: 32px; display: inline-flex; align-items: center; justify-content: center; border-radius: 8px; background: var(--inset-bg); color: var(--tg-theme-hint-color, #708499); font-size: 15px; border: 1px solid var(--inset-border, rgba(255,255,255,.06)); cursor: pointer; -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
