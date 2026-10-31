@@ -33,49 +33,37 @@ function swipeIsFieldTarget(target, z) {
     return false;
 }
 
-// Копия строки для анимации схлопывания: оригинальный узел удаляется из DOM
-// сразу после изменения state, поэтому никакая перерисовка не мешает анимации.
-function collapseGhostRow(ghost, onDone) {
-    ghost.removeAttribute('id');
-    Array.prototype.forEach.call(ghost.querySelectorAll('[id]'), function (el) { el.removeAttribute('id'); });
-    ghost.classList.remove('card-enter');
-    ghost.classList.add('set-collapsing');
-    const gi = ghost.querySelector('.set-line-inner');
-    if (gi) { gi.style.transition = 'max-height .22s ease-out, opacity .18s ease-out'; gi.style.transform = 'translateX(-100%)'; void gi.offsetWidth; gi.style.transform = ''; }
-    const gb = ghost.querySelector('.set-swipe-bg');
-    if (gb) { gb.style.transition = 'none'; gb.style.transform = 'scaleX(0)'; gb.classList.remove('visible'); }
+// Анимация схлопывания самой строки: высота -> 0, затем колбэк удаления из DOM.
+function collapseZoneRow(zone, onDone) {
+    zone.classList.remove('card-enter');
+    zone.classList.add('set-collapsing');
 
-    const parent = ghost.parentNode;
-    const prevMargin = ghost.style.marginBottom;
-    const h = ghost.offsetHeight || 48;
-    ghost.style.maxHeight = h + 'px';
-    void ghost.offsetHeight; // фиксируем стартовое значение до перехода
+    const h = zone.offsetHeight || 48;
+    zone.style.maxHeight = h + 'px';
+    void zone.offsetHeight; // фиксируем стартовое значение до перехода
     nextFrame(function () {
-        ghost.style.maxHeight = '0px';
-        ghost.style.marginBottom = '0px';
-        ghost.style.opacity = '0';
+        zone.style.maxHeight = '0px';
+        zone.style.marginBottom = '0px';
+        zone.style.opacity = '0';
     });
 
     let done = false;
     function finish() {
         if (done) return;
         done = true;
-        ghost.removeEventListener('transitionend', onEnd);
-        ghost.removeEventListener('webkitTransitionEnd', onEnd);
+        zone.removeEventListener('transitionend', onEnd);
+        zone.removeEventListener('webkitTransitionEnd', onEnd);
         clearTimeout(safety);
-        if (ghost.parentNode) ghost.remove();
-        if (parent) parent.style.height = '';
         if (onDone) onDone();
     }
     function onEnd(e) {
-        if (e && e.target !== ghost) return;
+        if (e && e.target !== zone) return;
         if (e && e.propertyName && e.propertyName.indexOf('height') === -1) return;
         finish();
     }
     const safety = setTimeout(finish, SWIPE_COLLAPSE_MS + 150);
-    ghost.addEventListener('transitionend', onEnd);
-    ghost.addEventListener('webkitTransitionEnd', onEnd);
-    void prevMargin;
+    zone.addEventListener('transitionend', onEnd);
+    zone.addEventListener('webkitTransitionEnd', onEnd);
 }
 
 function initSwipeDelete() {
@@ -125,13 +113,11 @@ function initSwipeDelete() {
             if (l.bg) setTimeout(function () { if (curDx === 0) l.bg.classList.remove('visible'); }, SWIPE_GLIDE_MS);
         }
 
-        // Порядок строго такой: state → DOM → анимация на копии.
-        // Флаг data-swipe-removing ставится СРАЗУ при срабатывании жеста — все
-        // перерисовки списка (в т.ч. по «+ Подход») обязаны игнорировать такую
-        // строку: она уже обещана к удалению. Данные меняются сразу, до
-        // схлопывания, чтобы добавление подхода никогда не работало со старым
-        // массивом. Анимация идёт на копии: оригинальный узел остаётся на месте
-        // скрытым маркером-заглушкой.
+        // Порядок: жест → данные (state) → анимация схлопывания этой же строки.
+        // Строка помечается swipeAnimating/swipeRemoving ДО вызова обработчика:
+        // syncSetsListInPlace обязан оставить такой узел в покое и не пересобирать
+        // список «с нуля», иначе анимируемый узел отсоединится от DOM и визуально
+        // будет казаться, что удаление не произошло.
         function commitDelete(action, payload) {
             removed = true;
             zone.swipeAnimating = true;
@@ -151,10 +137,14 @@ function initSwipeDelete() {
             try { handler(action, payload); }
             catch (err) { console.error('Swipe-left handler error:', action, err); }
 
-            const ghost = zone.cloneNode(true);
-            ghost.style.display = 'none';
-            if (zone.parentNode) zone.parentNode.insertBefore(ghost, zone.nextSibling);
-            collapseGhostRow(ghost, function () {
+            // Если обработчик уже убрал строку из DOM (перерисовка экрана) — всё готово.
+            if (!zone.parentNode) {
+                zone.swipeAnimating = false;
+                window.__swipeDeleteInProgress = false;
+                return;
+            }
+
+            collapseZoneRow(zone, function () {
                 if (zone.parentNode) zone.remove();
                 zone.swipeAnimating = false;
                 window.__swipeDeleteInProgress = false;
