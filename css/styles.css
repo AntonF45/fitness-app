@@ -272,6 +272,7 @@ body.keyboard-open .sticky-bottom-action { display: none !important; }
 .hist-groups-line { display: flex; align-items: center; gap: 5px; font-size: 11px; color: var(--tg-theme-hint-color, #8e8e93); margin-bottom: 6px; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .hist-groups-line i { color: var(--hc, var(--accent)); font-size: 10px; flex-shrink: 0; }
 .hist-date-chip { flex-shrink: 0; width: 46px; border-radius: 12px; background: var(--hcbg); border: 1px solid color-mix(in srgb, var(--hc) 35%, transparent); color: var(--hc); text-align: center; padding: 6px 0; }
+.hist-date-chip .wd { font-size: 8.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.4px; opacity: 0.75; margin-bottom: 1px; }
 .hist-date-chip .day { font-size: 17px; font-weight: 800; line-height: 1.1; }
 .hist-date-chip .mon { font-size: 9px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.4px; opacity: 0.85; }
 .hist-card-body { flex: 1 1 auto; min-width: 0; }
@@ -280,16 +281,22 @@ body.keyboard-open .sticky-bottom-action { display: none !important; }
 .hist-tag { display: inline-flex; align-items: center; gap: 4px; font-size: 11px; font-weight: 600; line-height: 1; padding: 5px 8px; border-radius: 8px; background: var(--hcbg); color: var(--hc); }
 .hist-tag i { font-size: 10px; opacity: 0.9; }
 
-/* Панель «Активность · 4 недели» с мини-графиком */
+/* Подходы в детальном просмотре: номер и результат слева */
+.hist-set-num { flex-shrink: 0; width: 20px; height: 20px; border-radius: 7px; background: var(--hcbg, var(--inset-bg)); color: var(--hc, var(--accent)); display: inline-flex; align-items: center; justify-content: center; font-size: 10.5px; font-weight: 700; }
+.hist-set-result { font-size: 13px; }
+
+/* Панель «Дни тренировок · 4 недели» — столбики в стиле вкладки «Статистика» */
 .hist-activity-card { background: var(--card-bg); border: 1px solid var(--card-border); border-radius: 16px; padding: 12px 14px 10px; margin-bottom: 16px; }
 .hist-activity-head { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; margin-bottom: 10px; flex-wrap: wrap; }
 .hist-activity-title { font-size: 12px; font-weight: 700; color: var(--tg-theme-text-color, #fff); display: inline-flex; align-items: center; gap: 6px; }
 .hist-activity-title i { color: var(--accent); font-size: 12px; }
-.hist-activity-sub { font-size: 10.5px; font-weight: 600; color: var(--tg-theme-hint-color, #8e8e93); white-space: nowrap; }
-.hist-bars { display: flex; align-items: flex-end; gap: 6px; height: 46px; }
-.hist-bar-col { flex: 1 1 0%; min-width: 0; height: 100%; display: flex; align-items: flex-end; }
-.hist-bar { width: 100%; border-radius: 6px 6px 3px 3px; background: linear-gradient(180deg, #a78bfa 0%, #60a5fa 55%, #34d399 100%); box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.06); transition: height .3s ease; }
-.hist-bars-axis { display: flex; justify-content: space-between; margin-top: 6px; font-size: 9.5px; color: var(--tg-theme-hint-color, #8e8e93); }
+.hist-bars { display: flex; align-items: flex-end; gap: 6px; height: 52px; }
+.hist-bar-col { flex: 1 1 0%; min-width: 0; height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; gap: 2px; }
+.hist-bar { width: 100%; border-radius: 5px; background: rgba(59, 130, 246, 0.5); border: 1px solid rgba(59, 130, 246, 0.8); transition: height .3s ease; }
+.hist-bar.empty { background: rgba(59, 130, 246, 0.08); border-color: transparent; }
+.hist-bar-val { font-size: 9px; font-weight: 700; color: var(--accent); line-height: 1; min-height: 9px; }
+.hist-bar-labels { display: flex; gap: 6px; margin-top: 4px; }
+.hist-bar-lbl { flex: 1 1 0%; min-width: 0; text-align: center; font-size: 9.5px; color: var(--tg-theme-hint-color, #8e8e93); }
 
 /* Шапка детального просмотра */
 .hist-detail-head { border-radius: 16px; padding: 16px 14px 12px; margin-bottom: 18px; background: linear-gradient(160deg, var(--hcbg), transparent 70%), var(--card-bg); border: 1px solid color-mix(in srgb, var(--hc) 25%, var(--card-border)); }
