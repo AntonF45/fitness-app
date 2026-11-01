@@ -103,21 +103,21 @@ input[type=number] { -moz-appearance: textfield; }
 
 .ac-wrapper { position: relative; }
 /* Крестик очистки текста внутри поля ввода (как в строке поиска браузера).
-   Аккуратный минималистичный стиль: без заливки, без границ — только тонкий знак «×»,
-   при наведении подсвечивается акцентным цветом приложения. */
+   Минималистичный стиль: без заливки и границ — только тонкий знак «×» приглушённого цвета,
+   при наведении становится ярче, при нажатии слегка уменьшается. */
 .input-clear-btn {
     position: absolute; top: 50%; transform: translateY(-50%); right: 8px; z-index: 2;
-    width: 22px; height: 22px; padding: 0; display: flex; align-items: center; justify-content: center;
+    width: 24px; height: 24px; padding: 0; display: flex; align-items: center; justify-content: center;
     border: none; outline: none; background: transparent; cursor: pointer;
     color: var(--tg-theme-hint-color, rgba(255, 255, 255, 0.45));
     -webkit-tap-highlight-color: transparent;
-    transition: color 0.15s ease, transform 0.15s ease;
+    transition: color 0.15s ease, opacity 0.15s ease, transform 0.15s ease;
 }
-.input-clear-btn svg { width: 13px; height: 13px; }
-.input-clear-btn:hover, .input-clear-btn:focus-visible { color: var(--accent, #3b82f6); }
-.input-clear-btn:active { transform: translateY(-50%) scale(0.85); opacity: 0.7; }
+.input-clear-btn svg { width: 14px; height: 14px; }
+.input-clear-btn:hover, .input-clear-btn:focus-visible { color: var(--tg-theme-text-color, #ffffff); }
+.input-clear-btn:active { transform: translateY(-50%) scale(0.9); opacity: 0.6; }
 /* Отступ текста справа, чтобы он не заходил под крестик */
-.ac-wrapper input.clearable { padding-right: 42px; }
+.ac-wrapper input.clearable { padding-right: 38px; }
 .autocomplete-dropdown {
     position: absolute; top: 100%; left: 0; right: 0; z-index: 50; margin-top: 4px;
     background: var(--tg-theme-secondary-bg-color, #2c2c2e);
