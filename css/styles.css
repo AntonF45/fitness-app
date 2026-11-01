@@ -238,3 +238,38 @@ body.keyboard-open .sticky-bottom-action { display: none !important; }
 .set-note { margin-top: 6px; font-size: 12px; line-height: 1.4; color: var(--tg-theme-hint-color, #8e8e93); background: var(--inset-bg); border-left: 2px solid var(--warn); border-radius: 8px; padding: 6px 10px; }
 /* Комментарий упражнения: отступ как между подходами (6px), без иконки. */
 .exercise-note { margin-top: 6px; }
+
+/* ===== Вкладка «История» — красочное оформление (features/history/history.view.js) ===== */
+.hist-pal-blue, .hist-stat.blue, .hist-tag.blue, .v.blue { --hc: #60a5fa; --hcbg: rgba(59, 130, 246, 0.15); }
+.hist-pal-purple, .hist-stat.purple, .hist-tag.purple, .v.purple { --hc: #c084fc; --hcbg: rgba(168, 85, 247, 0.15); }
+.hist-pal-green, .hist-stat.green, .hist-tag.green, .v.green { --hc: #4ade80; --hcbg: rgba(34, 197, 94, 0.15); }
+.hist-pal-orange, .hist-stat.orange, .hist-tag.orange, .v.orange { --hc: #fb923c; --hcbg: rgba(249, 115, 22, 0.15); }
+.hist-pal-cyan, .hist-stat.cyan, .hist-tag.cyan, .v.cyan { --hc: #22d3ee; --hcbg: rgba(34, 211, 238, 0.15); }
+
+/* Сводная панель сверху */
+.hist-summary { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 16px; }
+.hist-stat { background: var(--card-bg); border: 1px solid var(--card-border); border-radius: 14px; padding: 10px 6px; text-align: center; min-width: 0; }
+.hist-stat-icon { width: 28px; height: 28px; margin: 0 auto 6px; border-radius: 9px; background: var(--hcbg); color: var(--hc); display: flex; align-items: center; justify-content: center; font-size: 13px; }
+.hist-stat-value { font-size: 16px; font-weight: 700; line-height: 1.15; color: var(--hc); }
+.hist-stat-unit { font-size: 10px; font-weight: 600; margin-left: 1px; opacity: 0.8; }
+.hist-stat-label { font-size: 10px; color: var(--tg-theme-hint-color, #8e8e93); margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+/* Карточка тренировки в списке */
+.hist-card { display: flex; align-items: center; gap: 12px; }
+.hist-date-chip { flex-shrink: 0; width: 46px; border-radius: 12px; background: var(--hcbg); border: 1px solid color-mix(in srgb, var(--hc) 35%, transparent); color: var(--hc); text-align: center; padding: 6px 0; }
+.hist-date-chip .day { font-size: 17px; font-weight: 800; line-height: 1.1; }
+.hist-date-chip .mon { font-size: 9px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.4px; opacity: 0.85; }
+.hist-card-body { flex: 1 1 auto; min-width: 0; }
+.hist-card-arrow { color: var(--tg-theme-hint-color, #8e8e93); font-size: 11px; opacity: 0.5; flex-shrink: 0; }
+.hist-tags { display: flex; flex-wrap: wrap; gap: 6px; }
+.hist-tag { display: inline-flex; align-items: center; gap: 4px; font-size: 11px; font-weight: 600; line-height: 1; padding: 5px 8px; border-radius: 8px; background: var(--hcbg); color: var(--hc); }
+.hist-tag i { font-size: 10px; opacity: 0.9; }
+
+/* Шапка детального просмотра */
+.hist-detail-head { border-radius: 16px; padding: 16px 14px 12px; margin-bottom: 18px; background: linear-gradient(160deg, var(--hcbg), transparent 70%), var(--card-bg); border: 1px solid color-mix(in srgb, var(--hc) 25%, var(--card-border)); }
+.hist-detail-title { font-size: 20px; font-weight: 800; color: var(--hc); line-height: 1.25; }
+.hist-detail-date { font-size: 12px; color: var(--tg-theme-hint-color, #8e8e93); margin-top: 3px; }
+.hist-detail-stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-top: 12px; }
+.hist-detail-stat { text-align: center; background: var(--inset-bg); border-radius: 10px; padding: 8px 4px; min-width: 0; }
+.hist-detail-stat .v { font-size: 12.5px; font-weight: 700; color: var(--hc); white-space: nowrap; }
+.hist-detail-stat .l { font-size: 9.5px; color: var(--tg-theme-hint-color, #8e8e93); margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
