@@ -103,20 +103,21 @@ input[type=number] { -moz-appearance: textfield; }
 
 .ac-wrapper { position: relative; }
 /* Крестик очистки текста внутри поля ввода (как в строке поиска браузера).
-   Стилизован в фирменном акцентном стиле приложения (подсказки, hover-состояния элементов). */
+   Минималистичный стиль: без заливки и границ — только тонкий знак «×» приглушённого цвета,
+   при наведении становится ярче, при нажатии слегка уменьшается. */
 .input-clear-btn {
-    position: absolute; top: 50%; transform: translateY(-50%); right: 10px; z-index: 2;
-    width: 26px; height: 26px; padding: 0; display: flex; align-items: center; justify-content: center;
-    border: 1px solid var(--accent-border); border-radius: 50%; cursor: pointer;
-    background: var(--accent-bg);
-    color: var(--accent, #3b82f6);
-    transition: background 0.15s ease, color 0.15s ease, transform 0.15s ease;
+    position: absolute; top: 50%; transform: translateY(-50%); right: 8px; z-index: 2;
+    width: 24px; height: 24px; padding: 0; display: flex; align-items: center; justify-content: center;
+    border: none; outline: none; background: transparent; cursor: pointer;
+    color: var(--tg-theme-hint-color, rgba(255, 255, 255, 0.45));
+    -webkit-tap-highlight-color: transparent;
+    transition: color 0.15s ease, opacity 0.15s ease, transform 0.15s ease;
 }
-.input-clear-btn svg { width: 13px; height: 13px; }
-.input-clear-btn:hover { background: rgba(59, 130, 246, 0.25); color: #ffffff; }
-.input-clear-btn:active { transform: translateY(-50%) scale(0.9); opacity: 0.85; }
+.input-clear-btn svg { width: 14px; height: 14px; }
+.input-clear-btn:hover, .input-clear-btn:focus-visible { color: var(--tg-theme-text-color, #ffffff); }
+.input-clear-btn:active { transform: translateY(-50%) scale(0.9); opacity: 0.6; }
 /* Отступ текста справа, чтобы он не заходил под крестик */
-.ac-wrapper input.clearable { padding-right: 42px; }
+.ac-wrapper input.clearable { padding-right: 38px; }
 .autocomplete-dropdown {
     position: absolute; top: 100%; left: 0; right: 0; z-index: 50; margin-top: 4px;
     background: var(--tg-theme-secondary-bg-color, #2c2c2e);
