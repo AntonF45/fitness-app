@@ -58,6 +58,7 @@ document.addEventListener('click', function (event) {
             case 'mg-delete': mgDelete(payload); break;
             case 'ac-pick': pickAutocomplete(target); break;
             case 'ac-muscle-pick': pickMuscleAutocomplete(target); break;
+            case 'ac-clear': clearInputByAction(target); break;
             case 'add-workout-exercise': openAddWorkoutExerciseModal(); break;
             case 'add-workout-exercise-confirm': confirmAddWorkoutExercise(); break;
         }

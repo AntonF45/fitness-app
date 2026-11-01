@@ -102,6 +102,18 @@ input[type=number] { -moz-appearance: textfield; }
 @keyframes modalIn { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
 
 .ac-wrapper { position: relative; }
+/* Крестик очистки текста внутри поля ввода (как в строке поиска браузера) */
+.input-clear-btn {
+    position: absolute; top: 50%; transform: translateY(-50%); right: 10px; z-index: 2;
+    width: 26px; height: 26px; padding: 0; display: flex; align-items: center; justify-content: center;
+    border: none; border-radius: 50%; cursor: pointer;
+    background: var(--tg-theme-hint-color, rgba(142, 142, 147, 0.35));
+    color: var(--tg-theme-text-color, #fff);
+}
+.input-clear-btn svg { width: 13px; height: 13px; }
+.input-clear-btn:active { opacity: 0.7; }
+/* Отступ текста справа, чтобы он не заходил под крестик */
+.ac-wrapper input.clearable { padding-right: 42px; }
 .autocomplete-dropdown {
     position: absolute; top: 100%; left: 0; right: 0; z-index: 50; margin-top: 4px;
     background: var(--tg-theme-secondary-bg-color, #2c2c2e);
