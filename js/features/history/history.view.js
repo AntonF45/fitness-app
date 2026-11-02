@@ -33,17 +33,17 @@ function histCalShift(dir) {
 
 function renderHistory() {
     const history = DataAPI.getHistory().sort(function (a, b) { return new Date(b.date) - new Date(a.date); });
-    // Сводка: тренировки, суммарный объём, средняя длительность, регулярность (раз в N дней)
+    // Сводка: тренировки, суммарный объём, ср. вр. тренировки, тренировок в месяц
     var totalTonnage = 0, totalDuration = 0;
     history.forEach(function (e) { totalTonnage += entryStats(e).tonnage; totalDuration += Number(e.duration) || 0; });
-    // Регулярность: в среднем раз в сколько дней проходят тренировки — честнее, чем «дни подряд»
-    var avgGap = 0;
-    (function () { var daySet = {}; history.forEach(function (e) { var d = new Date(e.date); if (!isNaN(d)) daySet[d.getFullYear() + '-' + d.getMonth() + '-' + d.getDate()] = new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime(); }); var todayMid = new Date(); todayMid.setHours(0, 0, 0, 0); var uniq = Object.keys(daySet).map(function (k) { return daySet[k]; }).filter(function (t) { return t <= todayMid.getTime(); }).sort(function (a, b) { return a - b; }); if (uniq.length > 1) { var span = (uniq[uniq.length - 1] - uniq[0]) / 86400000; avgGap = Math.max(1, Math.round(span / (uniq.length - 1))); } })();
+    // Среднее количество тренировок в месяц: считаем по уникальным месяцам, в которых были тренировки
+    var perMonthAvg = 0;
+    (function () { var monthSet = {}; history.forEach(function (e) { var d = new Date(e.date); if (!isNaN(d)) monthSet[d.getFullYear() + '-' + d.getMonth()] = true; }); var months = Object.keys(monthSet).length; if (months) perMonthAvg = Math.round(history.length / months * 10) / 10; })();
     var summaryHTML = history.length ? '<div class="hist-summary card-enter">' +
         '<div class="hist-stat blue"><div class="hist-stat-icon"><i class="fa-solid fa-calendar-check"></i></div><div class="hist-stat-value">' + history.length + '</div><div class="hist-stat-label">' + declension(history.length, ['тренировка', 'тренировки', 'тренировок']) + '</div></div>' +
         '<div class="hist-stat purple"><div class="hist-stat-icon"><i class="fa-solid fa-boxes-stacked"></i></div><div class="hist-stat-value">' + (totalTonnage / 1000).toFixed(1) + '<span class="hist-stat-unit">т</span></div><div class="hist-stat-label">общий объём</div></div>' +
-        '<div class="hist-stat cyan"><div class="hist-stat-icon"><i class="fa-regular fa-stopwatch"></i></div><div class="hist-stat-value">' + Math.round(totalDuration / 60 / history.length) + '<span class="hist-stat-unit">мин</span></div><div class="hist-stat-label">средняя</div></div>' +
-        '<div class="hist-stat green"><div class="hist-stat-icon"><i class="fa-solid fa-arrows-left-right"></i></div><div class="hist-stat-value">' + (avgGap ? 'раз в ' + avgGap : '—') + '</div><div class="hist-stat-label">' + (avgGap ? declension(avgGap, ['день', 'дня', 'дней']) + ' между тренировками' : 'нет данных') + '</div></div>' +
+        '<div class="hist-stat cyan"><div class="hist-stat-icon"><i class="fa-regular fa-stopwatch"></i></div><div class="hist-stat-value">' + Math.round(totalDuration / 60 / history.length) + '<span class="hist-stat-unit">мин</span></div><div class="hist-stat-label">ср. вр. тренировки</div></div>' +
+        '<div class="hist-stat green"><div class="hist-stat-icon"><i class="fa-solid fa-calendar-days"></i></div><div class="hist-stat-value">' + (perMonthAvg || '—') + '</div><div class="hist-stat-label">тренировок в месяц</div></div>' +
         '</div>' : '';
     // Календарь тренировок: месячная сетка с точками в дни с тренировками
     var histCalMonth = window._histCalMonth;
@@ -135,6 +135,9 @@ function renderHistoryDetail(entryId) {
         '</div>';
     document.getElementById('app-content').innerHTML = headHTML + exHTML;
     window._histDetailEntryId = entry.id;
+    // При открытии/переключении тренировки всегда прокручиваем экран к началу
+    window.scrollTo(0, 0);
+    var _sc = document.getElementById('app-content'); if (_sc) _sc.scrollTop = 0;
 }
 
 // Удаление тренировки из истории (с подтверждением)
