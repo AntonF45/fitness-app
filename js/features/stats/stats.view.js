@@ -19,17 +19,33 @@ function renderGeneralSummaryHTML(filteredHistory) {
         return '<div class="summary-cell stat-metric ' + c.color + '"><div class="hist-stat-icon"><i class="fa-solid ' + c.icon + '"></i></div><div class="v">' + c.value + '</div><div class="l">' + escHtml(c.label) + '</div></div>';
     }).join('') + '</div></div>';
 }
+/* Кэш графика «Подходы по группам мышц»: его данные зависят только от выбранного периода,
+   но экран статистики перерисывается и при других действиях (выбор упражнения/метрики/группы).
+   Чтобы не пересоздавать Chart каждый раз, после первой отрисовки сохраняется снимок canvas
+   (toDataURL) и при совпадении данных восстанавливается картинкой <img> без destroy()/new Chart().
+   Полная перерисовка происходит только когда данные реально изменились (смена периода). */
+const _mgChartCache = { sig: null, img: null };
 function renderMuscleGroupSetsChartHTML(filteredHistory) {
     const mgSets = {};
     filteredHistory.forEach(function (entry) { (entry.exercises || []).forEach(function (ex) { const mg = ex.muscleGroup || 'Другое'; if (!mgSets[mg]) mgSets[mg] = 0; (ex.sets || []).forEach(function (s) { if (isValidSetRecord(s)) mgSets[mg]++; }); }); });
     const labels = Object.keys(mgSets);
-    if (labels.length === 0) return '';
+    if (labels.length === 0) { _mgChartCache.sig = null; _mgChartCache.img = null; return ''; }
+    const values = labels.map(function (l) { return mgSets[l]; });
+    const sig = JSON.stringify([labels, values]);
     const canvasId = 'mgSetsChart';
+    // Данные не менялись с прошлой отрисовки — показываем сохранённый снимок вместо нового Chart.
+    if (_mgChartCache.sig === sig && _mgChartCache.img) {
+        return '<div class="chart-card rounded-2xl p-4 mb-3 card-enter"><div class="section-label">Подходы по группам мышц</div><div class="chart-container-fixed" style="height: 200px;"><img src="' + _mgChartCache.img + '" alt="Подходы по группам мышц" style="width: 100%; height: 100%; object-fit: contain;"></div></div>';
+    }
     setTimeout(function () {
         const ctx = document.getElementById(canvasId); if (!ctx) return;
         const old = Chart.getChart(ctx); if (old) old.destroy();
         try {
-            new Chart(ctx, { type: 'bar', data: { labels: labels, datasets: [{ label: 'Подходы', data: labels.map(function (l) { return mgSets[l]; }), backgroundColor: 'rgba(59, 130, 246, 0.5)', borderColor: 'rgba(59, 130, 246, 0.8)', borderWidth: 1, borderRadius: 4 }] }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, ticks: { color: '#8e8e93', font: { size: 10 } }, grid: { color: 'rgba(142, 142, 147, 0.1)' } }, x: { ticks: { color: '#8e8e93', font: { size: 10 } }, grid: { display: false } } } } });
+            const chart = new Chart(ctx, { type: 'bar', data: { labels: labels, datasets: [{ label: 'Подходы', data: values, backgroundColor: 'rgba(59, 130, 246, 0.5)', borderColor: 'rgba(59, 130, 246, 0.8)', borderWidth: 1, borderRadius: 4 }] }, options: { responsive: true, maintainAspectRatio: false, animation: false, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, ticks: { color: '#8e8e93', font: { size: 10 } }, grid: { color: 'rgba(142, 142, 147, 0.1)' } }, x: { ticks: { color: '#8e8e93', font: { size: 10 } }, grid: { display: false } } } } });
+            // Дождаться завершения рендера и сохранить снимок для последующих перерисовок экрана.
+            setTimeout(function () {
+                try { _mgChartCache.img = chart.toBase64Image('image/png', 1); _mgChartCache.sig = sig; } catch (e) { /* снимок недоступен — в следующий раз нарисуем заново */ }
+            }, 60);
         } catch (err) { console.error('Chart init failed', err); }
     }, 100);
     return '<div class="chart-card rounded-2xl p-4 mb-3 card-enter"><div class="section-label">Подходы по группам мышц</div><div class="chart-container-fixed" style="height: 200px;"><div class="chart-wrapper-fixed"><canvas id="' + canvasId + '"></canvas></div></div></div>';
