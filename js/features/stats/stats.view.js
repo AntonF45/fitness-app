@@ -8,13 +8,15 @@ function renderGeneralSummaryHTML(filteredHistory) {
     validEntries.forEach(function (entry) { (entry.exercises || []).forEach(function (ex) { (ex.sets || []).forEach(function (s) { if (isValidSetRecord(s)) { workingSets++; totalVolume += Number(s.weight) * Number(s.reps); } }); }); });
     const periodLabel = getPeriodLabel();
     if (validEntries.length === 0) return '<div class="empty-state-block mb-3 card-enter"><i class="fa-solid fa-calendar-xmark"></i><div class="title">Нет тренировок за ' + escHtml(periodLabel) + '</div><div class="desc">Завершите тренировку — и здесь появится сводка.</div></div>';
+    // Стиль как в сводке вкладки «История»: Font Awesome иконка в цветной подложке,
+    // иконка и числовое значение — одним акцентным цветом, снизу подпись.
     const cells = [
-        { icon: '📅', color: 'blue',   value: validEntries.length, label: 'тренировок', sub: 'за период' },
-        { icon: '▤',  color: 'purple', value: workingSets,         label: 'подходов',   sub: 'всего за период' },
-        { icon: '⚖',  color: 'green',  value: (totalVolume >= 1000 ? (totalVolume / 1000).toFixed(1) + ' т' : totalVolume + ' кг'), label: 'объём', sub: 'суммарный тоннаж' }
+        { icon: 'fa-calendar-check', color: 'blue',   value: validEntries.length, label: 'тренировок' },
+        { icon: 'fa-boxes-stacked', color: 'purple', value: workingSets,          label: 'подходов' },
+        { icon: 'fa-weight-hanging', color: 'green', value: (totalVolume >= 1000 ? (totalVolume / 1000).toFixed(1) + '<span class="stat-metric-unit">т</span>' : totalVolume + '<span class="stat-metric-unit">кг</span>'), label: 'объём' }
     ];
     return '<div class="mb-3 card-enter"><div class="section-label">Сводка · ' + escHtml(periodLabel) + '</div><div class="summary-grid">' + cells.map(function (c) {
-        return '<div class="summary-cell stat-metric ' + c.color + '"><div class="t"><span class="ti">' + c.icon + '</span></div><div class="v">' + c.value + '</div><div class="l">' + escHtml(c.label) + ' · ' + escHtml(c.sub) + '</div></div>';
+        return '<div class="summary-cell stat-metric ' + c.color + '"><div class="hist-stat-icon"><i class="fa-solid ' + c.icon + '"></i></div><div class="v">' + c.value + '</div><div class="l">' + escHtml(c.label) + '</div></div>';
     }).join('') + '</div></div>';
 }
 function renderMuscleGroupSetsChartHTML(filteredHistory) {
@@ -45,27 +47,18 @@ function renderAchievementsHTML() {
     const maxWeightEntry = history.find(function (h) { return Number(h.weight) === maxWeight; });
     let max1RM = 0, max1RMEntry = null;
     history.forEach(function (h) { const est = estimate1RM(h.weight, h.reps); if (est > max1RM) { max1RM = est; max1RMEntry = h; } });
-    // Лучшая серия тренировок подряд (по календарным дням, без пропусков)
-    const dayKeys = Array.from(new Set(history.map(function (h) { return formatLocalDateKey(h.date); }).filter(Boolean))).sort();
-    let bestStreak = 0, run = 0, prevKey = null;
-    dayKeys.forEach(function (k) {
-        if (prevKey) {
-            const p = new Date(prevKey + 'T00:00:00'), c = new Date(k + 'T00:00:00');
-            const diffDays = Math.round((c - p) / 86400000);
-            run = diffDays === 1 ? run + 1 : 1;
-        } else { run = 1; }
-        if (run > bestStreak) bestStreak = run;
-        prevKey = k;
-    });
+    // Средний вес рабочих подходов
+    const avgWeight = history.reduce(function (s, h) { return s + Number(h.weight); }, 0) / history.length;
     const totalVolume = history.reduce(function (s, h) { return s + Number(h.weight) * Number(h.reps); }, 0);
     const fmtDate = function (entry) { if (!entry) return ''; const d = new Date(entry.date); return d.toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' }); };
+    // Стиль «Рекордов»: иконка слева (как в Истории — FA в цветной подложке), справа вверху значение, внизу подпись.
     const achievements = [
-        { tIcon: '⚖',  color: 'gold',   v: maxWeight + ' кг', l: 'макс. вес · ' + fmtDate(maxWeightEntry) },
-        { tIcon: '🏋', color: 'blue',   v: Math.round(max1RM) + ' кг', l: 'расчётный 1ПМ · ' + fmtDate(max1RMEntry) },
-        { tIcon: '🔥', color: 'green',  v: bestStreak || '—', l: 'лучшая серия дней подряд' },
-        { tIcon: '∑',  color: 'purple', v: totalVolume >= 1000 ? (totalVolume / 1000).toFixed(1) + ' т' : totalVolume + ' кг', l: exType === 'bodyweight' ? 'объём доп. веса · всего' : 'общий объём · всего' }
+        { icon: 'fa-weight-hanging', color: 'gold',   v: maxWeight + ' кг', l: 'макс. вес · ' + fmtDate(maxWeightEntry) },
+        { icon: 'fa-dumbbell', color: 'blue',   v: Math.round(max1RM) + ' кг', l: 'расчётный 1ПМ · ' + fmtDate(max1RMEntry) },
+        { icon: 'fa-scale-balanced', color: 'green',  v: (Math.round(avgWeight * 10) / 10) + ' кг', l: 'средний вес · ' + history.length + ' подх.' },
+        { icon: 'fa-boxes-stacked', color: 'purple', v: totalVolume >= 1000 ? (totalVolume / 1000).toFixed(1) + ' т' : totalVolume + ' кг', l: exType === 'bodyweight' ? 'объём доп. веса · всего' : 'общий объём · всего' }
     ];
-    return '<div class="mb-4 card-enter"><div class="section-label">Рекорды · за всё время</div><div class="summary-grid" style="grid-template-columns: repeat(2, 1fr);">' + achievements.map(function (a) { return '<div class="summary-cell stat-metric ' + a.color + '"><div class="t"><span class="ti">' + a.tIcon + '</span></div><div class="v">' + escHtml(String(a.v)) + '</div><div class="l">' + escHtml(a.l) + '</div></div>'; }).join('') + '</div></div>';
+    return '<div class="mb-4 card-enter"><div class="section-label">Рекорды · за всё время</div><div class="summary-grid" style="grid-template-columns: repeat(2, 1fr);">' + achievements.map(function (a) { return '<div class="achievement-card stat-metric-row ' + a.color + '"><div class="hist-stat-icon"><i class="fa-solid ' + a.icon + '"></i></div><div class="min-w-0 flex-1"><div class="v">' + escHtml(String(a.v)) + '</div><div class="l">' + escHtml(a.l) + '</div></div></div>'; }).join('') + '</div></div>';
 }
 function renderExerciseBlockHTML() {
     if (!state.selectedExercise) return '';
