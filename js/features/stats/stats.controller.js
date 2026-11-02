@@ -54,34 +54,40 @@ function renderStats() {
 
    Закрытие сделано мгновенным и безопасным:
    - при нажатии на крестик класс .open снимается СРАЗУ, а на панель навешивается
-     .closing (visibility:hidden + pointer-events:none без перехода). Строка не
-     «сворачивается» долго, крестик мгновенно становится кнопкой фильтра;
+     .closing (opacity/visibility:0 + pointer-events:none без перехода). Панель
+     гаснет в тот же кадр — текст периодов не просвечивает поверх кнопки фильтра
+     даже долю секунды, крестик мгновенно становится кнопкой фильтра;
    - все клики по кнопкам периодов во время закрытия физически невозможны —
      даже при быстром двойном тапе;
-   - через ~280мс .closing снимается, чтобы следующий тап снова плавно открыл панель. */
-var _filterCloseTimer = null;
+   - через короткий таймер .closing снимается, чтобы следующий тап снова плавно открыл панель. */
+var _filterAnimTimer = null;
 function toggleFilterPanel() {
     const line = document.querySelector('.filter-line');
     if (!line) return;
     const panel = line.querySelector('.periods-panel');
-    state.filterOpen = !state.filterOpen;
-    if (_filterCloseTimer) { clearTimeout(_filterCloseTimer); _filterCloseTimer = null; }
-    if (state.filterOpen) {
-        /* открытие: убираем «глухой» режим и плавно выезжаем панель */
-        if (panel) panel.classList.remove('closing');
-    } else {
-        /* закрытие: панель исчезает мгновенно и игнорирует клики до конца анимации */
+    const closing = state.filterOpen; /* текущее состояние открыто -> сейчас закрываем */
+    state.filterOpen = !closing;
+    if (_filterAnimTimer) { clearTimeout(_filterAnimTimer); _filterAnimTimer = null; }
+    if (closing) {
+        /* Закрытие: панель гаснем МГНОВЕННО (opacity:0 + pointer-events:none,
+           без перехода) — текст «7 дней / 30 дней…» не успевает просвечивать
+           поверх кнопки фильтра на уезде. Иконка крестика сразу становится
+           ползунком (transition выключен в CSS для закрытого состояния). */
         if (panel) panel.classList.add('closing');
+        line.classList.remove('open');
+        /* Ждём завершения переходов (visibility/transform), затем снимаем
+           .closing, чтобы следующий тап снова плавно открыл панель. */
+        _filterAnimTimer = setTimeout(function () {
+            if (panel) panel.classList.remove('closing');
+            _filterAnimTimer = null;
+        }, 60);
+    } else {
+        /* Открытие: снимаем «глухой» режим и плавно выезжаем панель */
+        if (panel) panel.classList.remove('closing');
+        line.classList.add('open');
     }
-    line.classList.toggle('open', state.filterOpen);
     const btn = document.getElementById('filter-toggle-btn');
     if (btn) btn.setAttribute('aria-expanded', String(state.filterOpen));
-    if (!state.filterOpen && panel) {
-        _filterCloseTimer = setTimeout(function () {
-            panel.classList.remove('closing');
-            _filterCloseTimer = null;
-        }, 280);
-    }
     haptic('light');
 }
 function selectMonthFilter(monthKey) { state.selectedMonthKey = state.selectedMonthKey === monthKey ? null : monthKey; if (state.selectedMonthKey) state.selectedPeriod = 'month'; haptic('light'); renderStats(); }
