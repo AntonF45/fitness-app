@@ -393,3 +393,10 @@ body.keyboard-open .sticky-bottom-action { display: none !important; }
 
 /* Названия упражнений в карточках программ: серый текст, без подчёркивания */
 .exercise-name { color: var(--tg-theme-hint-color, #8e8e93); text-decoration: none; border-bottom: none; }
+
+/* Выравнивание «подходы × повторения» в карточках программ (фикс. ширина + моноширинный шрифт) */
+.exercise-reps { display: inline-block; width: 4.75rem; min-width: 4.75rem; text-align: right; font-variant-numeric: tabular-nums; }
+
+/* Кнопка «Начать тренировку» — светло-зелёная */
+.btn-start-workout { background: #a5d6a7; color: #14351a; }
+.btn-start-workout:hover, .btn-start-workout:active { background: #93ce96; }
