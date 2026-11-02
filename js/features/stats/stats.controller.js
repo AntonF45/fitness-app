@@ -52,18 +52,37 @@ function renderStats() {
    панель «7 дней / 30 дней / …» выезжает справа налево, месяцы тем же сдвигом уходят
    за левый край, а иконки в кнопке (ползунки ↔ крестик) меняются crossfade синхронно.
    DOM не пересобирается, поэтому «крестик» никогда не появляется раньше панели.
-   Состояние запоминается в state.filterOpen, чтобы панель не «хлопала» при перерисовке экрана. */
+   Защита от «двойного тапа»: во время сворачивания панели её кнопки помечаются
+   классом .closed-capturing и игнорируются обработчиком кликов (data-ignore-while-closing),
+   пока анимация не закончится. Состояние запоминается в state.filterOpen. */
+var _filterCloseTimer = null;
 function toggleFilterPanel() {
     const line = document.querySelector('.filter-line');
     if (!line) return;
     state.filterOpen = !state.filterOpen;
+    if (_filterCloseTimer) { clearTimeout(_filterCloseTimer); _filterCloseTimer = null; }
+    if (state.filterOpen) {
+        line.classList.remove('closed-capturing');
+    } else {
+        /* закрытие: сразу снимаем .open (crossfade иконок мгновенный) и включаем
+           «глухой» режим для кнопок панели на время анимации сворачивания */
+        line.classList.add('closed-capturing');
+    }
     line.classList.toggle('open', state.filterOpen);
     const btn = document.getElementById('filter-toggle-btn');
     if (btn) btn.setAttribute('aria-expanded', String(state.filterOpen));
+    if (!state.filterOpen) {
+        _filterCloseTimer = setTimeout(function () {
+            line.classList.remove('closed-capturing');
+            _filterCloseTimer = null;
+        }, 280);
+    }
     haptic('light');
 }
 function selectMonthFilter(monthKey) { state.selectedMonthKey = state.selectedMonthKey === monthKey ? null : monthKey; if (state.selectedMonthKey) state.selectedPeriod = 'month'; haptic('light'); renderStats(); }
-function selectPeriod(period) { state.selectedPeriod = period; state.selectedMonthKey = null; state.filterOpen = false; haptic('light'); renderStats(); }
+/* Выбор периода НЕ сворачивает панель: она остаётся открытой (state.filterOpen сохраняется),
+   сворачивается только по нажатию на крестик. */
+function selectPeriod(period) { state.selectedPeriod = period; state.selectedMonthKey = null; haptic('light'); renderStats(); }
 /* Выбор группы/упражнения НЕ сбрасывает фильтр периода (месяц, напр. «сентябрь»):
    раньше здесь обнулялся selectedMonthKey и активным оставался период «30 дней». */
 function selectMuscleGroup(group) { state.selectedMuscleGroup = group; state.selectedExercise = null; haptic('light'); renderStats(); }
