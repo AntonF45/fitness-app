@@ -303,6 +303,13 @@ body.keyboard-open .sticky-bottom-action { display: none !important; }
 .hist-cal-foot > span { display: inline-flex; align-items: center; gap: 6px; }
 .hist-cal-dot.demo { position: static; transform: none; display: inline-block; }
 .hist-cal-foot a { color: var(--accent); font-weight: 600; cursor: pointer; text-decoration: none; }
+/* Кликабельный день календаря с тренировкой -> подробности */
+.hist-cal-cell.clickable { cursor: pointer; }
+.hist-cal-cell-btn { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; background: transparent; border: none; border-radius: 8px; cursor: pointer; padding: 0; font: inherit; color: inherit; -webkit-tap-highlight-color: transparent; transition: background .15s ease, transform .1s ease; }
+.hist-cal-cell-btn:hover { background: rgba(59, 130, 246, 0.12); }
+.hist-cal-cell-btn:active { transform: scale(0.88); background: rgba(59, 130, 246, 0.2); }
+.hist-cal-cell-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.hist-cal-count { position: absolute; top: 1px; right: 2px; font-size: 8px; font-weight: 800; line-height: 1; color: var(--accent); }
 
 /* Шапка детального просмотра */
 .hist-detail-head { border-radius: 16px; padding: 16px 14px 12px; margin-bottom: 18px; background: linear-gradient(160deg, var(--hcbg), transparent 70%), var(--card-bg); border: 1px solid color-mix(in srgb, var(--hc) 25%, var(--card-border)); }
