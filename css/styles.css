@@ -240,10 +240,10 @@ body.keyboard-open .sticky-bottom-action { display: none !important; }
 .exercise-note { margin-top: 6px; }
 
 /* ===== Вкладка «История» — красочное оформление (features/history/history.view.js) ===== */
-.hist-pal-blue, .hist-stat.blue, .hist-tag.blue, .v.blue { --hc: #60a5fa; --hcbg: rgba(59, 130, 246, 0.15); }
-.hist-pal-purple, .hist-stat.purple, .hist-tag.purple, .v.purple { --hc: #c084fc; --hcbg: rgba(168, 85, 247, 0.15); }
-.hist-pal-green, .hist-stat.green, .hist-tag.green, .v.green { --hc: #4ade80; --hcbg: rgba(34, 197, 94, 0.15); }
-.hist-pal-orange, .hist-stat.orange, .hist-tag.orange, .v.orange { --hc: #fb923c; --hcbg: rgba(249, 115, 22, 0.15); }
+.hist-pal-blue, .hist-stat.blue, .hist-tag.blue, .v.blue, .t.blue { --hc: #60a5fa; --hcbg: rgba(59, 130, 246, 0.15); }
+.hist-pal-purple, .hist-stat.purple, .hist-tag.purple, .v.purple, .t.purple { --hc: #c084fc; --hcbg: rgba(168, 85, 247, 0.15); }
+.hist-pal-green, .hist-stat.green, .hist-tag.green, .v.green, .t.green { --hc: #4ade80; --hcbg: rgba(34, 197, 94, 0.15); }
+.hist-pal-orange, .hist-stat.orange, .hist-tag.orange, .v.orange, .t.orange { --hc: #fb923c; --hcbg: rgba(249, 115, 22, 0.15); }
 .hist-pal-cyan, .hist-stat.cyan, .hist-tag.cyan, .v.cyan { --hc: #22d3ee; --hcbg: rgba(34, 211, 238, 0.15); }
 /* Цвета групп мышц (красная полоска = грудь и т.п.) */
 .mg-red, .hist-mg-badge.red { --hc: #f87171; --hcbg: rgba(239, 68, 68, 0.15); }
