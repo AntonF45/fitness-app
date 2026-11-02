@@ -332,3 +332,10 @@ body.keyboard-open .sticky-bottom-action { display: none !important; }
 .hist-detail-stat .t { font-size: 10px; color: var(--hc); display: inline-flex; align-items: center; justify-content: center; line-height: 1; }
 .hist-detail-stat .v { font-size: 13px; font-weight: 700; color: var(--hc); white-space: nowrap; margin-top: 4px; line-height: 1.2; }
 .hist-detail-stat .l { font-size: 8.5px; color: var(--tg-theme-hint-color, #8e8e93); margin-top: 1px; line-height: 1.25; overflow-wrap: break-word; }
+/* Сводка/рекорды на вкладке статистики — тот же стиль, что и метрики истории: ярлык → значение → пояснение */
+.stat-metric.gold { --hc: #fbbf24; --hcbg: rgba(251, 191, 36, 0.15); }
+.summary-cell.stat-metric { padding: 9px 6px 8px; }
+.stat-metric .t { display: inline-flex; align-items: center; justify-content: center; min-width: 22px; height: 18px; padding: 0 6px; border-radius: 6px; background: var(--hcbg); color: var(--hc); font-size: 10px; line-height: 1; }
+.stat-metric .t .ti { font-size: 11px; line-height: 1; }
+.stat-metric .v { font-size: 16px; font-weight: 700; color: var(--hc); margin-top: 5px; line-height: 1.2; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.stat-metric .l { font-size: 8.5px; color: var(--tg-theme-hint-color, #8e8e93); margin-top: 2px; line-height: 1.25; overflow-wrap: break-word; }
