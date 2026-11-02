@@ -49,21 +49,45 @@ function renderStats() {
     if (state.selectedExercise) renderChart();
 }
 /* Открытие/закрытие панели периодов — ОДНИМ CSS-классом .open на строке фильтра:
-   панель «7 дней / 30 дней / …» выезжает справа налево, месяцы тем же сдвигом уходят
-   за левый край, а иконки в кнопке (ползунки ↔ крестик) меняются crossfade синхронно.
-   DOM не пересобирается, поэтому «крестик» никогда не появляется раньше панели.
-   Состояние запоминается в state.filterOpen, чтобы панель не «хлопала» при перерисовке экрана. */
+   панель «7 дней / 30 дней / …» выезжает справа налево, месяцы уходят за левый край,
+   иконки в кнопке (ползунки ↔ крестик) меняются синхронно. DOM не пересобирается.
+
+   Закрытие сделано мгновенным и безопасным:
+   - при нажатии на крестик класс .open снимается СРАЗУ, а на панель навешивается
+     .closing (visibility:hidden + pointer-events:none без перехода). Строка не
+     «сворачивается» долго, крестик мгновенно становится кнопкой фильтра;
+   - все клики по кнопкам периодов во время закрытия физически невозможны —
+     даже при быстром двойном тапе;
+   - через ~280мс .closing снимается, чтобы следующий тап снова плавно открыл панель. */
+var _filterCloseTimer = null;
 function toggleFilterPanel() {
     const line = document.querySelector('.filter-line');
     if (!line) return;
+    const panel = line.querySelector('.periods-panel');
     state.filterOpen = !state.filterOpen;
+    if (_filterCloseTimer) { clearTimeout(_filterCloseTimer); _filterCloseTimer = null; }
+    if (state.filterOpen) {
+        /* открытие: убираем «глухой» режим и плавно выезжаем панель */
+        if (panel) panel.classList.remove('closing');
+    } else {
+        /* закрытие: панель исчезает мгновенно и игнорирует клики до конца анимации */
+        if (panel) panel.classList.add('closing');
+    }
     line.classList.toggle('open', state.filterOpen);
     const btn = document.getElementById('filter-toggle-btn');
     if (btn) btn.setAttribute('aria-expanded', String(state.filterOpen));
+    if (!state.filterOpen && panel) {
+        _filterCloseTimer = setTimeout(function () {
+            panel.classList.remove('closing');
+            _filterCloseTimer = null;
+        }, 280);
+    }
     haptic('light');
 }
 function selectMonthFilter(monthKey) { state.selectedMonthKey = state.selectedMonthKey === monthKey ? null : monthKey; if (state.selectedMonthKey) state.selectedPeriod = 'month'; haptic('light'); renderStats(); }
-function selectPeriod(period) { state.selectedPeriod = period; state.selectedMonthKey = null; state.filterOpen = false; haptic('light'); renderStats(); }
+/* Выбор периода НЕ сворачивает панель: она остаётся открытой (state.filterOpen сохраняется),
+   сворачивается только по нажатию на крестик. */
+function selectPeriod(period) { state.selectedPeriod = period; state.selectedMonthKey = null; haptic('light'); renderStats(); }
 /* Выбор группы/упражнения НЕ сбрасывает фильтр периода (месяц, напр. «сентябрь»):
    раньше здесь обнулялся selectedMonthKey и активным оставался период «30 дней». */
 function selectMuscleGroup(group) { state.selectedMuscleGroup = group; state.selectedExercise = null; haptic('light'); renderStats(); }
