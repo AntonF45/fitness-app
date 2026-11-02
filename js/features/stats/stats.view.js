@@ -41,11 +41,12 @@ function renderMuscleGroupSetsChartHTML(filteredHistory) {
         const ctx = document.getElementById(canvasId); if (!ctx) return;
         const old = Chart.getChart(ctx); if (old) old.destroy();
         try {
-            const chart = new Chart(ctx, { type: 'bar', data: { labels: labels, datasets: [{ label: 'Подходы', data: values, backgroundColor: 'rgba(59, 130, 246, 0.5)', borderColor: 'rgba(59, 130, 246, 0.8)', borderWidth: 1, borderRadius: 4 }] }, options: { responsive: true, maintainAspectRatio: false, animation: false, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, ticks: { color: '#8e8e93', font: { size: 10 } }, grid: { color: 'rgba(142, 142, 147, 0.1)' } }, x: { ticks: { color: '#8e8e93', font: { size: 10 } }, grid: { display: false } } } } });
-            // Дождаться завершения рендера и сохранить снимок для последующих перерисовок экрана.
-            setTimeout(function () {
+            // Снимок сохраняем только ПОСЛЕ завершения анимации — иначе кэш покажет пустой/промежуточный кадр.
+            const saveSnapshot = function () {
                 try { _mgChartCache.img = chart.toBase64Image('image/png', 1); _mgChartCache.sig = sig; } catch (e) { /* снимок недоступен — в следующий раз нарисуем заново */ }
-            }, 60);
+            };
+            // Анимация построения включена (по умолчанию): столбики «вырастают» при реальной смене данных.
+            const chart = new Chart(ctx, { type: 'bar', data: { labels: labels, datasets: [{ label: 'Подходы', data: values, backgroundColor: 'rgba(59, 130, 246, 0.5)', borderColor: 'rgba(59, 130, 246, 0.8)', borderWidth: 1, borderRadius: 4 }] }, options: { responsive: true, maintainAspectRatio: false, animation: { onComplete: saveSnapshot }, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, ticks: { color: '#8e8e93', font: { size: 10 } }, grid: { color: 'rgba(142, 142, 147, 0.1)' } }, x: { ticks: { color: '#8e8e93', font: { size: 10 } }, grid: { display: false } } } } });
         } catch (err) { console.error('Chart init failed', err); }
     }, 100);
     return '<div class="chart-card rounded-2xl p-4 mb-3 card-enter"><div class="section-label">Подходы по группам мышц</div><div class="chart-container-fixed" style="height: 200px;"><div class="chart-wrapper-fixed"><canvas id="' + canvasId + '"></canvas></div></div></div>';
