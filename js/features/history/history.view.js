@@ -126,10 +126,10 @@ function renderHistoryDetail(entryId) {
         '<p class="hist-detail-date"><i class="fa-regular fa-calendar mr-1"></i>' + date + '</p>' +
         groupsChipsHTML +
         '<div class="hist-detail-stats">' +
-        '<div class="hist-detail-stat"><div class="t blue"><i class="fa-regular fa-clock"></i> время</div><div class="v blue">' + formatDuration(entry.duration) + '</div><div class="l">длительность тренировки</div></div>' +
-        '<div class="hist-detail-stat"><div class="t green"><i class="fa-solid fa-layer-group"></i> подходы</div><div class="v green">' + dst.sets + '</div><div class="l">всего подходов</div></div>' +
-        '<div class="hist-detail-stat"><div class="t purple"><i class="fa-solid fa-repeat"></i> повторы</div><div class="v purple">' + dst.reps + '</div><div class="l">всего повторений</div></div>' +
-        '<div class="hist-detail-stat"><div class="t orange"><i class="fa-solid fa-weight-hanging"></i> объём</div><div class="v orange">' + (dst.tonnage / 1000).toFixed(1) + ' т</div><div class="l">суммарный тоннаж</div></div>' +
+        '<div class="hist-detail-stat"><div class="t blue"><i class="fa-regular fa-clock"></i></div><div class="v blue">' + formatDuration(entry.duration) + '</div><div class="l">длительность тренировки</div></div>' +
+        '<div class="hist-detail-stat"><div class="t green"><i class="fa-solid fa-layer-group"></i></div><div class="v green">' + dst.sets + '</div><div class="l">всего подходов</div></div>' +
+        '<div class="hist-detail-stat"><div class="t purple"><i class="fa-solid fa-repeat"></i></div><div class="v purple">' + dst.reps + '</div><div class="l">всего повторений</div></div>' +
+        '<div class="hist-detail-stat"><div class="t orange"><i class="fa-solid fa-weight-hanging"></i></div><div class="v orange">' + (dst.tonnage / 1000).toFixed(1) + ' т</div><div class="l">суммарный тоннаж</div></div>' +
         '</div>' +
         '<button type="button" class="hist-detail-delete" data-action="history-delete-entry" data-payload="' + escAttr(entry.id) + '" aria-label="Удалить тренировку из истории"><i class="fa-regular fa-trash-can"></i> Удалить тренировку</button>' +
         '</div>';
