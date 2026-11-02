@@ -33,7 +33,7 @@ function histCalShift(dir) {
 
 function renderHistory() {
     const history = DataAPI.getHistory().sort(function (a, b) { return new Date(b.date) - new Date(a.date); });
-    // Сводка: тренировки, суммарный объём, ср. вр. тренировки, тренировок в месяц
+    // Сводка: тренировки, суммарный объём, ср. вр. трен., трен. в мес.
     var totalTonnage = 0, totalDuration = 0;
     history.forEach(function (e) { totalTonnage += entryStats(e).tonnage; totalDuration += Number(e.duration) || 0; });
     // Среднее количество тренировок в месяц: считаем по уникальным месяцам, в которых были тренировки
@@ -42,8 +42,8 @@ function renderHistory() {
     var summaryHTML = history.length ? '<div class="hist-summary card-enter">' +
         '<div class="hist-stat blue"><div class="hist-stat-icon"><i class="fa-solid fa-calendar-check"></i></div><div class="hist-stat-value">' + history.length + '</div><div class="hist-stat-label">' + declension(history.length, ['тренировка', 'тренировки', 'тренировок']) + '</div></div>' +
         '<div class="hist-stat purple"><div class="hist-stat-icon"><i class="fa-solid fa-boxes-stacked"></i></div><div class="hist-stat-value">' + (totalTonnage / 1000).toFixed(1) + '<span class="hist-stat-unit">т</span></div><div class="hist-stat-label">общий объём</div></div>' +
-        '<div class="hist-stat cyan"><div class="hist-stat-icon"><i class="fa-regular fa-stopwatch"></i></div><div class="hist-stat-value">' + Math.round(totalDuration / 60 / history.length) + '<span class="hist-stat-unit">мин</span></div><div class="hist-stat-label">ср. вр. тренировки</div></div>' +
-        '<div class="hist-stat green"><div class="hist-stat-icon"><i class="fa-solid fa-calendar-days"></i></div><div class="hist-stat-value">' + (perMonthAvg || '—') + '</div><div class="hist-stat-label">тренировок в месяц</div></div>' +
+        '<div class="hist-stat cyan"><div class="hist-stat-icon"><i class="fa-regular fa-stopwatch"></i></div><div class="hist-stat-value">' + Math.round(totalDuration / 60 / history.length) + '<span class="hist-stat-unit">мин</span></div><div class="hist-stat-label">ср. вр. трен.</div></div>' +
+        '<div class="hist-stat green"><div class="hist-stat-icon"><i class="fa-solid fa-calendar-days"></i></div><div class="hist-stat-value">' + (perMonthAvg || '—') + '</div><div class="hist-stat-label">трен. в мес.</div></div>' +
         '</div>' : '';
     // Календарь тренировок: месячная сетка с точками в дни с тренировками
     var histCalMonth = window._histCalMonth;
