@@ -145,21 +145,38 @@ input[type=number] { -moz-appearance: textfield; }
    поэтому галочка и надпись лежат на одной линии без вложенных контейнеров. */
 /* Текст строки — всегда серый (как подписи-подсказки в приложении), независимо от темы. */
 .checkbox-label input[type="checkbox"] + span { display: flex; align-items: center; position: relative; color: var(--tg-theme-hint-color, #8e8e93); }
-/* Отмеченное состояние: БЕЛЫЙ круг с зелёной галочкой.
-   Галочка рисуется псевдоэлементом ::after поверх круга (::before) — оба принадлежат
-   одному <span>, никаких вложенных контейнеров нет. */
+/* Круг всегда БЕЛЫЙ (в обоих состояниях). При нажатии внутрь круга заливается
+   зелёный круг меньшего диаметра (::after), а поверх него — галочка более тёмного
+   зелёного оттенка (#15803d,Checked-состояние ::before span) — цвет галочки отличается
+   от цвета заливки. Всё рисуется псевдоэлементами одного <span>, без вложенных элементов. */
 .checkbox-label input[type="checkbox"] + span::before {
     content: ""; flex: 0 0 auto; display: block; box-sizing: border-box;
     width: 22px; height: 22px; margin-right: 10px; border-radius: 50%;
-    background: #ffffff;
+    background: #ffffff; position: relative; z-index: 0;
 }
+/* Зелёная заливка внутри белого круга (на 3px меньше с каждой стороны),
+   точно по центру круга: центр span-строки = центр кружка 22px -> top: calc(50% - 11px). */
 .checkbox-label input[type="checkbox"]:checked + span::after {
-    content: ""; position: absolute; left: 6px; top: 7px; width: 5px; height: 9px;
-    border: solid #4ade80; border-width: 0 2.5px 2.5px 0; transform: rotate(45deg);
+    content: ""; position: absolute; left: 3px; top: calc(50% - 11px);
+    width: 16px; height: 16px; border-radius: 50%;
+    background: #4ade80; z-index: 0;
 }
-/* Неотмеченное состояние: просто белый круг без галочки. */
+/* Галочка — тёмно-зелёная, отличается от цвета заливки.
+   Рисуется вторым псевдоэлементом того же span (::before/::after уже заняты кругом и
+   заливкой), поэтому разметку менять не пришлось. Центрирование симметричным боксом
+   (по 4px со всех сторон): его геометрический центр совпадает с центром круга, а
+   translate(-0.5px,-1.5px) компенсирует смещение оптического центра повёрнутой галочки. */
+.checkbox-label input[type="checkbox"]:checked + span::before {
+    content: ""; position: absolute; left: 4px; right: 4px; top: 4px; bottom: 4px;
+    transform: translate(-0.5px, -1.5px) rotate(45deg);
+    border: solid #15803d; border-width: 0 2px 2px 0;
+    pointer-events: none; z-index: 1;
+}
+/* Неотмеченное состояние: просто белый круг без заливки и галочки. */
 .checkbox-label input[type="checkbox"]:not(:checked) + span::after { content: none; }
-.checkbox-label input[type="checkbox"]:active + span::before { transform: scale(0.92); }
+/* Отклик при нажатии — лёгкое уменьшение всего кружка вместе с содержимым:
+   scale применяется к span-контейнеру, чтобы не перекрывать transform галочки. */
+.checkbox-label input[type="checkbox"]:active + span { transform: scale(0.92); }
 .modal-backdrop { position: fixed; inset: 0; z-index: 100; display: flex; align-items: center; justify-content: center; background: rgba(0, 0, 0, 0.65); padding: calc(16px + var(--safe-top) + var(--extra-top)) 16px calc(16px + var(--safe-bottom)); }
 .modal-sheet { width: 100%; max-width: 480px; background: var(--tg-theme-secondary-bg-color, #2c2c2e); background: color-mix(in srgb, var(--tg-theme-secondary-bg-color, #2c2c2e) 92%, #3b82f6 8%); color: var(--tg-theme-text-color, #ffffff); border: 1px solid var(--inset-border); border-radius: 20px; padding: 20px; padding-bottom: calc(20px + env(safe-area-inset-bottom, 0px)); animation: modalIn 0.2s ease-out; }
 @keyframes modalIn { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
