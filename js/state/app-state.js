@@ -2,4 +2,4 @@
    статистики, редактируемая программа, активная тренировка. Единственный источник истины. */
 'use strict';
 
-let state = { currentScreen: 'programs', currentTab: 'programs', activeWorkout: null, editingProgram: null, workoutTimer: null, selectedMuscleGroup: 'Грудь', selectedExercise: null, supersetActiveId: null, selectedPeriod: 'all', selectedMonthKey: null, selectedExerciseMetric: 'weight' };
+let state = { currentScreen: 'programs', currentTab: 'programs', activeWorkout: null, editingProgram: null, workoutTimer: null, selectedMuscleGroup: 'Грудь', selectedExercise: null, supersetActiveId: null, selectedPeriod: 'all', selectedMonthKey: null, selectedExerciseMetric: 'weight', filterOpen: false };

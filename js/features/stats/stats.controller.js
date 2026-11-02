@@ -14,26 +14,25 @@ function renderStats() {
        упражнения без тренировок в выбранном месяце кнопка месяца исчезала и фильтр сбрасывался. */
     const monthsHTML = getAvailableMonthsForHistory().map(function (m) { return '<button data-action="select-month" data-payload="' + escAttr(m.key) + '" class="period-btn ' + (state.selectedMonthKey === m.key ? 'active' : '') + '">' + escHtml(m.label) + '</button>'; }).join('');
 
+    const periodsHTML =
+        '<button data-action="select-period" data-payload="week" class="period-btn ' + (state.selectedPeriod === 'week' && !state.selectedMonthKey ? 'active' : '') + '">7 дней</button>' +
+        '<button data-action="select-period" data-payload="month" class="period-btn ' + (state.selectedPeriod === 'month' && !state.selectedMonthKey ? 'active' : '') + '">30 дней</button>' +
+        '<button data-action="select-period" data-payload="quarter" class="period-btn ' + (state.selectedPeriod === 'quarter' && !state.selectedMonthKey ? 'active' : '') + '">90 дней</button>' +
+        '<button data-action="select-period" data-payload="all" class="period-btn ' + (state.selectedPeriod === 'all' && !state.selectedMonthKey ? 'active' : '') + '">Всё</button>';
+
     document.getElementById('app-content').innerHTML =
         '<div class="stats-header bg-tgBg/95 backdrop-blur-md card-enter">' +
             '<h1 id="stats-title" class="stats-title">Статистика: ' + escHtml(getPeriodLabel()) + '</h1>' +
-            '<div class="flex items-center gap-2 mt-3">' +
-                '<div id="months-scroll" class="flex-1 overflow-x-auto scroll-container flex gap-1.5">' + monthsHTML + '</div>' +
-                '<button id="filter-toggle-btn" data-action="toggle-filter" class="filter-toggle-btn shrink-0" aria-label="Фильтр периода"><i class="fa-solid fa-sliders"></i></button>' +
-            '</div>' +
-            /* Панель фильтров: ОДИН статичный крестик справа + слайдер с периодами слева.
-               При открытии крестик остаётся на месте, а кнопки периодов плавно выезжают
-               со стороны левого края — без «крестика впереди» и без двойной перерисовки. */
-            '<div id="chart-top-bar" class="chart-top-bar">' +
-                '<div id="chart-top-slider" class="chart-top-slider">' +
-                    '<div class="period-filter flex-1">' +
-                        '<button data-action="select-period" data-payload="week" class="period-btn ' + (state.selectedPeriod === 'week' && !state.selectedMonthKey ? 'active' : '') + '">7 дней</button>' +
-                        '<button data-action="select-period" data-payload="month" class="period-btn ' + (state.selectedPeriod === 'month' && !state.selectedMonthKey ? 'active' : '') + '">30 дней</button>' +
-                        '<button data-action="select-period" data-payload="quarter" class="period-btn ' + (state.selectedPeriod === 'quarter' && !state.selectedMonthKey ? 'active' : '') + '">90 дней</button>' +
-                        '<button data-action="select-period" data-payload="all" class="period-btn ' + (state.selectedPeriod === 'all' && !state.selectedMonthKey ? 'active' : '') + '">Всё</button>' +
-                    '</div>' +
-                '</div>' +
-                '<button data-action="toggle-filter" class="filter-toggle-btn chart-close-btn" aria-label="Закрыть фильтр"><i class="fa-solid fa-xmark"></i></button>' +
+            /* Одна строка: [месяцы] [периоды — выезжают справа налево поверх месяцев] [фильтр/крестик].
+               Периоды абсолютно позиционированы у правого края и скрыты translateX(100%);
+               при открытии панель «7 дн / 30 дн / …» выезжает из-под кнопки фильтра влево,
+               смещая месяцы за экран; кнопка фильтра превращается в крестик (crossfade иконок). */
+            '<div class="filter-line' + (state.filterOpen ? ' open' : '') + '">' +
+                '<div id="months-scroll" class="months-track">' + monthsHTML + '</div>' +
+                '<div class="period-filter periods-panel">' + periodsHTML + '</div>' +
+                '<button id="filter-toggle-btn" data-action="toggle-filter" class="filter-toggle-btn" aria-label="Фильтр периода" aria-expanded="' + (state.filterOpen ? 'true' : 'false') + '">' +
+                    '<i class="fa-solid fa-sliders fi-sliders"></i><i class="fa-solid fa-xmark fi-xmark"></i>' +
+                '</button>' +
             '</div>' +
         '</div>' +
         '<div class="pt-4">' +
@@ -49,9 +48,20 @@ function renderStats() {
     }, 50);
     if (state.selectedExercise) renderChart();
 }
-function toggleFilterPanel() { const slider = document.getElementById('chart-top-slider'); const bar = document.getElementById('chart-top-bar'); const btn = document.getElementById('filter-toggle-btn'); if (!slider || !bar) return; slider.classList.toggle('show-filter'); bar.classList.toggle('expanded'); if (btn) btn.classList.toggle('active'); haptic('light'); }
+/* Переключение панели периодов — только CSS-класс на строке фильтра:
+   панель выезжает справа налево, месяцы уходят за экран, кнопка становится крестиком.
+   Состояние запоминается в state.filterOpen, чтобы панель не «хлопала» при перерисовке экрана. */
+function toggleFilterPanel() {
+    const line = document.querySelector('.filter-line');
+    if (!line) return;
+    state.filterOpen = !state.filterOpen;
+    line.classList.toggle('open', state.filterOpen);
+    const btn = document.getElementById('filter-toggle-btn');
+    if (btn) btn.setAttribute('aria-expanded', String(state.filterOpen));
+    haptic('light');
+}
 function selectMonthFilter(monthKey) { state.selectedMonthKey = state.selectedMonthKey === monthKey ? null : monthKey; if (state.selectedMonthKey) state.selectedPeriod = 'month'; haptic('light'); renderStats(); }
-function selectPeriod(period) { state.selectedPeriod = period; state.selectedMonthKey = null; haptic('light'); renderStats(); }
+function selectPeriod(period) { state.selectedPeriod = period; state.selectedMonthKey = null; state.filterOpen = false; haptic('light'); renderStats(); }
 /* Выбор группы/упражнения НЕ сбрасывает фильтр периода (месяц, напр. «сентябрь»):
    раньше здесь обнулялся selectedMonthKey и активным оставался период «30 дней». */
 function selectMuscleGroup(group) { state.selectedMuscleGroup = group; state.selectedExercise = null; haptic('light'); renderStats(); }

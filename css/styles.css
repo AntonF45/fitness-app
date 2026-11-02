@@ -62,16 +62,23 @@ input[type=number] { -moz-appearance: textfield; }
 .summary-value { font-size: 18px; font-weight: 700; line-height: 1.2; }
 .summary-label { font-size: 9px; text-transform: uppercase; letter-spacing: 0.5px; color: var(--tg-theme-hint-color, #8e8e93); margin-top: 2px; line-height: 1.2; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
-/* Панель фильтров периода: высота раскрывается, крестик статичен справа,
-   периоды выезжают слева (translateX), без пересборки DOM и «бегающего» крестика. */
-.chart-top-bar { position: relative; height: 0; overflow: hidden; transition: height 0.35s cubic-bezier(0.4, 0, 0.2, 1); }
-.chart-top-bar.expanded { height: 52px; margin-top: 8px; }
-.chart-top-slider { display: flex; align-items: center; height: 100%; width: calc(100% - 44px); padding-right: 8px; box-sizing: border-box; transform: translateX(-100%); opacity: 0; transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.25s ease; }
-.chart-top-slider.show-filter { transform: translateX(0); opacity: 1; }
-.chart-top-slider .period-filter { min-width: 0; }
-/* Статичный крестик закрытия — всегда на одном месте (справа), появляется вместе с панелью */
-.chart-close-btn { position: absolute; right: 0; top: calc(52px - 36px); /* bar expanded = 52px, btn = 36px → вертикальный центр */ margin-top: 8px; opacity: 0; pointer-events: none; transition: opacity 0.25s ease; }
-.chart-top-bar.expanded .chart-close-btn { opacity: 1; pointer-events: auto; }
+/* Фильтр периода в одну строку: месяцы + выезжающая справа панель периодов + кнопка-крестик.
+   .filter-line.open — панель «7 дней / 30 дней / …» плавно выезжает из-под кнопки фильтра
+   слева (translateX 100% → 0), закрывая собой месяцы; иконки на кнопке меняются crossfade. */
+.filter-line { position: relative; display: flex; align-items: center; gap: 8px; margin-top: 12px; }
+.months-track { flex: 1 1 auto; min-width: 0; display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; -ms-overflow-style: none; scroll-padding-left: 4px; }
+.months-track::-webkit-scrollbar { display: none; }
+.months-track > * { flex-shrink: 0; }
+.periods-panel { position: absolute; right: 44px; top: 50%; transform: translate(100%, -50%); opacity: 0; pointer-events: none; z-index: 2; transition: transform 0.32s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.2s ease; }
+.filter-line.open .periods-panel { transform: translate(0, -50%); opacity: 1; pointer-events: auto; }
+/* Подложка панели периодов в цвет шапки, чтобы при выезде она «стирала» месяцы, а не просвечивала */
+.stats-header .periods-panel { background: var(--tg-theme-bg-color, #1c1c1e); border: 1px solid var(--card-border); }
+/* Кнопка фильтра = два слоя иконок (ползунки/крестик), переключение crossfade без пересборки DOM */
+#filter-toggle-btn { position: relative; }
+#filter-toggle-btn .fi-sliders, #filter-toggle-btn .fi-xmark { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; transition: opacity 0.18s ease, transform 0.22s ease; }
+#filter-toggle-btn .fi-xmark { opacity: 0; transform: rotate(-90deg) scale(0.6); }
+.filter-line.open #filter-toggle-btn .fi-sliders { opacity: 0; transform: rotate(90deg) scale(0.6); }
+.filter-line.open #filter-toggle-btn .fi-xmark { opacity: 1; transform: rotate(0) scale(1); }
 
 .filter-toggle-btn { width: 36px; height: 36px; border-radius: 10px; background: var(--accent-bg); border: 1px solid rgba(59, 130, 246, 0.25); display: flex; align-items: center; justify-content: center; color: var(--accent); transition: all 0.2s ease; flex-shrink: 0; }
 .filter-toggle-btn:active { transform: scale(0.92); background: rgba(59, 130, 246, 0.2); }
