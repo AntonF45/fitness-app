@@ -23,12 +23,12 @@ function renderStats() {
     document.getElementById('app-content').innerHTML =
         '<div class="stats-header bg-tgBg/95 backdrop-blur-md card-enter">' +
             '<h1 id="stats-title" class="stats-title">Статистика: ' + escHtml(getPeriodLabel()) + '</h1>' +
-            /* Одна строка: [месяцы] [периоды — выезжают справа налево поверх месяцев] [фильтр/крестик].
-               Периоды абсолютно позиционированы у правого края и скрыты translateX(100%);
-               при открытии панель «7 дн / 30 дн / …» выезжает из-под кнопки фильтра влево,
-               смещая месяцы за экран; кнопка фильтра превращается в крестик (crossfade иконок). */
+            /* Одна строка: [месяцы] [периоды — выезжают справа налево] [фильтр/крестик].
+               При открытии панель «7 дней / 30 дней / …» выезжает из-под кнопки фильтра влево,
+               месяцы плавно уходят за экран слева; на месте кнопки фильтра появляется крестик.
+               Анимация — только сменой CSS-класса .open (без пересборки DOM и без «опережающего» крестика). */
             '<div class="filter-line' + (state.filterOpen ? ' open' : '') + '">' +
-                '<div id="months-scroll" class="months-track">' + monthsHTML + '</div>' +
+                '<div id="months-scroll" class="months-track">' + (monthsHTML || '<span class="months-empty">Все месяцы</span>') + '</div>' +
                 '<div class="period-filter periods-panel">' + periodsHTML + '</div>' +
                 '<button id="filter-toggle-btn" data-action="toggle-filter" class="filter-toggle-btn" aria-label="Фильтр периода" aria-expanded="' + (state.filterOpen ? 'true' : 'false') + '">' +
                     '<i class="fa-solid fa-sliders fi-sliders"></i><i class="fa-solid fa-xmark fi-xmark"></i>' +
@@ -48,8 +48,10 @@ function renderStats() {
     }, 50);
     if (state.selectedExercise) renderChart();
 }
-/* Переключение панели периодов — только CSS-класс на строке фильтра:
-   панель выезжает справа налево, месяцы уходят за экран, кнопка становится крестиком.
+/* Открытие/закрытие панели периодов — ОДНИМ CSS-классом .open на строке фильтра:
+   панель «7 дней / 30 дней / …» выезжает справа налево, месяцы тем же сдвигом уходят
+   за левый край, а иконки в кнопке (ползунки ↔ крестик) меняются crossfade синхронно.
+   DOM не пересобирается, поэтому «крестик» никогда не появляется раньше панели.
    Состояние запоминается в state.filterOpen, чтобы панель не «хлопала» при перерисовке экрана. */
 function toggleFilterPanel() {
     const line = document.querySelector('.filter-line');

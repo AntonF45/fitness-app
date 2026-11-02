@@ -62,25 +62,32 @@ input[type=number] { -moz-appearance: textfield; }
 .summary-value { font-size: 18px; font-weight: 700; line-height: 1.2; }
 .summary-label { font-size: 9px; text-transform: uppercase; letter-spacing: 0.5px; color: var(--tg-theme-hint-color, #8e8e93); margin-top: 2px; line-height: 1.2; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
-/* Фильтр периода в одну строку: месяцы + выезжающая справа панель периодов + кнопка-крестик.
-   .filter-line.open — панель «7 дней / 30 дней / …» плавно выезжает из-под кнопки фильтра
-   слева (translateX 100% → 0), закрывая собой месяцы; иконки на кнопке меняются crossfade. */
-.filter-line { position: relative; display: flex; align-items: center; gap: 8px; margin-top: 12px; }
-.months-track { flex: 1 1 auto; min-width: 0; display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; -ms-overflow-style: none; scroll-padding-left: 4px; }
+/* Фильтр периода в одну строку: [месяцы] [панель периодов] [кнопка фильтра/крестик].
+   При нажатии на кнопку панель «7 дней / 30 дней / 90 дней / Всё» выезжает СПРАВА НАЛЕВО
+   (translateX 100% → 0), а месяцы тем же сдвигом уходят за левый край экрана;
+   на месте кнопки фильтра крестик появляется синхронно (crossfade двух слоёв иконок).
+   Всё анимируется одним классом .open — никаких пересборок DOM и «опережающих» элементов. */
+.filter-line { position: relative; display: flex; align-items: center; gap: 8px; margin-top: 12px; overflow: hidden; }
+/* Месяцы занимают всю ширину строки (до кнопки) и уезжают влево при открытии панели */
+.months-track { flex: 1 1 auto; min-width: 0; display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; -ms-overflow-style: none; scroll-padding-left: 4px; padding-right: 2px; transition: transform 0.32s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.25s ease; }
 .months-track::-webkit-scrollbar { display: none; }
 .months-track > * { flex-shrink: 0; }
-.periods-panel { position: absolute; right: 44px; top: 50%; transform: translate(100%, -50%); opacity: 0; pointer-events: none; z-index: 2; transition: transform 0.32s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.2s ease; }
-.filter-line.open .periods-panel { transform: translate(0, -50%); opacity: 1; pointer-events: auto; }
-/* Подложка панели периодов в цвет шапки, чтобы при выезде она «стирала» месяцы, а не просвечивала */
+.months-empty { font-size: 11px; color: var(--tg-theme-hint-color, #8e8e93); line-height: 36px; white-space: nowrap; padding-left: 2px; }
+.filter-line.open .months-track { transform: translateX(calc(-100% - 12px)); opacity: 0; }
+/* Панель периодов лежит справа от экрана (за кнопкой) и выезжает на её место влево */
+.periods-panel { position: absolute; left: 0; right: 44px; top: 50%; transform: translate(100%, -50%); visibility: hidden; z-index: 2; transition: transform 0.32s cubic-bezier(0.4, 0, 0.2, 1), visibility 0s linear 0.32s; }
+.filter-line.open .periods-panel { transform: translate(0, -50%); visibility: visible; transition: transform 0.32s cubic-bezier(0.4, 0, 0.2, 1), visibility 0s; }
+/* Подложка панели в цвет шапки, чтобы при выезде месяцы скрывались под ней, а не просвечивали */
 .stats-header .periods-panel { background: var(--tg-theme-bg-color, #1c1c1e); border: 1px solid var(--card-border); }
-/* Кнопка фильтра = два слоя иконок (ползунки/крестик), переключение crossfade без пересборки DOM */
-#filter-toggle-btn { position: relative; }
-#filter-toggle-btn .fi-sliders, #filter-toggle-btn .fi-xmark { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; transition: opacity 0.18s ease, transform 0.22s ease; }
+/* Кнопка фильтра = два слоя иконок (ползунки/крестик): крестик проявляется ТОГДА ЖЕ, когда
+   панель доезжает до места — оба перехода используют один и тот же класс .open. */
+#filter-toggle-btn { position: relative; flex-shrink: 0; }
+#filter-toggle-btn .fi-sliders, #filter-toggle-btn .fi-xmark { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; transition: opacity 0.2s ease 0.06s, transform 0.28s cubic-bezier(0.4, 0, 0.2, 1); }
 #filter-toggle-btn .fi-xmark { opacity: 0; transform: rotate(-90deg) scale(0.6); }
 .filter-line.open #filter-toggle-btn .fi-sliders { opacity: 0; transform: rotate(90deg) scale(0.6); }
 .filter-line.open #filter-toggle-btn .fi-xmark { opacity: 1; transform: rotate(0) scale(1); }
 
-.filter-toggle-btn { width: 36px; height: 36px; border-radius: 10px; background: var(--accent-bg); border: 1px solid rgba(59, 130, 246, 0.25); display: flex; align-items: center; justify-content: center; color: var(--accent); transition: all 0.2s ease; flex-shrink: 0; }
+.filter-toggle-btn { width: 36px; height: 36px; border-radius: 10px; background: var(--accent-bg); border: 1px solid rgba(59, 130, 246, 0.25); display: flex; align-items: center; justify-content: center; color: var(--accent); transition: background 0.2s ease; flex-shrink: 0; }
 .filter-toggle-btn:active { transform: scale(0.92); background: rgba(59, 130, 246, 0.2); }
 .filter-toggle-btn.active { background: rgba(59, 130, 246, 0.25); }
 .period-filter { display: flex; gap: 6px; background: var(--card-bg); border: 1px solid var(--card-border); padding: 4px; border-radius: 12px; }
