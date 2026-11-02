@@ -54,9 +54,9 @@ function renderAchievementsHTML() {
     // Стиль «Рекордов»: иконка слева (как в Истории — FA в цветной подложке), справа вверху значение, внизу подпись.
     const achievements = [
         { icon: 'fa-weight-hanging', color: 'gold',   v: maxWeight + ' кг', l: 'макс. вес · ' + fmtDate(maxWeightEntry) },
-        { icon: 'fa-dumbbell', color: 'blue',   v: Math.round(max1RM) + ' кг', l: 'расчётный 1ПМ · ' + fmtDate(max1RMEntry) },
-        { icon: 'fa-scale-balanced', color: 'green',  v: (Math.round(avgWeight * 10) / 10) + ' кг', l: 'средний вес · ' + history.length + ' подх.' },
-        { icon: 'fa-boxes-stacked', color: 'purple', v: totalVolume >= 1000 ? (totalVolume / 1000).toFixed(1) + ' т' : totalVolume + ' кг', l: exType === 'bodyweight' ? 'объём доп. веса · всего' : 'общий объём · всего' }
+        { icon: 'fa-dumbbell', color: 'blue',   v: Math.round(max1RM) + ' кг', l: 'расчётный 1ПМ' },
+        { icon: 'fa-scale-balanced', color: 'green',  v: (Math.round(avgWeight * 10) / 10) + ' кг', l: 'средний вес' },
+        { icon: 'fa-boxes-stacked', color: 'purple', v: totalVolume >= 1000 ? (totalVolume / 1000).toFixed(1) + ' т' : totalVolume + ' кг', l: exType === 'bodyweight' ? 'объём доп. веса' : 'общий объём' }
     ];
     return '<div class="mb-4 card-enter"><div class="section-label">Рекорды · за всё время</div><div class="summary-grid" style="grid-template-columns: repeat(2, 1fr);">' + achievements.map(function (a) { return '<div class="achievement-card stat-metric-row ' + a.color + '"><div class="hist-stat-icon"><i class="fa-solid ' + a.icon + '"></i></div><div class="min-w-0 flex-1"><div class="v">' + escHtml(String(a.v)) + '</div><div class="l">' + escHtml(a.l) + '</div></div></div>'; }).join('') + '</div></div>';
 }
