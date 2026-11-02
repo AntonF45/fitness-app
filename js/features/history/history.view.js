@@ -68,7 +68,7 @@ function renderHistory() {
             var innerHTML = '<span class="hist-cal-day">' + day + '</span>' + (has ? '<span class="hist-cal-dot"></span>' : '');
             // Клик по дню с тренировкой -> подробности тренировки; при нескольких записях — самая свежая
             if (clickable) {
-                var targetEntry = dayEntries[0];
+                var targetEntry = dayEntries.slice().sort(function (a, b) { return new Date(b.date) - new Date(a.date); })[0];
                 var calLabel = dayEntries.length === 1 ? 'Открыть тренировку «' + targetEntry.programName + '»' : 'Тренировок в этот день: ' + dayEntries.length + ' — открыть последнюю';
                 innerHTML = '<button type="button" class="hist-cal-cell-btn" data-action="history-detail" data-payload="' + escAttr(targetEntry.id) + '" aria-label="' + escAttr(calLabel) + '">' + innerHTML + (dayEntries.length > 1 ? '<span class="hist-cal-count">' + dayEntries.length + '</span>' : '') + '</button>';
             }
@@ -113,8 +113,12 @@ function renderHistoryDetail(entryId) {
     var dcolor = programColor(entry.programName);
     var topGroupsD = entryTopGroups(entry).slice(0, 4);
     var groupsChipsHTML = topGroupsD.length ? '<div class="hist-detail-groups">' + topGroupsD.map(function (g) { var gc = muscleGroupColor(g.name); return '<span class="hist-mg-badge' + (gc ? ' ' + gc : '') + '">' + escHtml(g.name) + ' <b>×' + g.count + '</b></span>'; }).join('') + '</div>' : '';
+    // Если в тот же день есть другие тренировки — кнопки < > для переключения между ними
+    var daySiblings = DataAPI.getHistory().filter(function (e) { var a = new Date(e.date), b = new Date(entry.date); return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate(); }).sort(function (a, b) { return new Date(b.date) - new Date(a.date); });
+    var pos = daySiblings.findIndex(function (e) { return e.id === entry.id; });
+    var navCounter = daySiblings.length > 1 ? '<span class="hist-detail-nav"><button type="button" class="hist-detail-nav-btn' + (pos <= 0 ? ' off' : '') + '" data-action="history-detail-prev"' + (pos <= 0 ? ' disabled' : '') + ' aria-label="Предыдущая тренировка в этот день"><i class="fa-solid fa-chevron-left"></i></button><span class="hist-detail-nav-count">' + (pos + 1) + '/' + daySiblings.length + '</span><button type="button" class="hist-detail-nav-btn' + (pos >= daySiblings.length - 1 ? ' off' : '') + '" data-action="history-detail-next"' + (pos >= daySiblings.length - 1 ? ' disabled' : '') + ' aria-label="Следующая тренировка в этот день"><i class="fa-solid fa-chevron-right"></i></button></span>' : '';
     var headHTML = '<div class="hist-detail-head card-enter ' + dcolor + '">' +
-        '<h2 class="hist-detail-title">' + escHtml(entry.programName) + '</h2>' +
+        '<div class="flex items-start justify-between gap-2"><h2 class="hist-detail-title min-w-0">' + escHtml(entry.programName) + '</h2>' + navCounter + '</div>' +
         '<p class="hist-detail-date"><i class="fa-regular fa-calendar mr-1"></i>' + date + '</p>' +
         groupsChipsHTML +
         '<div class="hist-detail-stats">' +
@@ -124,4 +128,18 @@ function renderHistoryDetail(entryId) {
         '<div class="hist-detail-stat"><div class="v orange"><i class="fa-solid fa-weight-hanging"></i> ' + (dst.tonnage / 1000).toFixed(1) + ' т</div><div class="l">объём</div></div>' +
         '</div></div>';
     document.getElementById('app-content').innerHTML = headHTML + exHTML;
+    window._histDetailEntryId = entry.id;
+}
+
+// Переключение между тренировками одного дня (dir = -1 новее / +1 старее)
+function histDetailSibling(dir) {
+    var cur = DataAPI.getHistoryEntryById(window._histDetailEntryId);
+    if (!cur) return;
+    var a0 = new Date(cur.date);
+    var daySiblings = DataAPI.getHistory().filter(function (e) { var a = new Date(e.date); return a.getFullYear() === a0.getFullYear() && a.getMonth() === a0.getMonth() && a.getDate() === a0.getDate(); }).sort(function (x, y) { return new Date(y.date) - new Date(x.date); });
+    var pos = daySiblings.findIndex(function (e) { return e.id === cur.id; });
+    var next = daySiblings[pos + dir];
+    if (!next) return;
+    haptic('light');
+    navigate('history_detail', { entryId: next.id });
 }

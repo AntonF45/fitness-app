@@ -50,6 +50,8 @@ document.addEventListener('click', function (event) {
             case 'reset-data': { const m = document.getElementById('data-menu-modal'); if (m) m.remove(); resetAllData(); break; }
             case 'close-modal': { const m = document.getElementById(target.dataset.modal); if (m) m.remove(); break; }
             case 'history-detail': navigate('history_detail', { entryId: payload }); break;
+            case 'history-detail-prev': histDetailSibling(-1); break;
+            case 'history-detail-next': histDetailSibling(1); break;
             case 'hist-cal-prev': histCalShift(-1); break;
             case 'hist-cal-next': histCalShift(1); break;
             case 'hist-cal-today': window._histCalMonth = null; renderHistory(); haptic('light'); break;
