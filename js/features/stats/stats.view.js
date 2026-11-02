@@ -42,11 +42,19 @@ function renderMuscleGroupSetsChartHTML(filteredHistory) {
         const old = Chart.getChart(ctx); if (old) old.destroy();
         try {
             // Снимок сохраняем только ПОСЛЕ завершения анимации — иначе кэш покажет пустой/промежуточный кадр.
-            const saveSnapshot = function () {
+            let saveSnapshot = function () {};
+            // Анимация построения включена (по умолчанию): столбики «вырастают» при реальной смене данных.
+            const chart = new Chart(ctx, { type: 'bar', data: { labels: labels, datasets: [{ label: 'Подходы', data: values, backgroundColor: 'rgba(59, 130, 246, 0.5)', borderColor: 'rgba(59, 130, 246, 0.8)', borderWidth: 1, borderRadius: 4 }] }, options: { responsive: true, maintainAspectRatio: false, animation: { onComplete: function () { saveSnapshot(); } }, plugins: { legend: { display: false }, tooltip: { enabled: false } }, scales: { y: { beginAtZero: true, ticks: { color: '#8e8e93', font: { size: 10 } }, grid: { color: 'rgba(142, 142, 147, 0.1)' } }, x: { ticks: { color: '#8e8e93', font: { size: 10 } }, grid: { display: false } } } } });
+            /* Снимок графика нужен ТОЛЬКО когда он не виден (иначе анимация не завершится и onComplete
+           не вызовется). Если пользователь навёл палец/курсор — снимок НЕ сохраняем: иначе в кэш
+           попадёт кадр с всплывающей подсказкой (tooltip), который потом «зависает» на экране. */
+            saveSnapshot = function () {
+                if (!chart.canvas || !document.body.contains(chart.canvas)) return;
+                const act = chart.getActiveElements ? chart.getActiveElements() : [];
+                if (act && act.length) return; // есть активный hover-элемент — не кэшируем этот кадр
                 try { _mgChartCache.img = chart.toBase64Image('image/png', 1); _mgChartCache.sig = sig; } catch (e) { /* снимок недоступен — в следующий раз нарисуем заново */ }
             };
-            // Анимация построения включена (по умолчанию): столбики «вырастают» при реальной смене данных.
-            const chart = new Chart(ctx, { type: 'bar', data: { labels: labels, datasets: [{ label: 'Подходы', data: values, backgroundColor: 'rgba(59, 130, 246, 0.5)', borderColor: 'rgba(59, 130, 246, 0.8)', borderWidth: 1, borderRadius: 4 }] }, options: { responsive: true, maintainAspectRatio: false, animation: { onComplete: saveSnapshot }, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, ticks: { color: '#8e8e93', font: { size: 10 } }, grid: { color: 'rgba(142, 142, 147, 0.1)' } }, x: { ticks: { color: '#8e8e93', font: { size: 10 } }, grid: { display: false } } } } });
+            setTimeout(saveSnapshot, 1200);
         } catch (err) { console.error('Chart init failed', err); }
     }, 100);
     return '<div class="chart-card rounded-2xl p-4 mb-3 card-enter"><div class="section-label">Подходы по группам мышц</div><div class="chart-container-fixed" style="height: 200px;"><div class="chart-wrapper-fixed"><canvas id="' + canvasId + '"></canvas></div></div></div>';

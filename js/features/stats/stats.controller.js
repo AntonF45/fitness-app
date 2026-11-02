@@ -10,7 +10,9 @@ function renderStats() {
     const muscleGroupsHTML = muscleGroups.map(function (g) { return '<button data-action="select-muscle-group" data-payload="' + escAttr(g) + '" role="tab" aria-selected="' + (state.selectedMuscleGroup === g) + '" class="stat-chip snap-center px-3 py-2 rounded-xl text-xs font-medium ' + (state.selectedMuscleGroup === g ? 'active' : 'inactive') + '">' + escHtml(g) + '</button>'; }).join('');
     const filteredExercises = exercises.filter(function (ex) { return ex.muscleGroup === state.selectedMuscleGroup; });
     const exercisesHTML = filteredExercises.length ? filteredExercises.map(function (ex) { return '<button data-action="select-exercise" data-payload="' + escAttr(ex.name) + '" role="tab" aria-selected="' + (state.selectedExercise === ex.name) + '" class="stat-chip snap-center px-3 py-2 rounded-xl text-xs font-medium ' + (state.selectedExercise === ex.name ? 'active' : 'inactive') + '">' + escHtml(ex.name) + '</button>'; }).join('') : '<div class="empty-state-block"><i class="fa-solid fa-dumbbell"></i><div class="title">Нет упражнений</div><div class="desc">В группе «' + escHtml(state.selectedMuscleGroup) + '» пока нет упражнений.</div></div>';
-    const monthsHTML = getAvailableMonthsForExercise(state.selectedExercise).map(function (m) { return '<button data-action="select-month" data-payload="' + escAttr(m.key) + '" class="period-btn ' + (state.selectedMonthKey === m.key ? 'active' : '') + '">' + escHtml(m.label) + '</button>'; }).join('');
+    /* Список месяцев строим от ВСЕЙ истории, а не от выбранного упражнения: иначе при выборе
+       упражнения без тренировок в выбранном месяце кнопка месяца исчезала и фильтр сбрасывался. */
+    const monthsHTML = getAvailableMonthsForHistory().map(function (m) { return '<button data-action="select-month" data-payload="' + escAttr(m.key) + '" class="period-btn ' + (state.selectedMonthKey === m.key ? 'active' : '') + '">' + escHtml(m.label) + '</button>'; }).join('');
 
     document.getElementById('app-content').innerHTML =
         '<div class="stats-header bg-tgBg/95 backdrop-blur-md card-enter">' +
@@ -47,6 +49,8 @@ function renderStats() {
 function toggleFilterPanel() { const slider = document.getElementById('chart-top-slider'); const bar = document.getElementById('chart-top-bar'); const btn = document.getElementById('filter-toggle-btn'); if (!slider || !bar) return; slider.classList.toggle('show-filter'); bar.classList.toggle('expanded'); if (btn) btn.classList.toggle('active'); haptic('light'); }
 function selectMonthFilter(monthKey) { state.selectedMonthKey = state.selectedMonthKey === monthKey ? null : monthKey; if (state.selectedMonthKey) state.selectedPeriod = 'month'; haptic('light'); renderStats(); }
 function selectPeriod(period) { state.selectedPeriod = period; state.selectedMonthKey = null; haptic('light'); renderStats(); }
-function selectMuscleGroup(group) { state.selectedMuscleGroup = group; state.selectedExercise = null; state.selectedMonthKey = null; haptic('light'); renderStats(); }
-function selectExercise(name) { state.selectedExercise = state.selectedExercise === name ? null : name; state.selectedMonthKey = null; state.selectedExerciseMetric = 'weight'; haptic('light'); renderStats(); }
+/* Выбор группы/упражнения НЕ сбрасывает фильтр периода (месяц, напр. «сентябрь»):
+   раньше здесь обнулялся selectedMonthKey и активным оставался период «30 дней». */
+function selectMuscleGroup(group) { state.selectedMuscleGroup = group; state.selectedExercise = null; haptic('light'); renderStats(); }
+function selectExercise(name) { state.selectedExercise = state.selectedExercise === name ? null : name; state.selectedExerciseMetric = 'weight'; haptic('light'); renderStats(); }
 function selectExerciseMetric(metric) { if (['weight','volume','1rm'].indexOf(metric) === -1) return; state.selectedExerciseMetric = metric; haptic('light'); renderStats(); }
