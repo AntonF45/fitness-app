@@ -222,23 +222,35 @@ body.keyboard-open .sticky-bottom-action { display: none !important; }
    а внутри группы дроп-сетов — от её оранжевой заливки. */
 .set-line-inner { position: relative; z-index: 1; background: transparent; border-radius: 12px; padding: 6px 6px; }
 .set-line-main { display: flex; align-items: stretch; gap: 4px; }
+/* На узких экранах (≤380px) экономим горизонталь под увеличенные кнопки −/+ :
+   плотнее отступы строки и уже номер/крестик — «100,5» помещается даже в суперсете. */
+@media (max-width: 380px) {
+    .set-line-inner { padding: 6px 2px; }
+    .set-line-main { gap: 2px; }
+    .app-card { padding-left: 8px; padding-right: 8px; }
+    #app-content { padding-left: 10px; padding-right: 10px; }
+    /* На самых узких экранах (например iPhone SE 320px) строки в суперсете
+       дополнительно уплотняем — иначе «100,5» не влезает между кнопками −/+. */
+    .drop-group { padding: 6px 4px; border-left-width: 3px; }
+}
 /* Удаление строки подхода: схлопывание высоты (значения задаёт JS inline-стилями). */
 .set-line.set-collapsing { padding-top: 0; padding-bottom: 0; overflow: hidden; pointer-events: none; transition: max-height .22s ease-out, margin-bottom .22s ease-out, opacity .18s ease-out, padding .22s ease-out; }
 /* Порядковый номер подхода — часть единого блока строки (по центру высоты). */
-.set-num { width: 14px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; line-height: 1; color: var(--tg-theme-hint-color, #8e8e93); }
+.set-num { width: 12px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; line-height: 1; color: var(--tg-theme-hint-color, #8e8e93); }
 /* Группа «− [поле+подпись] +» — одна линия; кнопки −/+ во всю высоту блока (поле + подпись). */
-.set-field { display: flex; flex-direction: row; flex-wrap: nowrap; align-items: stretch; gap: 1px; flex: 1 1 0%; min-width: 0; }
-.set-field .step-btn { flex: 0 0 auto; width: 24px; height: auto; align-self: stretch; font-size: 16px; line-height: 1; }
+.set-field { display: flex; flex-direction: row; flex-wrap: nowrap; align-items: stretch; gap: 2px; flex: 1 1 0%; min-width: 0; }
+/* Кнопки «−»/«+» шире (30px) — крупнее зона тапа; поле с запасом вмещает «100,5». */
+.set-field .step-btn { flex: 0 0 auto; width: 30px; height: auto; align-self: stretch; font-size: 18px; line-height: 1; }
 /* Кнопки «−»/«+»: без заливки — прозрачные (фон блока подхода наследуется), граница как у карточки упражнения. */
 .set-line .step-btn { background: transparent; border: 1px solid var(--card-border); color: var(--tg-theme-text-color, #ffffff); border-radius: 9px; }
 .set-line .step-btn:active { opacity: .7; transform: scale(.92); }
 /* Поле ввода: значение по центру; подпись единицы — отдельной строкой снизу. */
-.set-field input { width: 100%; min-width: 0; padding-left: 1px; padding-right: 1px; font-size: 17px; line-height: 34px; height: 34px; text-align: center; }
+.set-field input { width: 100%; min-width: 0; padding-left: 1px; padding-right: 1px; font-size: 19px; line-height: 32px; height: 32px; text-align: center; }
 .set-input-col { position: relative; flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; align-items: center; }
 .unit-suffix {
     display: block;
     margin-top: 1px;
-    font-size: 10px; font-weight: 600; line-height: 1;
+    font-size: 9px; font-weight: 600; line-height: 1;
     color: var(--tg-theme-hint-color, #8e8e93);
     pointer-events: none;
 }
@@ -251,7 +263,7 @@ body.keyboard-open .sticky-bottom-action { display: none !important; }
 .set-progress-badge.done { color: #4ade80; background: rgba(34, 197, 94, 0.15); }
 .set-progress-badge.pending { color: var(--tg-theme-hint-color, #8e8e93); }
 /* Крестик удаления подхода — в конце строки, вертикально по центру. */
-.set-del-btn { flex: 0 0 auto; width: 26px; display: flex; align-items: center; justify-content: center; background: transparent; border: none; color: var(--danger); font-size: 13px; opacity: .7; padding: 0; cursor: pointer; -webkit-tap-highlight-color: transparent; touch-action: manipulation; transition: opacity .15s ease, transform .1s ease; }
+.set-del-btn { flex: 0 0 auto; width: 24px; display: flex; align-items: center; justify-content: center; background: transparent; border: none; color: var(--danger); font-size: 13px; opacity: .7; padding: 0; cursor: pointer; -webkit-tap-highlight-color: transparent; touch-action: manipulation; transition: opacity .15s ease, transform .1s ease; }
 .set-del-btn:active { opacity: 1; transform: scale(.88); }
 .exercise-header { user-select: none; -webkit-user-select: none; }
 /* Кнопка «⋮» — меню упражнения: без границы, заливка в цвет карточки. */
