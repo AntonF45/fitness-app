@@ -17,6 +17,9 @@ function formatDuration(sec) { var m = Math.round((Number(sec) || 0) / 60); if (
 function relativeDayLabel(dateStr) { var d = new Date(dateStr); var today = new Date(); var yest = new Date(); yest.setDate(today.getDate() - 1); var sameDay = function (a, b) { return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate(); }; if (sameDay(d, today)) return 'Сегодня'; if (sameDay(d, yest)) return 'Вчера'; return d.toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', weekday: 'short' }); }
 function entryStats(entry) { var tonnage = 0, sets = 0, reps = 0, exCount = (entry.exercises || []).length; (entry.exercises || []).forEach(function (ex) { (ex.sets || []).forEach(function (s) { var w = Number(s.weight) || 0, r = Number(s.reps) || 0; if (w > 0 && r > 0) { tonnage += w * r; sets++; reps += r; } }); }); return { tonnage: tonnage, sets: sets, reps: reps, exCount: exCount }; }
 
+// Заголовок месяца в календаре: «ноябрь 2026 г.» — буква «г» строчная, с узким неразрывным пробелом
+function formatCalMonthYear(d) { return d.toLocaleDateString('ru-RU', { month: 'long' }) + ' ' + d.getFullYear() + '\u202F\u0433.'; }
+
 // Переключение месяца в календаре истории (dir = -1 / +1)
 function histCalShift(dir) {
     var base = window._histCalMonth;
@@ -30,16 +33,17 @@ function histCalShift(dir) {
 
 function renderHistory() {
     const history = DataAPI.getHistory().sort(function (a, b) { return new Date(b.date) - new Date(a.date); });
-    // Сводка: тренировки, суммарный объём, средний объём, серия дней подряд
+    // Сводка: тренировки, суммарный объём, средняя длительность, регулярность (раз в N дней)
     var totalTonnage = 0, totalDuration = 0;
     history.forEach(function (e) { totalTonnage += entryStats(e).tonnage; totalDuration += Number(e.duration) || 0; });
-    var streak = 0;
-    (function () { var byDay = {}; history.forEach(function (e) { var d = new Date(e.date); byDay[d.getFullYear() + '-' + d.getMonth() + '-' + d.getDate()] = true; }); var cur = new Date(); if (!byDay[cur.getFullYear() + '-' + cur.getMonth() + '-' + cur.getDate()]) { cur.setDate(cur.getDate() - 1); } while (byDay[cur.getFullYear() + '-' + cur.getMonth() + '-' + cur.getDate()]) { streak++; cur.setDate(cur.getDate() - 1); } })();
+    // Регулярность: в среднем раз в сколько дней проходят тренировки — честнее, чем «дни подряд»
+    var avgGap = 0;
+    (function () { var daySet = {}; history.forEach(function (e) { var d = new Date(e.date); if (!isNaN(d)) daySet[d.getFullYear() + '-' + d.getMonth() + '-' + d.getDate()] = new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime(); }); var todayMid = new Date(); todayMid.setHours(0, 0, 0, 0); var uniq = Object.keys(daySet).map(function (k) { return daySet[k]; }).filter(function (t) { return t <= todayMid.getTime(); }).sort(function (a, b) { return a - b; }); if (uniq.length > 1) { var span = (uniq[uniq.length - 1] - uniq[0]) / 86400000; avgGap = Math.max(1, Math.round(span / (uniq.length - 1))); } })();
     var summaryHTML = history.length ? '<div class="hist-summary card-enter">' +
         '<div class="hist-stat blue"><div class="hist-stat-icon"><i class="fa-solid fa-calendar-check"></i></div><div class="hist-stat-value">' + history.length + '</div><div class="hist-stat-label">' + declension(history.length, ['тренировка', 'тренировки', 'тренировок']) + '</div></div>' +
         '<div class="hist-stat purple"><div class="hist-stat-icon"><i class="fa-solid fa-boxes-stacked"></i></div><div class="hist-stat-value">' + (totalTonnage / 1000).toFixed(1) + '<span class="hist-stat-unit">т</span></div><div class="hist-stat-label">общий объём</div></div>' +
         '<div class="hist-stat cyan"><div class="hist-stat-icon"><i class="fa-regular fa-stopwatch"></i></div><div class="hist-stat-value">' + Math.round(totalDuration / 60 / history.length) + '<span class="hist-stat-unit">мин</span></div><div class="hist-stat-label">средняя</div></div>' +
-        '<div class="hist-stat orange"><div class="hist-stat-icon"><i class="fa-solid fa-fire"></i></div><div class="hist-stat-value">' + streak + '</div><div class="hist-stat-label">' + (streak === 1 ? 'день подряд' : streak >= 2 && streak <= 4 ? 'дня подряд' : 'дней подряд') + '</div></div>' +
+        '<div class="hist-stat green"><div class="hist-stat-icon"><i class="fa-solid fa-arrows-left-right"></i></div><div class="hist-stat-value">' + (avgGap ? 'раз в ' + avgGap : '—') + '</div><div class="hist-stat-label">' + (avgGap ? declension(avgGap, ['день', 'дня', 'дней']) + ' между тренировками' : 'нет данных') + '</div></div>' +
         '</div>' : '';
     // Календарь тренировок: месячная сетка с точками в дни с тренировками
     var histCalMonth = window._histCalMonth;
@@ -81,7 +85,7 @@ function renderHistory() {
         calendarHTML = '<div class="hist-cal-card card-enter">' +
             '<div class="hist-cal-head">' +
             '<button type="button" class="hist-cal-nav' + (prevDisabled ? ' off' : '') + '" data-action="hist-cal-prev"' + (prevDisabled ? ' disabled' : '') + '><i class="fa-solid fa-chevron-left"></i></button>' +
-            '<div class="hist-cal-title"><i class="fa-regular fa-calendar"></i> ' + cur.toLocaleDateString('ru-RU', { month: 'long', year: 'numeric' }) + '</div>' +
+            '<div class="hist-cal-title"><i class="fa-regular fa-calendar"></i> ' + formatCalMonthYear(cur) + '</div>' +
             '<button type="button" class="hist-cal-nav' + (nextDisabled ? ' off' : '') + '" data-action="hist-cal-next"' + (nextDisabled ? ' disabled' : '') + '><i class="fa-solid fa-chevron-right"></i></button>' +
             '</div>' +
             '<div class="hist-cal-weekdays">' + WD_MIN.map(function (w) { return '<span>' + w + '</span>'; }).join('') + '</div>' +
@@ -126,9 +130,24 @@ function renderHistoryDetail(entryId) {
         '<div class="hist-detail-stat"><div class="v green"><i class="fa-solid fa-layer-group"></i> ' + dst.sets + '</div><div class="l">подходов</div></div>' +
         '<div class="hist-detail-stat"><div class="v purple"><i class="fa-solid fa-repeat"></i> ' + dst.reps + '</div><div class="l">повторов</div></div>' +
         '<div class="hist-detail-stat"><div class="v orange"><i class="fa-solid fa-weight-hanging"></i> ' + (dst.tonnage / 1000).toFixed(1) + ' т</div><div class="l">объём</div></div>' +
-        '</div></div>';
+        '</div>' +
+        '<button type="button" class="hist-detail-delete" data-action="history-delete-entry" data-payload="' + escAttr(entry.id) + '" aria-label="Удалить тренировку из истории"><i class="fa-regular fa-trash-can"></i> Удалить тренировку</button>' +
+        '</div>';
     document.getElementById('app-content').innerHTML = headHTML + exHTML;
     window._histDetailEntryId = entry.id;
+}
+
+// Удаление тренировки из истории (с подтверждением)
+function deleteHistoryEntry(entryId) {
+    var entry = DataAPI.getHistoryEntryById(entryId);
+    if (!entry) return;
+    showConfirm('Удалить тренировку «' + entry.programName + '» из истории?', function (ok) {
+        if (!ok) return;
+        DataAPI.saveHistory(DataAPI.getHistory().filter(function (e) { return e.id !== entryId; }));
+        haptic('warning');
+        window._histDetailEntryId = null;
+        navigate('history');
+    });
 }
 
 // Переключение между тренировками одного дня (dir = -1 новее / +1 старее)
