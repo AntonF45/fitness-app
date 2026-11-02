@@ -21,16 +21,19 @@ function renderStats() {
                 '<div id="months-scroll" class="flex-1 overflow-x-auto scroll-container flex gap-1.5">' + monthsHTML + '</div>' +
                 '<button id="filter-toggle-btn" data-action="toggle-filter" class="filter-toggle-btn shrink-0" aria-label="Фильтр периода"><i class="fa-solid fa-sliders"></i></button>' +
             '</div>' +
+            /* Панель фильтров: ОДИН статичный крестик справа + слайдер с периодами слева.
+               При открытии крестик остаётся на месте, а кнопки периодов плавно выезжают
+               со стороны левого края — без «крестика впереди» и без двойной перерисовки. */
             '<div id="chart-top-bar" class="chart-top-bar">' +
                 '<div id="chart-top-slider" class="chart-top-slider">' +
-                    '<div class="flex items-center justify-end gap-2 pr-1"><button data-action="toggle-filter" class="filter-toggle-btn" aria-label="Закрыть фильтр"><i class="fa-solid fa-xmark"></i></button></div>' +
-                    '<div class="flex items-center pl-1"><div class="period-filter flex-1">' +
+                    '<div class="period-filter flex-1">' +
                         '<button data-action="select-period" data-payload="week" class="period-btn ' + (state.selectedPeriod === 'week' && !state.selectedMonthKey ? 'active' : '') + '">7 дней</button>' +
                         '<button data-action="select-period" data-payload="month" class="period-btn ' + (state.selectedPeriod === 'month' && !state.selectedMonthKey ? 'active' : '') + '">30 дней</button>' +
                         '<button data-action="select-period" data-payload="quarter" class="period-btn ' + (state.selectedPeriod === 'quarter' && !state.selectedMonthKey ? 'active' : '') + '">90 дней</button>' +
                         '<button data-action="select-period" data-payload="all" class="period-btn ' + (state.selectedPeriod === 'all' && !state.selectedMonthKey ? 'active' : '') + '">Всё</button>' +
-                    '</div><button data-action="toggle-filter" class="filter-toggle-btn ml-2" aria-label="Закрыть фильтр"><i class="fa-solid fa-xmark"></i></button></div>' +
+                    '</div>' +
                 '</div>' +
+                '<button data-action="toggle-filter" class="filter-toggle-btn chart-close-btn" aria-label="Закрыть фильтр"><i class="fa-solid fa-xmark"></i></button>' +
             '</div>' +
         '</div>' +
         '<div class="pt-4">' +
