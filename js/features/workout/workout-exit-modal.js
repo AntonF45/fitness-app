@@ -1,14 +1,19 @@
-/* features/workout/workout-exit-modal.js — модалка выхода из тренировки:
-   сохранить в историю / не сохранять / отмена. */
+/* features/workout/workout-exit-modal.js — модалка завершения/выхода из тренировки.
+   promptWorkoutExit(target): без аргумента — окно по кнопке «Завершить тренировку»
+   (без надписи и без кнопки «Не сохранять»); с target (переход/кнопка «Назад») —
+   полное окно выхода с сохранением/удалением. */
 'use strict';
 
 let workoutDialogOpen = false;
-function promptWorkoutExit() {
+function promptWorkoutExit(target) {
     if (workoutDialogOpen) return;
     workoutDialogOpen = true; clearMainButton();
+    const isFinish = !target;
     const existing = document.getElementById('workout-exit-modal'); if (existing) existing.remove();
     const modal = document.createElement('div'); modal.id = 'workout-exit-modal'; modal.className = 'modal-backdrop';
-    modal.innerHTML = '<div class="modal-sheet"><div class="w-10 h-1 bg-tgHint/40 rounded-full mx-auto mb-5"></div><h2 class="text-xl font-bold text-center mb-2">Завершить тренировку?</h2><p class="text-tgHint text-sm text-center mb-5">Что сделать с текущей тренировкой?</p><div class="space-y-3"><button data-action="workout-save" class="btn btn-primary"><i class="fa-solid fa-check mr-2"></i> Завершить и сохранить</button><button data-action="workout-discard" class="btn btn-danger"><i class="fa-solid fa-trash mr-2"></i> Не сохранять</button><button data-action="workout-cancel" class="btn btn-secondary">Отмена</button></div></div>';
+    const subtitleHTML = isFinish ? '' : '<p class="text-tgHint text-sm text-center mb-5">Тренировка ещё не завершена.</p>';
+    const discardHTML = isFinish ? '' : '<button data-action="workout-discard" class="btn btn-danger"><i class="fa-solid fa-trash mr-2"></i> Не сохранять</button>';
+    modal.innerHTML = '<div class="modal-sheet"><div class="w-10 h-1 bg-tgHint/40 rounded-full mx-auto mb-5"></div><h2 class="text-xl font-bold text-center mb-2">Завершить тренировку?</h2>' + subtitleHTML + '<div class="space-y-3"><button data-action="workout-save" class="btn btn-primary"><i class="fa-solid fa-check mr-2"></i> Завершить и сохранить</button>' + discardHTML + '<button data-action="workout-cancel" class="btn btn-secondary">Отмена</button></div></div>';
     document.body.appendChild(modal);
     modal.addEventListener('click', function (e) { if (e.target === modal) { workoutDialogOpen = false; modal.remove(); } });
 }
