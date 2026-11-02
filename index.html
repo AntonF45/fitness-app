@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="ru" class="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<title>Fitnary</title>
+
+<!-- Внешние зависимости (CDN) -->
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+<!-- Конфигурация Tailwind: дизайн-токены темы Telegram -->
+<script>
+tailwind.config = { darkMode: 'class', theme: { extend: { colors: { tgBg: 'var(--tg-theme-bg-color, #1c1c1e)', tgText: 'var(--tg-theme-text-color, #ffffff)', tgHint: 'var(--tg-theme-hint-color, #8e8e93)', tgLink: 'var(--tg-theme-link-color, #3b82f6)', tgButton: 'var(--tg-theme-button-color, #3b82f6)', tgSecondaryBg: 'var(--tg-theme-secondary-bg-color, #2c2c2e)' } } } };
+</script>
+
+<!-- Стили приложения -->
+<link rel="stylesheet" href="css/styles.css?v=48">
+
+<script>
+/* Диагностика: если скрипты приложения не выполнились (часть файлов не загружена),
+   покажем понятное сообщение вместо пустого экрана */
+setTimeout(function () {
+    var m = document.getElementById('app-content');
+    if (m && !m.innerHTML.trim()) {
+        m.innerHTML = '<div style="padding:16px;color:#f87171;font-size:14px;line-height:1.5">Скрипты приложения не выполнились до конца.<br>Проверьте, что папки css/ и js/ лежат рядом с index.html.<br>Откройте консоль браузера (F12) для деталей ошибки.</div>';
+    }
+}, 3000);
+</script>
+</head>
+<body class="min-h-screen">
+<main id="app-content" class="px-4 pt-4"></main>
+<nav id="bottom-nav" class="fixed bottom-0 left-0 right-0 bg-tgBg border-t border-tgSecondaryBg flex justify-around z-20 transition-all duration-200" style="padding-bottom: max(12px, var(--safe-bottom));">
+<button data-action="switch-tab" data-payload="stats" id="tab-stats" role="tab" aria-selected="false" class="flex flex-col items-center justify-center min-h-[56px] min-w-[64px] text-tgHint"><i class="fa-solid fa-chart-line text-xl mb-1"></i><span class="text-xs font-medium">Статистика</span></button>
+<button data-action="switch-tab" data-payload="programs" id="tab-programs" role="tab" aria-selected="true" class="flex flex-col items-center justify-center min-h-[56px] min-w-[64px] text-tgLink"><i class="fa-solid fa-list-check text-xl mb-1"></i><span class="text-xs font-medium">Программы</span></button>
+<button data-action="switch-tab" data-payload="history" id="tab-history" role="tab" aria-selected="false" class="flex flex-col items-center justify-center min-h-[56px] min-w-[64px] text-tgHint"><i class="fa-solid fa-clock-rotate-left text-xl mb-1"></i><span class="text-xs font-medium">История</span></button>
+</nav>
+
+<!-- ==================== JS: слои загружаются снизу вверх ==================== -->
+<!-- core: базовые утилиты и интеграция с Telegram -->
+<script src="js/core/utils.js"></script>
+<script src="js/core/telegram.js?v=2"></script>
+<!-- state: единый источник истины -->
+<script src="js/state/app-state.js"></script>
+<script src="js/state/active-workout-storage.js"></script>
+<script src="js/state/set-input-drafts.js?v=5"></script>
+<!-- services: данные и доменные вычисления -->
+<script src="js/services/data-api.js"></script>
+<script src="js/services/muscle-groups.js"></script>
+<script src="js/services/calculations.js?v=2"></script>
+<script src="js/services/data-management.js"></script>
+<!-- core: маршрутизация -->
+<script src="js/core/navigation.js"></script>
+<!-- features/programs -->
+<script src="js/features/programs/supersets.js"></script>
+<script src="js/features/programs/autocomplete.js?v=8"></script>
+<script src="js/features/programs/programs.view.js?v=2"></script>
+<script src="js/features/programs/program-edit.view.js"></script>
+<script src="js/features/programs/editor.controller.js"></script>
+<script src="js/features/programs/muscle-groups.controller.js"></script>
+<!-- features/stats -->
+<script src="js/features/stats/stats.view.js?v=10"></script>
+<script src="js/features/stats/stats.chart.js"></script>
+<script src="js/features/stats/stats.controller.js?v=9"></script>
+<!-- features/workout -->
+<script src="js/features/workout/workout.controller.js?v=14"></script>
+<script src="js/features/workout/add-exercise-modal.js"></script>
+<script src="js/features/workout/workout-exit-modal.js"></script>
+<script src="js/features/workout/set-note-modal.js?v=4"></script>
+<script src="js/features/workout/workout-context-menu.js?v=4"></script>
+<!-- features/history -->
+<script src="js/features/history/history.view.js?v=17"></script>
+<!-- ui: делегирование событий, клавиатура, safe area -->
+<script src="js/ui/long-press.js"></script>
+<script src="js/ui/event-delegation.js?v=11"></script>
+<script src="js/ui/keyboard.js"></script>
+<script src="js/ui/safe-area.js"></script>
+<!-- точка входа -->
+<script src="js/app.js"></script>
+</body>
+</html>

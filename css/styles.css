@@ -1,0 +1,392 @@
+:root {
+    --bottom-nav-height: 72px;
+    --safe-bottom: env(safe-area-inset-bottom, 0px);
+    --safe-top: env(safe-area-inset-top, 0px);
+    --extra-top: 0px; /* высота системной кнопки «Закрыть» в fullscreen */
+    --card-bg: rgba(59, 130, 246, 0.04);
+    --card-border: rgba(59, 130, 246, 0.12);
+    --card-radius: 16px;
+    --accent: var(--tg-theme-link-color, #3b82f6);
+    --accent-bg: rgba(59, 130, 246, 0.15);
+    --accent-border: rgba(59, 130, 246, 0.4);
+    --danger: #f87171;
+    --danger-bg: rgba(239, 68, 68, 0.12);
+    --danger-border: rgba(239, 68, 68, 0.3);
+    --warn: #fb923c;
+    --warn-bg: rgba(249, 115, 22, 0.12);
+    --warn-border: rgba(249, 115, 22, 0.3);
+    --inset-bg: rgba(59, 130, 246, 0.08);
+    --inset-border: rgba(59, 130, 246, 0.22);
+}
+body { background-color: var(--tg-theme-bg-color, #1c1c1e); color: var(--tg-theme-text-color, #ffffff); font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; -webkit-tap-highlight-color: transparent; padding-top: calc(var(--safe-top) + var(--extra-top)); padding-bottom: calc(var(--bottom-nav-height) + var(--safe-bottom) + 16px); }
+input, select { background: var(--inset-bg); color: var(--tg-theme-text-color, #ffffff); border: 1px solid var(--inset-border); border-radius: 12px; }
+.input-bare { background: transparent; border: none; border-radius: 8px; }
+.input-bare:focus { outline: none; }
+input[type=number]::-webkit-inner-spin-button, input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+input[type=number] { -moz-appearance: textfield; }
+.scroll-container { scrollbar-width: none; -ms-overflow-style: none; scroll-padding-left: 16px; scroll-padding-right: 16px; }
+.scroll-container::-webkit-scrollbar { display: none; }
+.snap-x { scroll-snap-type: x mandatory; }
+.snap-center { scroll-snap-align: center; }
+.stat-chip { background: var(--card-bg); border: 1px solid var(--card-border); transition: all 0.2s ease; min-width: 0; max-width: 180px; white-space: normal; text-align: left; line-height: 1.25; word-break: break-word; }
+.stat-chip:active { transform: scale(0.96); }
+.stat-chip.active { background: var(--accent-bg); border-color: var(--accent-border); color: #ffffff; }
+.stat-chip.inactive { color: var(--tg-theme-hint-color, #8e8e93); }
+.card-enter { animation: cardIn 0.2s ease-out both; }
+@keyframes cardIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+.chart-card { background: var(--card-bg); border: 1px solid var(--card-border); }
+.chart-container-fixed { height: 260px; position: relative; overflow: hidden; }
+.chart-wrapper-fixed { position: absolute; top: 0; left: 0; right: 0; bottom: 0; }
+
+.stats-header {
+    position: sticky;
+    top: calc(var(--safe-top) + var(--extra-top));
+    z-index: 10;
+    border-bottom: 1px solid rgba(142, 142, 147, 0.15);
+    margin-left: -16px;
+    margin-right: -16px;
+    padding: 12px 16px 16px;
+}
+.sticky.top-0 { top: calc(var(--safe-top) + var(--extra-top)) !important; }
+.sticky.top-2 { top: calc(var(--safe-top) + var(--extra-top) + 8px) !important; }
+.stats-title {
+    font-size: 20px;
+    font-weight: 800;
+    letter-spacing: -0.3px;
+    line-height: 1.2;
+    text-align: center;
+    color: var(--tg-theme-hint-color, #8e8e93);
+}
+.summary-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.summary-cell { background: var(--card-bg); border: 1px solid var(--card-border); border-radius: 14px; padding: 10px 8px; text-align: center; min-width: 0; }
+.summary-value { font-size: 18px; font-weight: 700; line-height: 1.2; }
+.summary-label { font-size: 9px; text-transform: uppercase; letter-spacing: 0.5px; color: var(--tg-theme-hint-color, #8e8e93); margin-top: 2px; line-height: 1.2; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+/* Фильтр периода в одну строку: [месяцы] [панель периодов] [кнопка фильтра/крестик].
+   При нажатии на кнопку панель «7 дней / 30 дней / 90 дней / Всё» выезжает СПРАВА НАЛЕВО
+   (translateX 100% → 0), а месяцы тем же сдвигом уходят за левый край экрана;
+   на месте кнопки фильтра крестик появляется синхронно (crossfade двух слоёв иконок).
+   Всё анимируется одним классом .open — никаких пересборок DOM и «опережающих» элементов. */
+.filter-line { position: relative; display: flex; align-items: center; gap: 8px; margin-top: 12px; overflow: hidden; }
+/* Месяцы занимают всю ширину строки (до кнопки) и уезжают влево при открытии панели.
+   pointer-events:none в открытом состоянии — пока панель уезжает назад, по месяцам
+   нельзя «промахнуться» тапом (они всё ещё видны во время анимации). */
+.months-track { flex: 1 1 auto; min-width: 0; display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; -ms-overflow-style: none; scroll-padding-left: 4px; padding-right: 2px; transition: transform 0.26s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.2s ease; }
+.months-track::-webkit-scrollbar { display: none; }
+.months-track > * { flex-shrink: 0; }
+.months-empty { font-size: 11px; color: var(--tg-theme-hint-color, #8e8e93); line-height: 36px; white-space: nowrap; padding-left: 2px; }
+/* Месяцы в свёрнутом состоянии въезжают СЛЕВА НАПРАВО (translateX(-100%) → 0).
+   pointer-events:none в открытом состоянии — месяцы уже невидимы, тапы по ним исключены. */
+.filter-line.open .months-track { transform: translateX(calc(-100% - 12px)); opacity: 0; pointer-events: none; }
+/* Панель периодов при открытии «РАСТЁТ ИЗ КНОПКИ ФИЛЬТРА»: transform-origin — правый
+   край (возле кнопки), scale.X 0 → 1 + лёгкое затухание — визуально панель выезжает
+   именно из-под кнопки фильтра влево, а не приходит со стороны экрана.
+   При закрытии панель НЕ уезжает — гаснет на месте (transition:none в .closing),
+   поэтому текст «7 дней / 30 дней…» не мелькает поверх кнопки даже долю секунды. */
+.periods-panel { position: absolute; left: 0; right: 44px; top: 50%; transform: translate(-10px, -50%) scaleX(0); transform-origin: 100% 50%; opacity: 0; visibility: hidden; z-index: 2; pointer-events: none; transition: transform 0.26s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.2s ease, visibility 0s linear 0.26s; }
+.filter-line.open .periods-panel { transform: translate(0, -50%) scaleX(1); opacity: 1; visibility: visible; pointer-events: auto; transition: transform 0.26s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.18s ease 0.04s, visibility 0s; }
+/* Подложка панели — фон ТОЧНО как у всего блока фильтров (.period-filter): та же
+   полупрозрачная карточка var(--card-bg) с той же тонкой рамкой var(--card-border).
+   Прежние варианты (тёмно-серый, var(--accent-bg)) не совпадали по оттенку — убраны. */
+.stats-header .periods-panel { background: var(--card-bg); border-color: var(--card-border); }
+/* Кнопка фильтра = два слоя иконок (ползунки/крестик). В ЗАКРЫТОМ состоянии crossfade
+   выключен (transition: none): при нажатии на крестик ползунок появляется мгновенно,
+   без «долгой перекраски». При открытии анимация остаётся плавной. */
+#filter-toggle-btn { position: relative; flex-shrink: 0; }
+#filter-toggle-btn .fi-sliders, #filter-toggle-btn .fi-xmark { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; }
+#filter-toggle-btn .fi-xmark { opacity: 0; transform: rotate(-90deg) scale(0.6); }
+.filter-line.open #filter-toggle-btn .fi-sliders { opacity: 0; transform: rotate(90deg) scale(0.6); }
+.filter-line.open #filter-toggle-btn .fi-xmark { opacity: 1; transform: rotate(0) scale(1); }
+.filter-line:not(.open) #filter-toggle-btn .fi-sliders,
+.filter-line:not(.open) #filter-toggle-btn .fi-xmark { transition: none; }
+.filter-line.open #filter-toggle-btn .fi-sliders,
+.filter-line.open #filter-toggle-btn .fi-xmark { transition: opacity 0.18s ease, transform 0.24s cubic-bezier(0.4, 0, 0.2, 1); }
+
+/* Панель периодов в закрытии (.closing ставит toggleFilterPanel): гаснет МГНОВЕННО —
+   opacity:0 и visibility:hidden без перехода, поэтому текст «7 дней / 30 дней…» не
+   просвечивает ни долю секунды поверх кнопки фильтра на уезде; pointer-events:none
+   перекрывает клики по кнопкам периодов до конца анимации. */
+.periods-panel.closing { opacity: 0 !important; visibility: hidden !important; pointer-events: none !important; transition: none !important; }
+
+.filter-toggle-btn { width: 36px; height: 36px; border-radius: 10px; background: var(--accent-bg); border: 1px solid rgba(59, 130, 246, 0.25); display: flex; align-items: center; justify-content: center; color: var(--accent); transition: background 0.2s ease; flex-shrink: 0; }
+.filter-toggle-btn:active { transform: scale(0.92); background: rgba(59, 130, 246, 0.2); }
+.filter-toggle-btn.active { background: rgba(59, 130, 246, 0.25); }
+.period-filter { display: flex; gap: 6px; background: var(--card-bg); border: 1px solid var(--card-border); padding: 4px; border-radius: 12px; }
+.period-btn { padding: 6px 12px; border-radius: 8px; font-size: 12px; font-weight: 600; color: var(--tg-theme-hint-color, #8e8e93); transition: all 0.2s ease; white-space: nowrap; }
+.period-btn.active { background: var(--accent-bg); border: 1px solid var(--accent-border); color: #ffffff; }
+.period-btn:active { transform: scale(0.95); }
+
+.metric-switcher { display: flex; gap: 4px; background: var(--card-bg); border: 1px solid var(--card-border); padding: 4px; border-radius: 12px; margin-bottom: 12px; }
+.metric-btn { flex: 1; padding: 8px 4px; border-radius: 8px; font-size: 12px; font-weight: 600; text-align: center; color: var(--tg-theme-hint-color, #8e8e93); transition: all 0.2s ease; }
+.metric-btn.active { background: var(--accent-bg); color: #ffffff; border: 1px solid var(--accent-border); }
+.metric-btn:active { transform: scale(0.96); }
+
+.empty-state-block { background: var(--card-bg); border: 1px solid var(--card-border); border-radius: 16px; padding: 24px 16px; text-align: center; color: var(--tg-theme-hint-color, #8e8e93); }
+.empty-state-block i { font-size: 24px; margin-bottom: 8px; opacity: 0.6; }
+.empty-state-block .title { font-size: 13px; font-weight: 600; margin-bottom: 4px; color: var(--tg-theme-text-color, #fff); }
+.empty-state-block .desc { font-size: 11px; line-height: 1.4; }
+.metric-note { font-size: 10px; color: var(--tg-theme-hint-color, #8e8e93); margin-top: 4px; font-style: italic; }
+.estimated-badge { display: inline-block; font-size: 9px; padding: 1px 6px; background: rgba(142, 142, 147, 0.15); color: var(--tg-theme-hint-color, #8e8e93); border-radius: 6px; margin-left: 4px; font-weight: 500; letter-spacing: 0.3px; vertical-align: middle; }
+.achievement-card { background: var(--card-bg); border: 1px solid var(--card-border); border-radius: 16px; padding: 14px; transition: all 0.2s ease; }
+.achievement-icon { width: 40px; height: 40px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 18px; flex-shrink: 0; }
+.achievement-icon.gold { background: rgba(251, 191, 36, 0.15); color: #fbbf24; }
+.achievement-icon.blue { background: var(--accent-bg); color: #60a5fa; }
+.achievement-icon.green { background: rgba(34, 197, 94, 0.15); color: #4ade80; }
+.achievement-icon.purple { background: rgba(168, 85, 247, 0.15); color: #c084fc; }
+.bodyweight-badge { display: inline-flex; align-items: center; background: rgba(34, 197, 94, 0.15); color: #4ade80; padding: 4px 10px; border-radius: 8px; font-size: 11px; font-weight: 600; }
+.drop-badge { display: inline-flex; align-items: center; gap: 4px; background: var(--warn-bg); color: var(--warn); padding: 2px 8px; border-radius: 6px; font-size: 10px; font-weight: 700; letter-spacing: 0.5px; }
+.checkbox-label { display: flex; align-items: center; gap: 8px; cursor: pointer; user-select: none; }
+.checkbox-label input[type="checkbox"] { width: 20px; height: 20px; cursor: pointer; accent-color: #4ade80; }
+.modal-backdrop { position: fixed; inset: 0; z-index: 100; display: flex; align-items: center; justify-content: center; background: rgba(0, 0, 0, 0.65); padding: calc(16px + var(--safe-top) + var(--extra-top)) 16px calc(16px + var(--safe-bottom)); }
+.modal-sheet { width: 100%; max-width: 480px; background: var(--tg-theme-secondary-bg-color, #2c2c2e); background: color-mix(in srgb, var(--tg-theme-secondary-bg-color, #2c2c2e) 92%, #3b82f6 8%); color: var(--tg-theme-text-color, #ffffff); border: 1px solid var(--inset-border); border-radius: 20px; padding: 20px; padding-bottom: calc(20px + env(safe-area-inset-bottom, 0px)); animation: modalIn 0.2s ease-out; }
+@keyframes modalIn { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
+
+.ac-wrapper { position: relative; }
+/* Крестик очистки текста внутри поля ввода (как в строке поиска браузера).
+   Минималистичный стиль: без заливки и границ — только тонкий знак «×» приглушённого цвета,
+   при наведении становится ярче, при нажатии слегка уменьшается. */
+.input-clear-btn {
+    position: absolute; top: 50%; transform: translateY(-50%); right: 8px; z-index: 2;
+    width: 24px; height: 24px; padding: 0; display: flex; align-items: center; justify-content: center;
+    border: none; outline: none; background: transparent; cursor: pointer;
+    color: var(--tg-theme-hint-color, rgba(255, 255, 255, 0.45));
+    -webkit-tap-highlight-color: transparent;
+    transition: color 0.15s ease, opacity 0.15s ease, transform 0.15s ease;
+}
+.input-clear-btn svg { width: 14px; height: 14px; }
+.input-clear-btn:hover, .input-clear-btn:focus-visible { color: var(--tg-theme-text-color, #ffffff); }
+.input-clear-btn:active { transform: translateY(-50%) scale(0.9); opacity: 0.6; }
+/* Отступ текста справа, чтобы он не заходил под крестик */
+.ac-wrapper input.clearable { padding-right: 38px; }
+.autocomplete-dropdown {
+    position: absolute; top: 100%; left: 0; right: 0; z-index: 50; margin-top: 4px;
+    background: var(--tg-theme-secondary-bg-color, #2c2c2e);
+    background: color-mix(in srgb, var(--tg-theme-secondary-bg-color, #2c2c2e) 90%, #3b82f6 10%);
+    border: 1px solid var(--inset-border);
+    border-radius: 16px; box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+    max-height: 200px; overflow-y: auto;
+}
+.autocomplete-item { padding: 12px 16px; font-size: 14px; cursor: pointer; border-bottom: 1px solid rgba(59, 130, 246, 0.12); transition: background 0.15s; }
+.autocomplete-item:last-child { border-bottom: none; }
+.autocomplete-item:hover, .autocomplete-item:active { background: rgba(59, 130, 246, 0.10); }
+.autocomplete-item .ac-group { font-size: 10px; color: var(--tg-theme-hint-color, #8e8e93); margin-top: 2px; }
+
+/* Плавающая кнопка-«остров»: без подложки и тени */
+.sticky-bottom-action {
+    position: fixed;
+    left: 16px;
+    right: 16px;
+    bottom: calc(var(--bottom-nav-height) + var(--safe-bottom) + 12px);
+    z-index: 15;
+    pointer-events: none;
+}
+.sticky-bottom-action > * {
+    pointer-events: auto;
+    border: 1px solid var(--card-border);
+}
+
+/* Когда открыта клавиатура — скрываем плавающие кнопки и нижнюю навигацию */
+body.keyboard-open #bottom-nav,
+body.keyboard-open .sticky-bottom-action { display: none !important; }
+
+/* ===== ЕДИНАЯ ДИЗАЙН-СИСТЕМА (эталон — вкладка «Статистика») ===== */
+.app-card { background: var(--card-bg); border: 1px solid var(--card-border); border-radius: var(--card-radius); padding: 14px 12px; }
+.app-inset { background: var(--inset-bg); border: 1px solid var(--inset-border); border-radius: 12px; }
+.app-divide > * + * { border-top: 1px solid var(--card-border); }
+.app-row { border-bottom: 1px solid var(--card-border); }
+.app-row:last-child { border-bottom: none; }
+.section-label { display: block; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; color: var(--tg-theme-hint-color, #8e8e93); margin: 0 0 8px 4px; }
+.btn { display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%; padding: 14px 16px; border: 1px solid transparent; border-radius: 14px; font-size: 14px; font-weight: 600; line-height: 1.2; cursor: pointer; transition: opacity .15s ease, transform .1s ease; }
+.btn:active { transform: scale(0.98); opacity: 0.85; }
+.btn-sm { padding: 10px 12px; font-size: 13px; border-radius: 12px; }
+.btn-auto { width: auto; }
+.btn-primary { background: var(--tg-theme-button-color, #3b82f6); color: var(--tg-theme-button-text-color, #ffffff); }
+.btn-secondary { background: var(--card-bg); border-color: var(--card-border); color: var(--accent); }
+.btn-danger { background: var(--danger-bg); border-color: var(--danger-border); color: var(--danger); }
+.btn-warn { background: var(--warn-bg); border-color: var(--warn-border); color: var(--warn); }
+.btn-dashed { background: transparent; border: 1.5px dashed var(--accent-border); color: var(--accent); }
+.btn-icon { width: 36px; height: 36px; padding: 0; border-radius: 12px; background: var(--card-bg); border: 1px solid var(--card-border); color: var(--accent); display: flex; align-items: center; justify-content: center; flex-shrink: 0; transition: opacity .15s ease, transform .1s ease; }
+.btn-icon:active { transform: scale(0.92); opacity: 0.8; }
+.btn-icon.sm { width: 32px; height: 32px; border-radius: 10px; }
+.btn-icon.danger { color: var(--danger); }
+.btn-icon.primary { background: var(--tg-theme-button-color, #3b82f6); border-color: transparent; color: var(--tg-theme-button-text-color, #ffffff); }
+.step-btn { width: 28px; height: 36px; padding: 0; border-radius: 10px; background: var(--card-bg); border: 1px solid var(--card-border); color: var(--tg-theme-text-color, #ffffff); font-weight: 700; display: flex; align-items: center; justify-content: center; flex-shrink: 0; transition: opacity .15s ease, transform .1s ease; }
+.step-btn:active { transform: scale(0.92); opacity: 0.8; }
+.step-btn.lg { width: 40px; height: 40px; border-radius: 12px; }
+
+/* ===== Карточка упражнения: строки подходов — единый блок в цвет карточки, без границы ===== */
+.sets-list { list-style: none; padding-left: 0; margin: 0; }
+.set-line { position: relative; background: transparent; border: none; border-radius: 12px; margin-bottom: 6px; overflow: hidden; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; }
+.set-line:last-child { margin-bottom: 0; }
+/* Основной слой строки; прозрачный — фон наследуется от карточки упражнения,
+   а внутри группы дроп-сетов — от её оранжевой заливки. */
+.set-line-inner { position: relative; z-index: 1; background: transparent; border-radius: 12px; padding: 6px 6px; }
+.set-line-main { display: flex; align-items: stretch; gap: 4px; }
+/* Удаление строки подхода: схлопывание высоты (значения задаёт JS inline-стилями). */
+.set-line.set-collapsing { padding-top: 0; padding-bottom: 0; overflow: hidden; pointer-events: none; transition: max-height .22s ease-out, margin-bottom .22s ease-out, opacity .18s ease-out, padding .22s ease-out; }
+/* Порядковый номер подхода — часть единого блока строки (по центру высоты). */
+.set-num { width: 14px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; line-height: 1; color: var(--tg-theme-hint-color, #8e8e93); }
+/* Группа «− [поле+подпись] +» — одна линия; кнопки −/+ во всю высоту блока (поле + подпись). */
+.set-field { display: flex; flex-direction: row; flex-wrap: nowrap; align-items: stretch; gap: 1px; flex: 1 1 0%; min-width: 0; }
+.set-field .step-btn { flex: 0 0 auto; width: 24px; height: auto; align-self: stretch; font-size: 16px; line-height: 1; }
+/* Кнопки «−»/«+»: без заливки — прозрачные (фон блока подхода наследуется), граница как у карточки упражнения. */
+.set-line .step-btn { background: transparent; border: 1px solid var(--card-border); color: var(--tg-theme-text-color, #ffffff); border-radius: 9px; }
+.set-line .step-btn:active { opacity: .7; transform: scale(.92); }
+/* Поле ввода: значение по центру; подпись единицы — отдельной строкой снизу. */
+.set-field input { width: 100%; min-width: 0; padding-left: 1px; padding-right: 1px; font-size: 17px; line-height: 34px; height: 34px; text-align: center; }
+.set-input-col { position: relative; flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; align-items: center; }
+.unit-suffix {
+    display: block;
+    margin-top: 1px;
+    font-size: 10px; font-weight: 600; line-height: 1;
+    color: var(--tg-theme-hint-color, #8e8e93);
+    pointer-events: none;
+}
+/* Группа дроп-подходов — стиль контейнера суперсета: скруглённая со всех сторон карточка, оранжевая полоса слева, аккуратная градиентная заливка (справа растворяется). */
+.drop-group { list-style: none; margin-bottom: 6px; padding: 6px 8px; border-left: 4px solid var(--warn); border-radius: 12px; background: linear-gradient(90deg, rgba(249, 115, 22, 0.08), transparent); }
+.drop-group .set-line { margin-bottom: 4px; }
+.drop-group .set-line:last-child { margin-bottom: 0; }
+/* Бейдж прогресса упражнения («2/3» / «✓ Готово»): стиль как у чипа «Собственный вес»; «Готово» — зелёная заливка. */
+.set-progress-badge { font-size: 11px; font-weight: 600; padding: 4px 10px; border-radius: 8px; background: var(--card-bg); border: none; flex-shrink: 0; }
+.set-progress-badge.done { color: #4ade80; background: rgba(34, 197, 94, 0.15); }
+.set-progress-badge.pending { color: var(--tg-theme-hint-color, #8e8e93); }
+/* Крестик удаления подхода — в конце строки, вертикально по центру. */
+.set-del-btn { flex: 0 0 auto; width: 26px; display: flex; align-items: center; justify-content: center; background: transparent; border: none; color: var(--danger); font-size: 13px; opacity: .7; padding: 0; cursor: pointer; -webkit-tap-highlight-color: transparent; touch-action: manipulation; transition: opacity .15s ease, transform .1s ease; }
+.set-del-btn:active { opacity: 1; transform: scale(.88); }
+.exercise-header { user-select: none; -webkit-user-select: none; }
+/* Кнопка «⋮» — меню упражнения: без границы, заливка в цвет карточки. */
+.menu-btn { width: 32px; height: 32px; display: inline-flex; align-items: center; justify-content: center; border-radius: 8px; background: var(--card-bg); color: var(--tg-theme-hint-color, #708499); font-size: 15px; border: none; cursor: pointer; -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
+.menu-btn:active { opacity: .6; transform: scale(.94); }
+.lp-active { background: var(--accent-bg) !important; border-color: var(--accent-border) !important; }
+/* Подсветка при долгом нажатии — теперь на основном слое строки (у .set-line границы нет). */
+.set-line.lp-active .set-line-inner { background: var(--accent-bg) !important; }
+
+/* ===== Ощущения / заметки подходов (features/workout/set-note-modal.js) ===== */
+.note-textarea { background: var(--tg-theme-bg-color, #1c1c1e); border: 1px solid var(--inset-border); border-radius: 10px; padding: 10px 12px; color: var(--tg-theme-text-color, #ffffff); resize: vertical; min-height: 56px; line-height: 1.35; }
+.note-textarea:focus { outline: none; border-color: var(--accent-border); box-shadow: 0 0 0 3px rgba(59,130,246,.18); }
+.chips-row { display: flex; flex-wrap: wrap; gap: 8px; }
+.chip-btn { flex: 0 0 auto; padding: 8px 12px; font-size: 12px; font-weight: 600; line-height: 1.2; border-radius: 999px; background: var(--inset-bg); border: 1px solid var(--inset-border); color: var(--tg-theme-text-color, #ffffff); transition: opacity .15s ease, transform .1s ease; }
+.chip-btn:active { transform: scale(0.95); opacity: 0.8; }
+.chip-btn.chip-add { color: var(--accent); border-style: dashed; }
+.btn-auto { width: auto; flex: 0 0 auto; }
+/* Кнопки «+ Подход» / «Дроп-сет»: растягиваются на всю ширину блока, деля её пополам.
+   !important — из-за CDN Tailwind: его утилита .btn { width: 100% } генерируется в рантайме
+   и вставляется в <head> ПОСЛЕ нашего стилевика, перебивая обычные правила без !important. */
+.exercise-actions { display: flex !important; flex-wrap: nowrap !important; align-items: stretch; gap: 8px; margin-top: 8px; }
+.exercise-actions .btn { flex: 1 1 0% !important; width: auto !important; min-width: 0; }
+.btn.has-note { border-color: var(--accent-border); }
+.set-note { margin-top: 6px; font-size: 12px; line-height: 1.4; color: var(--tg-theme-hint-color, #8e8e93); background: var(--inset-bg); border-left: 2px solid var(--warn); border-radius: 8px; padding: 6px 10px; }
+/* Комментарий упражнения: отступ как между подходами (6px), без иконки. */
+.exercise-note { margin-top: 6px; }
+
+/* ===== Вкладка «История» — красочное оформление (features/history/history.view.js) ===== */
+.hist-pal-blue, .hist-stat.blue, .hist-tag.blue, .v.blue, .t.blue { --hc: #60a5fa; --hcbg: rgba(59, 130, 246, 0.15); }
+.hist-pal-purple, .hist-stat.purple, .hist-tag.purple, .v.purple, .t.purple { --hc: #c084fc; --hcbg: rgba(168, 85, 247, 0.15); }
+.hist-pal-green, .hist-stat.green, .hist-tag.green, .v.green, .t.green { --hc: #4ade80; --hcbg: rgba(34, 197, 94, 0.15); }
+.hist-pal-orange, .hist-stat.orange, .hist-tag.orange, .v.orange, .t.orange { --hc: #fb923c; --hcbg: rgba(249, 115, 22, 0.15); }
+.hist-pal-cyan, .hist-stat.cyan, .hist-tag.cyan, .v.cyan { --hc: #22d3ee; --hcbg: rgba(34, 211, 238, 0.15); }
+/* Цвета групп мышц (красная полоска = грудь и т.п.) */
+.mg-red, .hist-mg-badge.red { --hc: #f87171; --hcbg: rgba(239, 68, 68, 0.15); }
+.mg-blue, .hist-mg-badge.blue { --hc: #60a5fa; --hcbg: rgba(59, 130, 246, 0.15); }
+.mg-green, .hist-mg-badge.green { --hc: #4ade80; --hcbg: rgba(34, 197, 94, 0.15); }
+.mg-orange, .hist-mg-badge.orange { --hc: #fb923c; --hcbg: rgba(249, 115, 22, 0.15); }
+.mg-purple, .hist-mg-badge.purple { --hc: #c084fc; --hcbg: rgba(168, 85, 247, 0.15); }
+.mg-cyan, .hist-mg-badge.cyan { --hc: #22d3ee; --hcbg: rgba(34, 211, 238, 0.15); }
+.mg-yellow, .hist-mg-badge.yellow { --hc: #fbbf24; --hcbg: rgba(245, 158, 11, 0.15); }
+.hist-mg-badge { display: inline-flex; align-items: center; gap: 3px; font-size: 10.5px; font-weight: 600; line-height: 1; padding: 4px 8px; border-radius: 999px; background: var(--hcbg, var(--inset-bg)); color: var(--hc, var(--tg-theme-hint-color, #8e8e93)); white-space: nowrap; }
+.hist-mg-badge b { font-weight: 700; opacity: 0.85; }
+.hist-detail-groups { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+
+/* Сводная панель сверху */
+.hist-summary { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 16px; }
+.hist-stat { background: var(--card-bg); border: 1px solid var(--card-border); border-radius: 14px; padding: 10px 6px; text-align: center; min-width: 0; }
+.hist-stat-icon { width: 28px; height: 28px; margin: 0 auto 6px; border-radius: 9px; background: var(--hcbg); color: var(--hc); display: flex; align-items: center; justify-content: center; font-size: 13px; }
+.hist-stat-value { font-size: 16px; font-weight: 700; line-height: 1.15; color: var(--hc); }
+.hist-stat-unit { font-size: 10px; font-weight: 600; margin-left: 1px; opacity: 0.8; }
+.hist-stat-label { font-size: 10px; color: var(--tg-theme-hint-color, #8e8e93); margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+/* Карточка тренировки в списке */
+.hist-card { display: flex; align-items: center; gap: 12px; position: relative; overflow: hidden; }
+/* Тонкая цветная полоска слева — по доминирующей группе мышц */
+.hist-card::before { content: ''; position: absolute; left: 0; top: 12px; bottom: 12px; width: 3px; border-radius: 0 3px 3px 0; background: linear-gradient(180deg, var(--hc), transparent); opacity: 0.9; }
+.hist-groups-line { display: flex; align-items: center; gap: 5px; font-size: 11px; color: var(--tg-theme-hint-color, #8e8e93); margin-bottom: 6px; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.hist-groups-line i { color: var(--hc, var(--accent)); font-size: 10px; flex-shrink: 0; }
+.hist-card-body { flex: 1 1 auto; min-width: 0; }
+.hist-card-arrow { color: var(--tg-theme-hint-color, #8e8e93); font-size: 11px; opacity: 0.5; flex-shrink: 0; }
+.hist-tags { display: flex; flex-wrap: wrap; gap: 6px; }
+.hist-tag { display: inline-flex; align-items: center; gap: 4px; font-size: 11px; font-weight: 600; line-height: 1; padding: 5px 8px; border-radius: 8px; background: var(--hcbg); color: var(--hc); }
+.hist-tag i { font-size: 10px; opacity: 0.9; }
+
+/* Подходы в детальном просмотре: номер и результат слева */
+.hist-set-num { flex-shrink: 0; width: 20px; height: 20px; border-radius: 7px; background: var(--hcbg, var(--inset-bg)); color: var(--hc, var(--accent)); display: inline-flex; align-items: center; justify-content: center; font-size: 10.5px; font-weight: 700; }
+.hist-set-result { font-size: 13px; }
+
+/* Календарь тренировок: месячная сетка, дни с тренировками — синяя точка */
+.hist-cal-card { background: var(--card-bg); border: 1px solid var(--card-border); border-radius: 16px; padding: 12px 14px 10px; margin-bottom: 16px; }
+.hist-cal-head { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-bottom: 8px; }
+.hist-cal-title { font-size: 13px; font-weight: 700; color: var(--tg-theme-text-color, #fff); display: inline-flex; align-items: center; gap: 7px; text-transform: capitalize; }
+.hist-cal-title i { color: var(--accent); font-size: 12px; }
+.hist-cal-nav { width: 30px; height: 30px; border-radius: 9px; border: none; background: rgba(59, 130, 246, 0.12); color: var(--accent); font-size: 11px; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; transition: background .15s ease, transform .1s ease; }
+.hist-cal-nav:active { transform: scale(0.92); background: rgba(59, 130, 246, 0.22); }
+.hist-cal-nav.off { opacity: 0.3; pointer-events: none; }
+.hist-cal-weekdays { display: grid; grid-template-columns: repeat(7, 1fr); margin-bottom: 4px; }
+.hist-cal-weekdays span { text-align: center; font-size: 10px; font-weight: 700; color: var(--tg-theme-hint-color, #8e8e93); }
+.hist-cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; }
+.hist-cal-cell { position: relative; aspect-ratio: 1 / 1; min-height: 26px; display: flex; align-items: center; justify-content: center; border-radius: 8px; }
+.hist-cal-cell.empty { visibility: hidden; }
+.hist-cal-day { font-size: 11.5px; font-weight: 600; color: var(--tg-theme-text-color, #fff); line-height: 1; }
+.hist-cal-cell.future .hist-cal-day { opacity: 0.35; }
+.hist-cal-cell.today { background: rgba(59, 130, 246, 0.16); box-shadow: inset 0 0 0 1px rgba(59, 130, 246, 0.55); }
+.hist-cal-cell.today .hist-cal-day { color: var(--accent); font-weight: 800; }
+.hist-cal-dot { position: absolute; bottom: 3px; left: 50%; transform: translateX(-50%); width: 5px; height: 5px; border-radius: 50%; background: var(--accent); }
+.hist-cal-foot { display: flex; justify-content: space-between; align-items: center; margin-top: 8px; font-size: 11px; color: var(--tg-theme-hint-color, #8e8e93); }
+.hist-cal-foot > span { display: inline-flex; align-items: center; gap: 6px; }
+.hist-cal-dot.demo { position: static; transform: none; display: inline-block; }
+.hist-cal-foot a { color: var(--accent); font-weight: 600; cursor: pointer; text-decoration: none; }
+/* Кликабельный день календаря с тренировкой -> подробности */
+.hist-cal-cell.clickable { cursor: pointer; }
+.hist-cal-cell-btn { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; background: transparent; border: none; border-radius: 8px; cursor: pointer; padding: 0; font: inherit; color: inherit; -webkit-tap-highlight-color: transparent; transition: background .15s ease, transform .1s ease; }
+.hist-cal-cell-btn:hover { background: rgba(59, 130, 246, 0.12); }
+.hist-cal-cell-btn:active { transform: scale(0.88); background: rgba(59, 130, 246, 0.2); }
+.hist-cal-cell-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.hist-cal-count { position: absolute; top: 4px; right: 5px; font-size: 8px; font-weight: 800; line-height: 1; color: var(--accent); }
+
+/* Шапка детального просмотра */
+.hist-detail-head { border-radius: 16px; padding: 16px 14px 12px; margin-bottom: 18px; background: linear-gradient(160deg, var(--hcbg), transparent 70%), var(--card-bg); border: 1px solid color-mix(in srgb, var(--hc) 25%, var(--card-border)); }
+.hist-detail-title { font-size: 20px; font-weight: 800; color: var(--hc); line-height: 1.25; }
+/* Переключение тренировок одного дня — минималистичные кнопки < > без заливки и границ */
+.hist-detail-nav { display: inline-flex; align-items: center; gap: 2px; flex-shrink: 0; margin-top: 2px; }
+.hist-detail-nav-btn { appearance: none; background: transparent; border: none; outline: none; padding: 6px 8px; font-size: 14px; line-height: 1; color: var(--hc); cursor: pointer; border-radius: 8px; opacity: 0.85; -webkit-tap-highlight-color: transparent; transition: opacity .15s ease, transform .1s ease; }
+.hist-detail-nav-btn:hover { opacity: 1; }
+.hist-detail-nav-btn:active { transform: scale(0.85); opacity: 0.5; }
+.hist-detail-nav-btn.off { opacity: 0.25; pointer-events: none; }
+/* Кнопка удаления тренировки из истории — минималистичная, без заливки и рамок */
+.hist-detail-delete { appearance: none; background: transparent; border: none; outline: none; display: flex; align-items: center; justify-content: flex-end; gap: 7px; margin-top: 12px; padding: 6px 0; width: 100%; font-size: 12.5px; font-weight: 600; color: var(--tg-theme-hint-color, #8e8e93); cursor: pointer; -webkit-tap-highlight-color: transparent; transition: color .15s ease, opacity .1s ease, transform .1s ease; }
+.hist-detail-delete i { font-size: 12px; }
+.hist-detail-delete:hover { color: #ff453a; }
+.hist-detail-delete:active { transform: scale(0.96); opacity: 0.7; }
+.hist-detail-nav-count { font-size: 11px; font-weight: 700; color: var(--tg-theme-hint-color, #8e8e93); min-width: 24px; text-align: center; }
+.hist-detail-date { font-size: 12px; color: var(--tg-theme-hint-color, #8e8e93); margin-top: 3px; }
+.hist-detail-stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-top: 12px; }
+.hist-detail-stat { text-align: center; background: var(--inset-bg); border-radius: 10px; padding: 7px 3px 6px; min-width: 0; }
+.hist-detail-stat .t { font-size: 10px; color: var(--hc); display: inline-flex; align-items: center; justify-content: center; line-height: 1; }
+.hist-detail-stat .v { font-size: 13px; font-weight: 700; color: var(--hc); white-space: nowrap; margin-top: 4px; line-height: 1.2; }
+.hist-detail-stat .l { font-size: 8.5px; color: var(--tg-theme-hint-color, #8e8e93); margin-top: 1px; line-height: 1.25; overflow-wrap: break-word; }
+/* Сводка/рекорды на вкладке статистики — тот же стиль, что и в Истории: FA-иконка в цветной подложке, иконка и значение одним акцентным цветом */
+/* Палитры акцентных цветов для сводки/рекордов статистики — те же цвета, что во вкладке «История».
+   ВАЖНО: селекторы должны быть НЕ слабее Tailwind-утилит (.text-base/.font-bold/.mt-0.5 и т.п.),
+   поэтому цвет/размер задаются с классом контейнера (.summary-cell / .achievement-card). */
+.summary-cell.stat-metric.blue, .achievement-card.stat-metric-row.blue { --hc: #60a5fa; --hcbg: rgba(59, 130, 246, 0.15); }
+.summary-cell.stat-metric.purple, .achievement-card.stat-metric-row.purple { --hc: #c084fc; --hcbg: rgba(168, 85, 247, 0.15); }
+.summary-cell.stat-metric.green, .achievement-card.stat-metric-row.green { --hc: #4ade80; --hcbg: rgba(34, 197, 94, 0.15); }
+.summary-cell.stat-metric.gold, .achievement-card.stat-metric-row.gold { --hc: #fbbf24; --hcbg: rgba(251, 191, 36, 0.15); }
+.summary-cell.stat-metric { padding: 9px 6px 8px; }
+.summary-cell.stat-metric .v { font-size: 16px; font-weight: 700; color: var(--hc); margin-top: 5px; line-height: 1.2; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.summary-cell.stat-metric .l { font-size: 10px; font-weight: 400; text-transform: none; letter-spacing: 0; color: var(--tg-theme-hint-color, #8e8e93); margin-top: 2px; line-height: 1.25; overflow-wrap: break-word; }
+.stat-metric-unit { font-size: 10px; font-weight: 600; margin-left: 2px; opacity: 0.8; }
+/* Рекорды: иконка слева, справа вверху значение, внизу подпись */
+.stat-metric-row { display: flex; align-items: center; gap: 10px; text-align: left; }
+.stat-metric-row .hist-stat-icon { margin: 0; width: 34px; height: 34px; font-size: 15px; flex-shrink: 0; }
+/* Значение (справа вверху) — акцентным цветом, как иконка; подпись внизу — серый hint, тем же шрифтом, что в Истории */
+.achievement-card.stat-metric-row .v { font-size: 15px; font-weight: 700; color: var(--hc); line-height: 1.2; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.achievement-card.stat-metric-row .l { font-size: 10px; font-weight: 400; text-transform: none; letter-spacing: 0; color: var(--tg-theme-hint-color, #8e8e93); margin-top: 2px; line-height: 1.25; overflow-wrap: break-word; }
