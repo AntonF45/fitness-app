@@ -390,3 +390,6 @@ body.keyboard-open .sticky-bottom-action { display: none !important; }
 /* Значение (справа вверху) — акцентным цветом, как иконка; подпись внизу — серый hint, тем же шрифтом, что в Истории */
 .achievement-card.stat-metric-row .v { font-size: 15px; font-weight: 700; color: var(--hc); line-height: 1.2; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .achievement-card.stat-metric-row .l { font-size: 10px; font-weight: 400; text-transform: none; letter-spacing: 0; color: var(--tg-theme-hint-color, #8e8e93); margin-top: 2px; line-height: 1.25; overflow-wrap: break-word; }
+
+/* Названия упражнений в карточках программ: серый текст, без подчёркивания */
+.exercise-name { color: var(--tg-theme-hint-color, #8e8e93); text-decoration: none; border-bottom: none; }
