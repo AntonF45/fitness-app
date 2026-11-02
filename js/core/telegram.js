@@ -10,6 +10,9 @@ let appFullscreen = false;
 try {
     tg.ready();
     tg.expand();
+    // Отключаем вертикальное масштабирование: пока включён pull-to-refresh,
+    // свайп сверху вниз сворачивает приложение даже в полноэкранном режиме.
+    if (tg.disableVerticalSwipes) { try { tg.disableVerticalSwipes(); } catch (e) {} }
     if (tg.setHeaderColor) tg.setHeaderColor('bg_color');
     if (tg.setBackgroundColor) tg.setBackgroundColor('bg_color');
 } catch (e) { console.warn('Telegram init error:', e); }
@@ -24,7 +27,17 @@ function enterMobileFullscreen() {
              .catch(function () { appFullscreen = false; });
         } else { appFullscreen = true; applySafeAreaInsets(); }
     } catch (e) { appFullscreen = false; }
+    // После входа в fullscreen ещё раз гасим вертикальные свайпы (гарантия порядка вызовов).
+    if (tg.disableVerticalSwipes) { try { tg.disableVerticalSwipes(); } catch (e) {} }
 }
+// Страховка: если хост-клиент сбросил флаг (например, после ресizer/перехода), восстанавливаем.
+try {
+    if (tg.onEvent) {
+        tg.onEvent('resize', function () {
+            if (tg.disableVerticalSwipes) { try { tg.disableVerticalSwipes(); } catch (e) {} }
+        });
+    }
+} catch (e) {}
 function currentFullscreen() {
     if (typeof tg.isFullscreen === 'boolean') return tg.isFullscreen;
     return appFullscreen;
