@@ -411,6 +411,6 @@ body.keyboard-open .sticky-bottom-action { display: none !important; }
 
 /* Кнопки «Начать тренировку» / «Завершить тренировку» — единый стиль:
    фон и цвет шрифта как у бейджей «Собственный вес» / «✓ Готово», граница в цвет шрифта */
-.btn-start-workout, .btn-finish-workout { background: rgba(34, 197, 94, 0.15); color: #4ade80; border: 1px solid #4ade80; }
+.btn-start-workout, .btn-finish-workout { background: rgba(34, 197, 94, 0.15); color: #4ade80; border: 1px solid #4ade80; box-shadow: none; }
 .btn-start-workout:hover, .btn-start-workout:active,
 .btn-finish-workout:hover, .btn-finish-workout:active { background: rgba(34, 197, 94, 0.25); }
