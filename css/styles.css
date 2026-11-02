@@ -78,15 +78,17 @@ input[type=number] { -moz-appearance: textfield; }
 /* Месяцы в свёрнутом состоянии въезжают СЛЕВА НАПРАВО (translateX(-100%) → 0).
    pointer-events:none в открытом состоянии — месяцы уже невидимы, тапы по ним исключены. */
 .filter-line.open .months-track { transform: translateX(calc(-100% - 12px)); opacity: 0; pointer-events: none; }
-/* Панель периодов при открытии ВЪЕЗЖАЕТ СПРАВА НАЛЕВО (translateX(100%) → 0),
-   а при закрытии НЕ УЕЗЖАЕТ — просто гаснет на месте (transition: none в .closing),
-   поэтому текст «7 дней / 30 дней…» не мелькает поверх кнопки фильтра даже на долю секунды. */
-.periods-panel { position: absolute; left: 0; right: 44px; top: 50%; transform: translate(100%, -50%); visibility: hidden; z-index: 2; pointer-events: none; transition: transform 0.26s cubic-bezier(0.4, 0, 0.2, 1), visibility 0s linear 0.26s; }
-.filter-line.open .periods-panel { transform: translate(0, -50%); visibility: visible; pointer-events: auto; transition: transform 0.26s cubic-bezier(0.4, 0, 0.2, 1), visibility 0s; }
-/* Подложка панели — фон точно как у всего блока фильтров (.period-filter):
-   полупрозрачная карточка приложения var(--card-bg), без границ. Прежний тёмно-серый
-   rgba(28,28,30,.72) не совпадал с темой — убран. */
-.stats-header .periods-panel { background: var(--card-bg); border: none; }
+/* Панель периодов при открытии «РАСТЁТ ИЗ КНОПКИ ФИЛЬТРА»: transform-origin — правый
+   край (возле кнопки), scale.X 0 → 1 + лёгкое затухание — визуально панель выезжает
+   именно из-под кнопки фильтра влево, а не приходит со стороны экрана.
+   При закрытии панель НЕ уезжает — гаснет на месте (transition:none в .closing),
+   поэтому текст «7 дней / 30 дней…» не мелькает поверх кнопки даже долю секунды. */
+.periods-panel { position: absolute; left: 0; right: 44px; top: 50%; transform: translate(-10px, -50%) scaleX(0); transform-origin: 100% 50%; opacity: 0; visibility: hidden; z-index: 2; pointer-events: none; transition: transform 0.26s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.2s ease, visibility 0s linear 0.26s; }
+.filter-line.open .periods-panel { transform: translate(0, -50%) scaleX(1); opacity: 1; visibility: visible; pointer-events: auto; transition: transform 0.26s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.18s ease 0.04s, visibility 0s; }
+/* Подложка панели — фон ТОЧНО как у всего блока фильтров (.period-filter): та же
+   полупрозрачная карточка var(--card-bg) с той же тонкой рамкой var(--card-border).
+   Прежние варианты (тёмно-серый, var(--accent-bg)) не совпадали по оттенку — убраны. */
+.stats-header .periods-panel { background: var(--card-bg); border-color: var(--card-border); }
 /* Кнопка фильтра = два слоя иконок (ползунки/крестик). В ЗАКРЫТОМ состоянии crossfade
    выключен (transition: none): при нажатии на крестик ползунок появляется мгновенно,
    без «долгой перекраски». При открытии анимация остаётся плавной. */
