@@ -143,19 +143,22 @@ input[type=number] { -moz-appearance: textfield; }
 }
 /* Текст строки — flex-элемент, кружок рисуется как его псевдоэлемент (::before),
    поэтому галочка и надпись лежат на одной линии без вложенных контейнеров. */
-.checkbox-label input[type="checkbox"] + span { display: flex; align-items: center; }
+/* Текст строки — всегда серый (как подписи-подсказки в приложении), независимо от темы. */
+.checkbox-label input[type="checkbox"] + span { display: flex; align-items: center; position: relative; color: var(--tg-theme-hint-color, #8e8e93); }
+/* Отмеченное состояние: БЕЛЫЙ круг с зелёной галочкой.
+   Галочка рисуется псевдоэлементом ::after поверх круга (::before) — оба принадлежат
+   одному <span>, никаких вложенных контейнеров нет. */
 .checkbox-label input[type="checkbox"] + span::before {
     content: ""; flex: 0 0 auto; display: block; box-sizing: border-box;
     width: 22px; height: 22px; margin-right: 10px; border-radius: 50%;
-    background: var(--tg-theme-text-color, #ffffff);
-    -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20zm-1.2 14.6L6.6 12.4l1.4-1.4 2.8 2.8 5.2-5.2 1.4 1.4z'/%3E%3C/svg%3E") center / 22px 22px no-repeat;
-    mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20zm-1.2 14.6L6.6 12.4l1.4-1.4 2.8 2.8 5.2-5.2 1.4 1.4z'/%3E%3C/svg%3E") center / 22px 22px no-repeat;
+    background: #ffffff;
 }
-.checkbox-label input[type="checkbox"]:not(:checked) + span::before {
-    -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Ccircle cx='12' cy='12' r='10'/%3E%3C/svg%3E") center / 22px 22px no-repeat;
-    mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Ccircle cx='12' cy='12' r='10'/%3E%3C/svg%3E") center / 22px 22px no-repeat;
-    opacity: 0.35;
+.checkbox-label input[type="checkbox"]:checked + span::after {
+    content: ""; position: absolute; left: 6px; top: 7px; width: 5px; height: 9px;
+    border: solid #4ade80; border-width: 0 2.5px 2.5px 0; transform: rotate(45deg);
 }
+/* Неотмеченное состояние: просто белый круг без галочки. */
+.checkbox-label input[type="checkbox"]:not(:checked) + span::after { content: none; }
 .checkbox-label input[type="checkbox"]:active + span::before { transform: scale(0.92); }
 .modal-backdrop { position: fixed; inset: 0; z-index: 100; display: flex; align-items: center; justify-content: center; background: rgba(0, 0, 0, 0.65); padding: calc(16px + var(--safe-top) + var(--extra-top)) 16px calc(16px + var(--safe-bottom)); }
 .modal-sheet { width: 100%; max-width: 480px; background: var(--tg-theme-secondary-bg-color, #2c2c2e); background: color-mix(in srgb, var(--tg-theme-secondary-bg-color, #2c2c2e) 92%, #3b82f6 8%); color: var(--tg-theme-text-color, #ffffff); border: 1px solid var(--inset-border); border-radius: 20px; padding: 20px; padding-bottom: calc(20px + env(safe-area-inset-bottom, 0px)); animation: modalIn 0.2s ease-out; }
