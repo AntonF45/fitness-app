@@ -49,31 +49,36 @@ function renderStats() {
     if (state.selectedExercise) renderChart();
 }
 /* Открытие/закрытие панели периодов — ОДНИМ CSS-классом .open на строке фильтра:
-   панель «7 дней / 30 дней / …» выезжает справа налево, месяцы тем же сдвигом уходят
-   за левый край, а иконки в кнопке (ползунки ↔ крестик) меняются crossfade синхронно.
-   DOM не пересобирается, поэтому «крестик» никогда не появляется раньше панели.
-   Защита от «двойного тапа»: во время сворачивания панели её кнопки помечаются
-   классом .closed-capturing и игнорируются обработчиком кликов (data-ignore-while-closing),
-   пока анимация не закончится. Состояние запоминается в state.filterOpen. */
+   панель «7 дней / 30 дней / …» выезжает справа налево, месяцы уходят за левый край,
+   иконки в кнопке (ползунки ↔ крестик) меняются синхронно. DOM не пересобирается.
+
+   Закрытие сделано мгновенным и безопасным:
+   - при нажатии на крестик класс .open снимается СРАЗУ, а на панель навешивается
+     .closing (visibility:hidden + pointer-events:none без перехода). Строка не
+     «сворачивается» долго, крестик мгновенно становится кнопкой фильтра;
+   - все клики по кнопкам периодов во время закрытия физически невозможны —
+     даже при быстром двойном тапе;
+   - через ~280мс .closing снимается, чтобы следующий тап снова плавно открыл панель. */
 var _filterCloseTimer = null;
 function toggleFilterPanel() {
     const line = document.querySelector('.filter-line');
     if (!line) return;
+    const panel = line.querySelector('.periods-panel');
     state.filterOpen = !state.filterOpen;
     if (_filterCloseTimer) { clearTimeout(_filterCloseTimer); _filterCloseTimer = null; }
     if (state.filterOpen) {
-        line.classList.remove('closed-capturing');
+        /* открытие: убираем «глухой» режим и плавно выезжаем панель */
+        if (panel) panel.classList.remove('closing');
     } else {
-        /* закрытие: сразу снимаем .open (crossfade иконок мгновенный) и включаем
-           «глухой» режим для кнопок панели на время анимации сворачивания */
-        line.classList.add('closed-capturing');
+        /* закрытие: панель исчезает мгновенно и игнорирует клики до конца анимации */
+        if (panel) panel.classList.add('closing');
     }
     line.classList.toggle('open', state.filterOpen);
     const btn = document.getElementById('filter-toggle-btn');
     if (btn) btn.setAttribute('aria-expanded', String(state.filterOpen));
-    if (!state.filterOpen) {
+    if (!state.filterOpen && panel) {
         _filterCloseTimer = setTimeout(function () {
-            line.classList.remove('closed-capturing');
+            panel.classList.remove('closing');
             _filterCloseTimer = null;
         }, 280);
     }

@@ -77,26 +77,30 @@ input[type=number] { -moz-appearance: textfield; }
 .months-empty { font-size: 11px; color: var(--tg-theme-hint-color, #8e8e93); line-height: 36px; white-space: nowrap; padding-left: 2px; }
 .filter-line.open .months-track { transform: translateX(calc(-100% - 12px)); opacity: 0; pointer-events: none; }
 /* Панель периодов лежит справа от экрана (за кнопкой) и выезжает на её место влево.
-   pointer-events переключаются с задержкой: при закрытии кнопки панелей становятся
-   «немыми» сразу (.closed-capturing в JS), а возвращаются только после сворачивания. */
+   При закрытии JS навешивает на панель .closing — она исчезает мгновенно и
+   перекрывает клики до конца анимации (см. правило .periods-panel.closing ниже). */
 .periods-panel { position: absolute; left: 0; right: 44px; top: 50%; transform: translate(100%, -50%); visibility: hidden; z-index: 2; pointer-events: none; transition: transform 0.26s cubic-bezier(0.4, 0, 0.2, 1), visibility 0s linear 0.26s; }
 .filter-line.open .periods-panel { transform: translate(0, -50%); visibility: visible; pointer-events: auto; transition: transform 0.26s cubic-bezier(0.4, 0, 0.2, 1), visibility 0s; }
 /* Подложка панели в цвет шапки, чтобы при выезде месяцы скрывались под ней, а не просвечивали */
 .stats-header .periods-panel { background: var(--tg-theme-bg-color, #1c1c1e); border: 1px solid var(--card-border); }
-/* Кнопка фильтра = два слоя иконок (ползунки/крестик): крестик проявляется ТОГДА ЖЕ, когда
-   панель доезжает до места — оба перехода используют один и тот же класс .open.
-   Crossfade симметричен и быстрый (0.18s), поэтому при закрытии крестик мгновенно
-   становится ползунком — «долгой перекраски» кнопки больше нет. */
+/* Кнопка фильтра = два слоя иконок (ползунки/крестик). В ЗАКРЫТОМ состоянии crossfade
+   выключен (transition: none): при нажатии на крестик ползунок появляется мгновенно,
+   без «долгой перекраски». При открытии анимация остаётся плавной. */
 #filter-toggle-btn { position: relative; flex-shrink: 0; }
-#filter-toggle-btn .fi-sliders, #filter-toggle-btn .fi-xmark { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; transition: opacity 0.18s ease, transform 0.24s cubic-bezier(0.4, 0, 0.2, 1); }
+#filter-toggle-btn .fi-sliders, #filter-toggle-btn .fi-xmark { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; }
 #filter-toggle-btn .fi-xmark { opacity: 0; transform: rotate(-90deg) scale(0.6); }
 .filter-line.open #filter-toggle-btn .fi-sliders { opacity: 0; transform: rotate(90deg) scale(0.6); }
 .filter-line.open #filter-toggle-btn .fi-xmark { opacity: 1; transform: rotate(0) scale(1); }
+.filter-line:not(.open) #filter-toggle-btn .fi-sliders,
+.filter-line:not(.open) #filter-toggle-btn .fi-xmark { transition: none; }
+.filter-line.open #filter-toggle-btn .fi-sliders,
+.filter-line.open #filter-toggle-btn .fi-xmark { transition: opacity 0.18s ease, transform 0.24s cubic-bezier(0.4, 0, 0.2, 1); }
 
-/* Панель периодов в закрытии (.closed-capturing ставит toggleFilterPanel на время
-   анимации сворачивания): клики по её кнопкам игнорируются, чтобы «быстрый двойной
-   тап» не выбрал период на уже уезжающей панели. */
-.filter-line.closed-capturing .periods-panel { pointer-events: none; }
+/* Панель периодов в закрытии (.closing ставит toggleFilterPanel на время анимации
+   сворачивания): visibility: hidden с нулевой задержкой убирает панель из строки
+   МГНОВЕННО (без долгого съезда назад) и одновременно отключает все клики по её
+   кнопкам — «быстрый двойной тап» не может выбрать период на уезжающей панели. */
+.periods-panel.closing { visibility: hidden !important; pointer-events: none !important; transition: none !important; }
 
 .filter-toggle-btn { width: 36px; height: 36px; border-radius: 10px; background: var(--accent-bg); border: 1px solid rgba(59, 130, 246, 0.25); display: flex; align-items: center; justify-content: center; color: var(--accent); transition: background 0.2s ease; flex-shrink: 0; }
 .filter-toggle-btn:active { transform: scale(0.92); background: rgba(59, 130, 246, 0.2); }
