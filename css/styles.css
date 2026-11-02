@@ -281,18 +281,28 @@ body.keyboard-open .sticky-bottom-action { display: none !important; }
 .hist-set-num { flex-shrink: 0; width: 20px; height: 20px; border-radius: 7px; background: var(--hcbg, var(--inset-bg)); color: var(--hc, var(--accent)); display: inline-flex; align-items: center; justify-content: center; font-size: 10.5px; font-weight: 700; }
 .hist-set-result { font-size: 13px; }
 
-/* Панель «Дни тренировок · 4 недели» — столбики в стиле вкладки «Статистика» */
-.hist-activity-card { background: var(--card-bg); border: 1px solid var(--card-border); border-radius: 16px; padding: 12px 14px 10px; margin-bottom: 16px; }
-.hist-activity-head { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; margin-bottom: 10px; flex-wrap: wrap; }
-.hist-activity-title { font-size: 12px; font-weight: 700; color: var(--tg-theme-text-color, #fff); display: inline-flex; align-items: center; gap: 6px; }
-.hist-activity-title i { color: var(--accent); font-size: 12px; }
-.hist-bars { display: flex; align-items: flex-end; gap: 6px; height: 52px; }
-.hist-bar-col { flex: 1 1 0%; min-width: 0; height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; gap: 2px; }
-.hist-bar { width: 100%; border-radius: 5px; background: rgba(59, 130, 246, 0.5); border: 1px solid rgba(59, 130, 246, 0.8); transition: height .3s ease; }
-.hist-bar.empty { background: rgba(59, 130, 246, 0.08); border-color: transparent; }
-.hist-bar-val { font-size: 9px; font-weight: 700; color: var(--accent); line-height: 1; min-height: 9px; }
-.hist-bar-labels { display: flex; gap: 6px; margin-top: 4px; }
-.hist-bar-lbl { flex: 1 1 0%; min-width: 0; text-align: center; font-size: 9.5px; color: var(--tg-theme-hint-color, #8e8e93); }
+/* Календарь тренировок: месячная сетка, дни с тренировками — синяя точка */
+.hist-cal-card { background: var(--card-bg); border: 1px solid var(--card-border); border-radius: 16px; padding: 12px 14px 10px; margin-bottom: 16px; }
+.hist-cal-head { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-bottom: 8px; }
+.hist-cal-title { font-size: 13px; font-weight: 700; color: var(--tg-theme-text-color, #fff); display: inline-flex; align-items: center; gap: 7px; text-transform: capitalize; }
+.hist-cal-title i { color: var(--accent); font-size: 12px; }
+.hist-cal-nav { width: 30px; height: 30px; border-radius: 9px; border: none; background: rgba(59, 130, 246, 0.12); color: var(--accent); font-size: 11px; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; transition: background .15s ease, transform .1s ease; }
+.hist-cal-nav:active { transform: scale(0.92); background: rgba(59, 130, 246, 0.22); }
+.hist-cal-nav.off { opacity: 0.3; pointer-events: none; }
+.hist-cal-weekdays { display: grid; grid-template-columns: repeat(7, 1fr); margin-bottom: 4px; }
+.hist-cal-weekdays span { text-align: center; font-size: 10px; font-weight: 700; color: var(--tg-theme-hint-color, #8e8e93); }
+.hist-cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; }
+.hist-cal-cell { position: relative; aspect-ratio: 1 / 1; min-height: 26px; display: flex; align-items: center; justify-content: center; border-radius: 8px; }
+.hist-cal-cell.empty { visibility: hidden; }
+.hist-cal-day { font-size: 11.5px; font-weight: 600; color: var(--tg-theme-text-color, #fff); line-height: 1; }
+.hist-cal-cell.future .hist-cal-day { opacity: 0.35; }
+.hist-cal-cell.today { background: rgba(59, 130, 246, 0.16); box-shadow: inset 0 0 0 1px rgba(59, 130, 246, 0.55); }
+.hist-cal-cell.today .hist-cal-day { color: var(--accent); font-weight: 800; }
+.hist-cal-dot { position: absolute; bottom: 3px; left: 50%; transform: translateX(-50%); width: 5px; height: 5px; border-radius: 50%; background: var(--accent); }
+.hist-cal-foot { display: flex; justify-content: space-between; align-items: center; margin-top: 8px; font-size: 11px; color: var(--tg-theme-hint-color, #8e8e93); }
+.hist-cal-foot > span { display: inline-flex; align-items: center; gap: 6px; }
+.hist-cal-dot.demo { position: static; transform: none; display: inline-block; }
+.hist-cal-foot a { color: var(--accent); font-weight: 600; cursor: pointer; text-decoration: none; }
 
 /* Шапка детального просмотра */
 .hist-detail-head { border-radius: 16px; padding: 16px 14px 12px; margin-bottom: 18px; background: linear-gradient(160deg, var(--hcbg), transparent 70%), var(--card-bg); border: 1px solid color-mix(in srgb, var(--hc) 25%, var(--card-border)); }
