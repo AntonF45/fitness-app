@@ -65,9 +65,10 @@ function renderExerciseMetricSwitcherHTML() {
 }
 function renderAchievementsHTML() {
     const name = state.selectedExercise; if (!name) return '';
-    const history = DataAPI.getExerciseHistory(name).filter(isValidSetRecord);
+    // Рекорды считаем за выбранный на вкладке период (как график), а не за всё время.
+    const history = getFilteredHistory(DataAPI.getExerciseHistory(name), state.selectedPeriod).filter(isValidSetRecord);
     const exType = getExerciseTypeByName(name);
-    if (history.length === 0) return '<div class="empty-state-block mb-4 card-enter"><i class="fa-solid fa-trophy"></i><div class="title">Нет рабочих подходов</div><div class="desc">Для этого упражнения пока нет завершённых подходов с весом и повторениями.</div></div>';
+    if (history.length === 0) return '<div class="empty-state-block mb-4 card-enter"><i class="fa-solid fa-trophy"></i><div class="title">Нет данных за период</div><div class="desc">За «' + escHtml(getPeriodLabel()) + '» у этого упражнения нет рабочих подходов с весом и повторениями.</div></div>';
     const maxWeight = Math.max.apply(null, history.map(function (h) { return Number(h.weight); }));
     const maxWeightEntry = history.find(function (h) { return Number(h.weight) === maxWeight; });
     let max1RM = 0, max1RMEntry = null;
@@ -83,7 +84,7 @@ function renderAchievementsHTML() {
         { icon: 'fa-scale-balanced', color: 'green',  v: (Math.round(avgWeight * 10) / 10) + ' кг', l: 'средний вес' },
         { icon: 'fa-boxes-stacked', color: 'purple', v: totalVolume >= 1000 ? (totalVolume / 1000).toFixed(1) + ' т' : totalVolume + ' кг', l: exType === 'bodyweight' ? 'объём доп. веса' : 'общий объём' }
     ];
-    return '<div class="mb-4 card-enter"><div class="section-label">Рекорды · за всё время</div><div class="summary-grid" style="grid-template-columns: repeat(2, 1fr);">' + achievements.map(function (a) { return '<div class="achievement-card stat-metric-row ' + a.color + '"><div class="hist-stat-icon"><i class="fa-solid ' + a.icon + '"></i></div><div class="min-w-0 flex-1"><div class="v">' + escHtml(String(a.v)) + '</div><div class="l">' + escHtml(a.l) + '</div></div></div>'; }).join('') + '</div></div>';
+    return '<div class="mb-4 card-enter"><div class="section-label">Рекорды · ' + escHtml(getPeriodLabel()) + '</div><div class="summary-grid" style="grid-template-columns: repeat(2, 1fr);">' + achievements.map(function (a) { return '<div class="achievement-card stat-metric-row ' + a.color + '"><div class="hist-stat-icon"><i class="fa-solid ' + a.icon + '"></i></div><div class="min-w-0 flex-1"><div class="v">' + escHtml(String(a.v)) + '</div><div class="l">' + escHtml(a.l) + '</div></div></div>'; }).join('') + '</div></div>';
 }
 function renderExerciseBlockHTML() {
     if (!state.selectedExercise) return '';
