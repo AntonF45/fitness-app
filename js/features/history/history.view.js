@@ -47,8 +47,8 @@ function renderHistory() {
     var calendarHTML = '';
     if (history.length) {
         var WD_MIN = ['П', 'В', 'С', 'Ч', 'П', 'С', 'В'];
-        var byDayMap = {};
-        history.forEach(function (e) { var d = new Date(e.date); if (!isNaN(d)) byDayMap[d.getFullYear() + '-' + d.getMonth() + '-' + d.getDate()] = true; });
+        var byDayMap = {}; // ключ дня -> массив записей тренировки (для перехода в детали по клику)
+        history.forEach(function (e) { var d = new Date(e.date); if (!isNaN(d)) { var k = d.getFullYear() + '-' + d.getMonth() + '-' + d.getDate(); (byDayMap[k] = byDayMap[k] || []).push(e); } });
         var cur = new Date(histCalMonth);
         var todayRef = new Date(); todayRef.setHours(0, 0, 0, 0);
         var first = new Date(cur.getFullYear(), cur.getMonth(), 1);
@@ -60,11 +60,19 @@ function renderHistory() {
         for (var pre = 0; pre < startOffset; pre++) cellsHTML += '<div class="hist-cal-cell empty"></div>';
         for (var day = 1; day <= daysInMonth; day++) {
             var cd = new Date(cur.getFullYear(), cur.getMonth(), day);
-            var has = !!byDayMap[cd.getFullYear() + '-' + cd.getMonth() + '-' + cd.getDate()];
+            var dayEntries = byDayMap[cd.getFullYear() + '-' + cd.getMonth() + '-' + cd.getDate()];
+            var has = !!(dayEntries && dayEntries.length);
             var isToday = cd.getTime() === todayRef.getTime();
             var isFuture = cd.getTime() > todayRef.getTime();
-            cellsHTML += '<div class="hist-cal-cell' + (has ? ' has' : '') + (isToday ? ' today' : '') + (isFuture ? ' future' : '') + '">' +
-                '<span class="hist-cal-day">' + day + '</span>' + (has ? '<span class="hist-cal-dot"></span>' : '') + '</div>';
+            var clickable = has && !isFuture;
+            var innerHTML = '<span class="hist-cal-day">' + day + '</span>' + (has ? '<span class="hist-cal-dot"></span>' : '');
+            // Клик по дню с тренировкой -> подробности тренировки; при нескольких записях — самая свежая
+            if (clickable) {
+                var targetEntry = dayEntries[0];
+                var calLabel = dayEntries.length === 1 ? 'Открыть тренировку «' + targetEntry.programName + '»' : 'Тренировок в этот день: ' + dayEntries.length + ' — открыть последнюю';
+                innerHTML = '<button type="button" class="hist-cal-cell-btn" data-action="history-detail" data-payload="' + escAttr(targetEntry.id) + '" aria-label="' + escAttr(calLabel) + '">' + innerHTML + (dayEntries.length > 1 ? '<span class="hist-cal-count">' + dayEntries.length + '</span>' : '') + '</button>';
+            }
+            cellsHTML += '<div class="hist-cal-cell' + (has ? ' has' : '') + (isToday ? ' today' : '') + (isFuture ? ' future' : '') + (clickable ? ' clickable' : '') + '">' + innerHTML + '</div>';
         }
         var prevDisabled = false;
         var oldest = history.reduce(function (acc, e) { var t = new Date(e.date).getTime(); return isNaN(t) ? acc : Math.min(acc, t); }, Infinity);
