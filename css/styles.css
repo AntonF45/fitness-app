@@ -4,10 +4,14 @@
    хостом автоматически, JS не нужен. Акценты — семантические константы.
    ============================================================ */
 :root {
-    --bg: var(--bg);
-    --bg-secondary: var(--bg-secondary);
-    --text: var(--text);
-    --hint: var(--hint);
+    /* Базовые цвета — из темы Telegram (единственный источник истины).
+       NOTE: раньше здесь было `--bg: var(--bg)` (самоссылка) — переменная
+       получала invalid значение и все поверхности (в т.ч. панель навигации)
+       рендерились прозрачными. */
+    --bg: var(--tg-theme-bg-color, #0e0f13);
+    --bg-secondary: var(--tg-theme-secondary-bg-color, #1a1b21);
+    --text: var(--tg-theme-text-color, #ffffff);
+    --hint: var(--tg-theme-hint-color, #95a3ba);
     --accent: var(--tg-theme-link-color, #3b82f6);
     --accent-strong: var(--tg-theme-button-color, #3b82f6);
     --accent-on: var(--tg-theme-button-text-color, #ffffff);
@@ -315,9 +319,14 @@ body.keyboard-open .sticky-bottom-action { display: none !important; }
 /* ===== НИЖНЯЯ ПАНЕЛЬ НАВИГАЦИИ =====
    Сплошной фон в цвет фона приложения (белый в light-теме) — без blur,
    чтобы контент под панелью не просвечивал. Верхняя hairline-граница
-   отделяет панель от контента. */
+   отделяет панель от контента.
+
+   ВАЖНО: !important здесь обязателен — Tailwind CDN генерирует утилиты
+   (.bg-tgBg и т.п.) после нашей ссылки на styles.css и с той же
+   специфичностью перебивал прозрачным током темы фон панели. */
 #bottom-nav {
-    background: var(--bg);
+    background: var(--bg) !important;
+    background-color: var(--bg) !important;
     border-top: 1px solid var(--card-border);
 }
 /* Активный таб — акцентный цвет (текст + иконка), неактивные — приглушённые. */
@@ -329,8 +338,17 @@ body.keyboard-open .sticky-bottom-action { display: none !important; }
    вверх — возвращаются. transform не ломает position: fixed;
    pointer-events:none в скрытом состоянии блокирует тапы «в пустоту». */
 @media (prefers-reduced-motion: no-preference) {
+    /* Плавность в обе стороны: мягкий «spring» при появлении и чуть более
+       быстрый ease-in при уходе — классическая iOS-анимация панелей. */
     #bottom-nav,
-    .sticky-bottom-action { transition: transform .28s cubic-bezier(.32,.72,0,1), opacity .2s ease; }
+    .sticky-bottom-action {
+        transition: transform .34s cubic-bezier(.32,.72,0,1), opacity .24s ease;
+        will-change: transform;
+    }
+    body.nav-hidden #bottom-nav,
+    body.nav-hidden .sticky-bottom-action {
+        transition: transform .24s cubic-bezier(.4,0,1,1), opacity .18s ease;
+    }
 }
 body.nav-hidden #bottom-nav { transform: translateY(100%); }
 body.nav-hidden .sticky-bottom-action { transform: translateY(calc(100vh - var(--bottom-pos, 84px) + 60px)); opacity: 0; pointer-events: none; }
