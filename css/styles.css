@@ -138,6 +138,18 @@ input[type=number] { -moz-appearance: textfield; }
     margin-top: calc(-1 * var(--top-reserve));
     padding: 14px var(--page-x);
 }
+/* Контент страницы начинается ПОСЛЕ шапки (не под ней): все последующие
+   блочные элементы сдвигаются на реальную высоту sticky-шапки. Значение
+   --header-h измеряется JS (js/core/header-offset.js, ResizeObserver) и
+   обновляется при каждой перерисовке экрана.
+   Исключения:
+   - .sticky-bottom-action — собственная sticky-панель внизу контента:
+     сдвиг сверху ломал её позицию в потоке;
+   - инлайновые элементы (кнопки/ссылки внутри flex-рядов) — margin-top к ним
+     не применяется (display:inline), поэтому правило ограничено блоками. */
+#app-content > :not(.screen-header):not(.stats-header):not(.sticky-bottom-action) {
+    margin-top: var(--header-h, 0px);
+}
 /* Защита sticky-панелей: анимация card-enter задаёт transform (translateY/scale)
    на самом элементе — в Telegram WebView transform на sticky-элементах ломает
    фиксацию («панель уезжает вместе с контентом»). На всех липких элементах
@@ -504,11 +516,10 @@ body.keyboard-open .sticky-bottom-action { display: none !important; }
 .hist-cal-count { position: absolute; top: 4px; right: 5px; font-size: 8px; font-weight: 800; line-height: 1; color: var(--accent); }
 
 /* Шапка детального просмотра */
-/* Шапка деталей истории — sticky-модификация единой шапки экрана:
-   сплошной фон (в градиент входит --bg, поэтому подложка непрозрачна),
-   скруглённая карточка вместо полосы на всю ширину. */
-.hist-detail-head { border-radius: 16px; padding: 16px 14px 12px; margin-bottom: 18px; background: linear-gradient(160deg, var(--hcbg), transparent 70%), var(--bg); -webkit-backdrop-filter: none; backdrop-filter: none; border: 1px solid color-mix(in srgb, var(--hc) 25%, var(--card-border)); }
-.screen-header.hist-detail-head { top: calc(var(--sticky-top) + 12px); margin-top: 0; margin-left: 0; margin-right: 0; }
+/* Шапка деталей записи — как обычная sticky-шапка экрана (сплошной фон,
+   липнет ровно под полосу Telegram, контент начинается после неё). */
+.hist-detail-head { padding: 14px var(--page-x) 12px; background: var(--bg); }
+.screen-header.hist-detail-head { top: var(--sticky-top); margin-top: calc(-1 * var(--top-reserve)); }
 .hist-detail-title { font-size: 20px; font-weight: 800; color: var(--hc); line-height: 1.25; }
 /* Переключение тренировок одного дня — минималистичные кнопки < > без заливки и границ */
 .hist-detail-nav { display: inline-flex; align-items: center; gap: 2px; flex-shrink: 0; margin-top: 2px; }
