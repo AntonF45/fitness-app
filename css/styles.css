@@ -9,13 +9,14 @@
        получала invalid значение и все поверхности (в т.ч. панель навигации)
        рендерились прозрачными.
        NOTE 2: в Telegram Desktop/веб-клиенте --tg-theme-bg-color приходит
-       ПРОЗРАЧным (полупрозрачный фон окна поверх рабочего стола), поэтому
-       к базовым токенам применён фолбэк через color-mix с непрозрачной
-       подложкой: если хост дал прозрачный цвет — результат становится
-       сплошным белым (light) / почти чёрным (dark). В мобильных клиентах
-       эти же переменные всегда сплошные — mix их не меняет. */
-    --bg: color-mix(in srgb, var(--tg-theme-bg-color, #ffffff) 100%, transparent);
-    --bg-secondary: color-mix(in srgb, var(--tg-theme-secondary-bg-color, #f2f2f7) 100%, transparent);
+       ПРОЗРАЧным. Раньше сюда примешивали непрозрачную подложку («сплошной
+       белый») — из-за этого body и sticky-шапка были БЕЛЫМИ плашками, а
+       эффект «стекла» пропадал. Теперь фон остаётся таким, каким его дал
+       хост: контент просвечивает окно, а шапка — полупрозрачная над ним.
+       Сплошной фолбэк (#fff/#0c0c0c) срабатывает только если хост вообще
+       не прислал переменную темы (открытие вне Telegram). */
+    --bg: var(--tg-theme-bg-color, #ffffff);
+    --bg-secondary: var(--tg-theme-secondary-bg-color, #f2f2f7);
     --text: color-mix(in srgb, var(--tg-theme-text-color, #000000) 100%, transparent);
     --hint: color-mix(in srgb, var(--tg-theme-hint-color, #8e8e93) 100%, transparent);
     --accent: var(--tg-theme-link-color, #3b82f6);
@@ -122,21 +123,25 @@ input[type=number] { -moz-appearance: textfield; }
 #app-content { --sticky-top: var(--top-reserve); }
 /* СЛОЙ ПОД sticky-шапками: в Telegram Desktop фон окна (--tg-theme-bg-color)
    прозрачный, и полупрозрачное «стекло» шапки просвечивало бы «дырой» до
-   рабочего стола — поэтому стекло строится поверх НЕПРОЗРАЧной базы --bg
-   (см. background ниже), без отдельного фиксированного слоя-плашки. */
+   рабочего стола. Отдельную непрозрачную плашку под шапкой делать НЕЛЬЗЯ —
+   она делала шапку визуально сплошной (это и убиралось в прошлых правках):
+   стекло = только --glass-bg + blur, фон окна остаётся таким, каким его дал
+   хост. */
 
 .screen-header, .stats-header {
     position: sticky;
     top: var(--sticky-top);
     z-index: 10;
-    /* Полупрозрачное «стекло»: ЕДИНСТВЕННЫЙ слой — glass 82% + blur контента
-       под шапкой. Никакой непрозрачной базы: с базовым цветом шапка физически
-       не может быть прозрачной (это и был баг). */
+    /* Полупрозрачное «стекло»: glass 82% + blur контента под шапкой.
+       Никаких дополнительных слоёв/баз — иначе шапка перестаёт быть
+       прозрачной. --glass-bg строится от --bg: в мобильных клиентах он
+       сплошной → получается матовое стекло; в Desktop он прозрачный →
+       backdrop-filter размывает контент прямо под шапкой. */
     background: var(--glass-bg);
     -webkit-backdrop-filter: blur(20px) saturate(150%);
     backdrop-filter: blur(20px) saturate(150%);
     border-bottom: 1px solid var(--glass-line);
-    box-shadow: 0 6px 14px -8px rgba(0, 0, 0, 0.18);
+    box-shadow: none;
     margin-left: calc(-1 * var(--page-x));
     margin-right: calc(-1 * var(--page-x));
     padding: 14px var(--page-x);
