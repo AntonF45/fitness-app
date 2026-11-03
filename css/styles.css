@@ -94,9 +94,15 @@ input[type=number] { -moz-appearance: textfield; }
 .chart-container-fixed { height: 260px; position: relative; overflow: hidden; }
 .chart-wrapper-fixed { position: absolute; top: 0; left: 0; right: 0; bottom: 0; }
 
-/* Единая sticky-шапка экрана — по модели блока «Секундомер»: контент начинается
-   под полосой Telegram (body padding-top = --top-reserve), поэтому шапка липнет
-   к top:0 — ровно под нижним краем полосы и системные кнопки её не перекрывают. */
+/* Единая sticky-шапка экрана — по модели блока «Секундомер»: он является ПЕРВЫМ
+   дочерним элементом #app-content, поэтому position:sticky + top:0 работает, и
+   панель липнет ровно под body padding-top (--top-reserve = safe-area + полоса
+   Telegram) — системные кнопки её не перекрывают.
+
+   Почему раньше шапки «ехали» вместе с контентом: анимация card-enter задавала
+   transform (translateY/scale) на самом header'е — в WebView это сбивает
+   position:sticky, и панель прокручивается вместе со страницей. Фиксацию
+   восстанавливает отключение card-enter на шапках ниже. */
 .screen-header, .stats-header {
     position: sticky;
     top: 0;
@@ -110,6 +116,13 @@ input[type=number] { -moz-appearance: textfield; }
     margin-top: calc(-1 * var(--page-x));
     padding: 14px var(--page-x);
 }
+/* Защита sticky-панелей: анимация card-enter задаёт transform (translateY/scale)
+   на самом элементе — в Telegram WebView это сбивает position:sticky, и панель
+   «уезжает» вместе с контентом. Поэтому на всех липких элементах card-enter
+   отключён; появление шапок — через fade без transform. */
+.sticky.card-enter, .screen-header.card-enter, .stats-header.card-enter { animation: none !important; }
+@keyframes headerFadeIn { from { opacity: 0; } to { opacity: 1; } }
+.screen-header .screen-title, .stats-header .stats-title { animation: headerFadeIn 0.3s ease both; }
 .screen-header { padding-bottom: 12px; }
 .screen-title { display: flex; align-items: baseline; gap: 8px; font-size: var(--font-display); font-weight: 800; letter-spacing: -0.5px; line-height: 1.2; text-align: left; color: var(--text); }
 .screen-title .screen-count { font-size: 13px; font-weight: 600; color: var(--hint); letter-spacing: 0; }
