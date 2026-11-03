@@ -312,6 +312,29 @@ input[type=number] { -moz-appearance: textfield; }
 body.keyboard-open #bottom-nav,
 body.keyboard-open .sticky-bottom-action { display: none !important; }
 
+/* ===== НИЖНЯЯ ПАНЕЛЬ НАВИГАЦИИ =====
+   Сплошной фон в цвет фона приложения (белый в light-теме) — без blur,
+   чтобы контент под панелью не просвечивал. Верхняя hairline-граница
+   отделяет панель от контента. */
+#bottom-nav {
+    background: var(--bg);
+    border-top: 1px solid var(--card-border);
+}
+/* Активный таб — акцентный цвет (текст + иконка), неактивные — приглушённые. */
+#bottom-nav .tab-item { color: var(--hint); transition: color .15s ease; }
+#bottom-nav .tab-item.text-tgLink { color: var(--accent); }
+
+/* ===== АВТОСКРЫТИЕ ПРИ ПРОКРУТКЕ =====
+   Вниз — панель навигации и плавающие кнопки уходят за нижний край,
+   вверх — возвращаются. transform не ломает position: fixed;
+   pointer-events:none в скрытом состоянии блокирует тапы «в пустоту». */
+@media (prefers-reduced-motion: no-preference) {
+    #bottom-nav,
+    .sticky-bottom-action { transition: transform .28s cubic-bezier(.32,.72,0,1), opacity .2s ease; }
+}
+body.nav-hidden #bottom-nav { transform: translateY(100%); }
+body.nav-hidden .sticky-bottom-action { transform: translateY(calc(100vh - var(--bottom-pos, 84px) + 60px)); opacity: 0; pointer-events: none; }
+
 /* ===== ЕДИНАЯ ДИЗАЙН-СИСТЕМА ===== */
 .app-card { background: var(--card-bg); border: 1px solid var(--card-border); border-radius: var(--card-radius); padding: 16px 14px; box-shadow: var(--shadow-card); }
 .app-inset { background: var(--inset-bg); border: 1px solid var(--inset-border); border-radius: 14px; }
