@@ -10,12 +10,12 @@ function applySafeAreaInsets() {
             if (typeof sa.top === 'number' && sa.top >= 0) st.setProperty('--safe-top', sa.top + 'px');
             if (typeof sa.bottom === 'number' && sa.bottom >= 0) st.setProperty('--safe-bottom', sa.bottom + 'px');
         }
-        // Высота системной кнопки «Закрыть» в fullscreen;
-        // состояние берём из tg.isFullscreen, а если его нет — из собственного флага
-        const fs = currentFullscreen();
-        const closeBtn = (TG_PLATFORM.indexOf('android') !== -1) ? 48 : 44;
-        st.setProperty('--extra-top', (fs ? closeBtn : 0) + 'px');
-        console.log('[Fitnary] insets:', JSON.stringify(sa), 'fullscreen:', fs, 'extra-top:', fs ? closeBtn : 0);
+        // Полоса Telegram с кнопками «Закрыть/Назад» и «Свернуть/⋮» занимает верхнюю зону
+        // ВСЕГДА (и в обычном, и в полноэкранном режиме), поэтому резервируем её высоту
+        // всегда — иначе sticky-заголовки при скролле уходят под системные кнопки.
+        const closeBtn = (TG_PLATFORM.indexOf('android') !== -1) ? 56 : 52;
+        st.setProperty('--extra-top', closeBtn + 'px');
+        console.log('[Fitnary] insets:', JSON.stringify(sa), 'extra-top:', closeBtn);
     } catch (e) {}
 }
 

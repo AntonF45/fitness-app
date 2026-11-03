@@ -46,7 +46,19 @@ function currentFullscreen() {
 const USER_ID = tg.initDataUnsafe?.user?.id || 'local_test_user_' + Math.random().toString(36).substr(2, 9);
 
 function haptic(type) { try { if (type === 'success' || type === 'error' || type === 'warning') tg.HapticFeedback?.notificationOccurred(type); else tg.HapticFeedback?.impactOccurred(type || 'light'); } catch (e) {} }
-function showAlert(message) { try { tg.showAlert(message); } catch (e) { alert(message); } }
+/* Всплывающее уведомление (toast): непрозрачная подложка — текст всегда читаем. */
+function showToast(message, type) {
+    try {
+        document.querySelectorAll('.app-toast').forEach(function (t) { t.remove(); });
+        var el = document.createElement('div');
+        el.className = 'app-toast ' + (type || '');
+        el.textContent = String(message || '');
+        document.body.appendChild(el);
+        requestAnimationFrame(function () { el.classList.add('show'); });
+        setTimeout(function () { el.classList.remove('show'); setTimeout(function () { el.remove(); }, 300); }, 2600);
+    } catch (e) { alert(message); }
+}
+function showAlert(message) { showToast(message, 'error'); try { if (tg && tg.HapticFeedback) tg.HapticFeedback.notificationOccurred('error'); } catch (e) {} }
 function showConfirm(message, callback) { try { tg.showConfirm(message, callback); } catch (e) { callback(confirm(message)); } }
 try { tg.BackButton.onClick(function () { navigateBack(); }); } catch (e) {}
 function updateBackButton(isSubScreen) { try { if (isSubScreen) tg.BackButton.show(); else tg.BackButton.hide(); } catch (e) {} }

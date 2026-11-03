@@ -255,7 +255,7 @@ function renderWorkout() {
         return generateExerciseCardHTML(g.originalIndex, g.exercise);
     }).join('');
     document.getElementById('app-content').innerHTML =
-        '<div class="sticky top-0 z-10 bg-tgBg/95 backdrop-blur-md py-4 mb-4 border-b border-tgSecondaryBg card-enter"><div class="text-4xl font-mono font-bold text-tgLink tracking-wider text-center" id="workout-timer">00:00:00</div><div class="text-tgHint text-xs mt-1 uppercase tracking-wide text-center">Время тренировки</div></div>' +
+        '<div class="screen-header sticky-top-simple z-10 card-enter" style="margin-bottom:16px"><div class="text-4xl font-mono font-bold text-tgLink tracking-wider text-center" id="workout-timer">00:00:00</div><div class="text-hint text-xs mt-1 uppercase tracking-wide text-center">Время тренировки</div></div>' +
         groupsHTML +
         '<button data-action="add-workout-exercise" class="btn btn-dashed mt-2 mb-2"><i class="fa-solid fa-plus"></i> Добавить упражнение</button>' +
         '<button data-action="finish-workout" class="btn btn-finish-workout mt-2 mb-4"><i class="fa-solid fa-check"></i> Завершить тренировку</button>';

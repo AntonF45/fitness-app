@@ -43,9 +43,9 @@ function openSetNoteModal(exIdx) {
     modal.className = 'modal-backdrop';
     modal.innerHTML =
         '<div class="modal-sheet">' +
-            '<div class="w-10 h-1 bg-tgHint/40 rounded-full mx-auto mb-4"></div>' +
+            '<div class="sheet-handle"></div>' +
             '<h2 class="text-xl font-bold mb-1 leading-snug break-words">' + escHtml(ex.name) + '</h2>' +
-            '<p class="text-tgHint text-xs mb-4">' + sets.length + ' подх. · ' + doneCount + ' выполнено · ощущения</p>' +
+            '<p class="text-hint text-xs mb-4">' + sets.length + ' подх. · ' + doneCount + ' выполнено · ощущения</p>' +
             '<label class="section-label">Комментарий</label>' +
             '<textarea id="note-input" maxlength="' + NOTE_MAX_LEN + '" rows="4"' +
                 ' class="note-textarea w-full text-sm mb-5" placeholder="Ощущения от упражнения…">' + escHtml(note) + '</textarea>' +
