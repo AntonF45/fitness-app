@@ -76,8 +76,11 @@
     --gap-block: 14px;
     --tap: 44px;
 
-    /* Стеклянные поверхности sticky-шапок и навигации */
-    --glass-bg: color-mix(in srgb, var(--bg) 82%, transparent);
+    /* Стеклянные поверхности sticky-шапок и навигации.
+   95% + blur(12px) — ровно как у секундомера на экране тренировки
+   (Tailwind bg-tgBg/95 backdrop-blur-md): шапка заметно полупрозрачна,
+   контент под ней читается сквозь blur. */
+    --glass-bg: color-mix(in srgb, var(--bg) 95%, transparent);
     --glass-line: color-mix(in srgb, var(--hint) 22%, transparent);
     --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.04), 0 8px 24px rgba(0, 0, 0, 0.06);
 }
@@ -132,14 +135,13 @@ input[type=number] { -moz-appearance: textfield; }
     position: sticky;
     top: var(--sticky-top);
     z-index: 10;
-    /* Полупрозрачное «стекло»: glass 82% + blur контента под шапкой.
-       Никаких дополнительных слоёв/баз — иначе шапка перестаёт быть
-       прозрачной. --glass-bg строится от --bg: в мобильных клиентах он
-       сплошной → получается матовое стекло; в Desktop он прозрачный →
+    /* Полупрозрачное «стекло» как у секундомера (bg-tgBg/95 + blur(12px)):
+       --glass-bg строится от --bg: в мобильных клиентах фон сплошной →
+       получается лёгкое матовое стекло; в Desktop он прозрачный →
        backdrop-filter размывает контент прямо под шапкой. */
     background: var(--glass-bg);
-    -webkit-backdrop-filter: blur(20px) saturate(150%);
-    backdrop-filter: blur(20px) saturate(150%);
+    -webkit-backdrop-filter: blur(12px) saturate(150%);
+    backdrop-filter: blur(12px) saturate(150%);
     border-bottom: 1px solid var(--glass-line);
     box-shadow: none;
     margin-left: calc(-1 * var(--page-x));
@@ -551,10 +553,12 @@ body.nav-hidden .sticky-bottom-action { transform: translateY(calc(100vh - var(-
 .hist-cal-count { position: absolute; top: 4px; right: 5px; font-size: 8px; font-weight: 800; line-height: 1; color: var(--accent); }
 
 /* Блок детального просмотра — НЕ sticky-шапка, а обычный блок в потоке:
-   без рамки, заливки и тени — акцент только цветным заголовком (--hc). */
+   без рамки, заливки и тени — акцент только цветным заголовком (--hc).
+   По ширине = остальные блоки экрана: #app-content уже даёт page-x отступы,
+   поэтому здесь только вертикальные отступы (без горизонтальных). */
 .hist-detail-head {
     margin-top: 0;
-    padding: 14px 16px 12px;
+    padding: 14px 0 12px;
     background: transparent;
     border: none;
     box-shadow: none;

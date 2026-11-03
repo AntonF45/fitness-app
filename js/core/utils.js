@@ -12,7 +12,7 @@ function createId() { return typeof crypto !== 'undefined' && crypto.randomUUID 
 
 const MONTHS_RU = ['Янв','Фев','Мар','Апр','Май','Июн','Июл','Авг','Сен','Окт','Ноя','Дек'];
 const WEEKDAYS_RU = ['Вс','Пн','Вт','Ср','Чт','Пт','Сб'];
-const DEFAULT_MUSCLE_GROUPS = ['Грудь','Спина','Ноги','Плечи','Руки'];
+const DEFAULT_MUSCLE_GROUPS = ['Грудь','Спина','Ноги','Плечи','Руки','Пресс'];
 
 const WEIGHT_MIN = 0, WEIGHT_MAX = 1000, REPS_MIN = 0, REPS_MAX = 100;
 function parseWeight(value) { if (value === '' || value === null || value === undefined) return 0; const n = Number(value); if (!isFinite(n) || isNaN(n)) return null; if (n < WEIGHT_MIN || n > WEIGHT_MAX) return null; return Math.round(n * 10) / 10; }
