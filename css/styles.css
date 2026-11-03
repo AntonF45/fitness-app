@@ -122,28 +122,21 @@ input[type=number] { -moz-appearance: textfield; }
 #app-content { --sticky-top: var(--top-reserve); }
 /* СЛОЙ ПОД sticky-шапками: в Telegram Desktop фон окна (--tg-theme-bg-color)
    прозрачный, и полупрозрачное «стекло» шапки просвечивало бы «дырой» до
-   рабочего стола. Непрозрачная подложка того же цвета убирает это; на
-   мобильных клиентах слой визуально неотличим от фона (сплошной тот же цвет). */
-body::before {
-    content: '';
-    position: fixed;
-    top: 0; left: 0; right: 0;
-    height: calc(var(--top-reserve) + 64px);
-    background: var(--bg);
-    z-index: 5; /* выше контента (z auto), НИЖЕ sticky-шапок (z 10):
-                  слой подложки не должен перекрывать сами шапки */
-    pointer-events: none;
-}
+   рабочего стола — поэтому стекло строится поверх НЕПРОЗРАЧной базы --bg
+   (см. background ниже), без отдельного фиксированного слоя-плашки. */
+
 .screen-header, .stats-header {
     position: sticky;
     top: var(--sticky-top);
     z-index: 10;
     /* Полупрозрачное «стекло»: translucent-подложка + blur контента под
-       шапкой. Подложка строится поверх НЕПРОЗРАЧНОЙ базы --bg, поэтому
-       даже если хост Telegram прислал прозрачный --tg-theme-bg-color
-       (Desktop), под glass всегда лежит сплошной белый/чёрный слой —
-       контент зашапки просвечивает ровно на 18%, как задумано. */
-    background: var(--glass-bg);
+       шапкой. Двойной фон: НЕПРОЗРАЧНАЯ база --bg (сплошной белый/чёрный) +
+       поверх неё glass 82%. Это нужно для Telegram Desktop, где хост присылает
+       прозрачный --tg-theme-bg-color — без базы стекло было бы полностью
+       прозрачным и нечитаемым. На мобильных клиентах визуально то же самое:
+       контент за шапкой просвечивает ровно на 18%, как задумано. */
+    background: var(--glass-bg), var(--bg);
+    background-color: var(--bg);
     -webkit-backdrop-filter: blur(20px) saturate(150%);
     backdrop-filter: blur(20px) saturate(150%);
     border-bottom: 1px solid var(--glass-line);
