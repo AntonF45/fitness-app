@@ -116,7 +116,13 @@ input[type=number] { -moz-appearance: textfield; }
 #app-content {
     box-sizing: border-box;
     min-height: 100dvh;
-    padding-top: calc(var(--top-reserve) + var(--header-h, 0px));
+    /* Отступ ТОЛЬКО под системную полосу Telegram. Высота шапки сюда не
+       входит: она обеспечивается собственным margin-bottom шапки (= её
+       высоте), который занимает место в потоке ДО контента. Так контент
+       гарантированно стартует после шапки на любом WebView (в Telegram
+       iOS padding-top контейнера не гарантирует позицию первого элемента,
+       если sticky-шапка «вытянута» вверх отрицательным margin). */
+    padding-top: var(--top-reserve);
     /* Верхняя граница sticky-зоны = нижний край полосы Telegram.
        Наследуется всеми липкими панелями экрана (шапки, секундомер,
        суперсет-панель редактора), поэтому ни одна из них не залезает
@@ -137,33 +143,24 @@ input[type=number] { -moz-appearance: textfield; }
        контейнера, чтобы шапка прилипала ровно под полосу Telegram без щели. */
     margin-top: calc(-1 * var(--top-reserve));
     padding: 14px var(--page-x);
+    /* Резерв места под шапкой в потоке: height+border+margin-bottom =
+       полная высота блока. Контент физически не может начинаться под
+       шапкой — он идёт сразу за зарезервированным блоком. */
+    margin-bottom: calc(100% + 2px); /* height + border-bottom(1px) + зазор 1px */
 }
-/* Контент страницы начинается ПОСЛЕ шапки (не под ней): отступ обеспечен
-   самим #app-content (padding-top = полоса Telegram + реальная высота шапки),
-   поэтому контент стартует сразу под шапкой уже при открытии экрана, а между
-   остальными блоками лишних зазоров нет (margin-top всем подряд НЕ ставится).
-   Значение --header-h измеряется JS (js/core/header-offset.js, ResizeObserver).
-   Единственное исключение — «мягкая» компенсация для ПЕРВОГО блока после шапки:
-   если у него есть собственный верхний отступ (margin/padding-top или
-   height-заглушка), он гасится до --gap-block (14px), чтобы суммарный зазор
-   под шапкой остался привычным. min()/max() дают «мягкий пол»: даже если JS не
-   успел измерить высоту, контент не заходит под шапку. */
+/* Компенсация: у шапки появился нижний отступ (= её высоте), поэтому
+   верхний отступ ПЕРВОГО блока после шапки гасим до привычного --gap-block
+   (14px), чтобы суммарный зазор под шапкой не удвоился. Работает только
+   когда JS измерил реальную высоту (--header-h); до измерения действует
+   безопасное значение по умолчанию 56px (обычная однострочная шапка). */
 .screen-header + *, .stats-header + * {
-    margin-top: min(0px, calc(var(--gap-block) - var(--header-h, 0px)));
-    padding-top: min(0px, calc(var(--gap-block) - var(--header-h, 0px)));
-}
-@supports (height: calc-size(auto, size)) {
-    .screen-header + *, .stats-header + * {
-        /* height:auto → auto минус лишнее; для блоков без фиксированной
-           высоты правило безопасно (auto остаётся auto). */
-        height: calc-size(auto, max(0px, size + var(--gap-block) - var(--header-h, 0px)));
-    }
+    margin-top: calc(var(--gap-block) - var(--header-h, 56px));
 }
 /* Защита sticky-панелей: анимация card-enter задаёт transform (translateY/scale)
-   на самом элементе — в Telegram WebView transform на sticky-элементах ломает
-   фиксацию («панель уезжает вместе с контентом»). На всех липких элементах
-   card-enter отключён; появление шапок — через fade без transform. */
-.sticky.card-enter, .screen-header.card-enter, .stats-header.card-enter { animation: none !important; }
+   на самом элементе — в Telegram WebView анимированный transform ломает
+   фиксацию sticky («панель уезжает вместе с контентом»). Поэтому на шапках
+   card-enter не используется (убран из разметки); появление заголовков —
+   через fade без transform. */
 @keyframes headerFadeIn { from { opacity: 0; } to { opacity: 1; } }
 .screen-header .screen-title, .stats-header .stats-title { animation: headerFadeIn 0.3s ease both; }
 .screen-header { padding-bottom: 12px; }
@@ -171,7 +168,9 @@ input[type=number] { -moz-appearance: textfield; }
 .screen-title .screen-count { font-size: 13px; font-weight: 600; color: var(--hint); letter-spacing: 0; }
 .stats-header { padding-bottom: 14px; }
 .sticky.top-0 { top: var(--sticky-top, 0px) !important; }
-.sticky.top-2 { top: calc(var(--sticky-top, 0px) + 8px) !important; }
+/* Баннер суперсета в редакторе программы: его sticky-top считает JS
+   (header-offset.js, inline-style), поэтому правило без !important. */
+.sticky.top-2 { top: calc(var(--sticky-top, 0px) + 8px); }
 .stats-title {
     font-size: var(--font-display);
     font-weight: 800;
@@ -526,14 +525,17 @@ body.keyboard-open .sticky-bottom-action { display: none !important; }
 
 /* Шапка детального просмотра */
 /* Шапка деталей записи — как обычная sticky-шапка экрана (сплошной фон,
-   липнет ровно под полосу Telegram, контент начинается после неё). */
+   липнет ровно под полосу Telegram, контент начинается после неё).
+   «Высокая» шапка (заголовок + дата + чипы + статистика): нижний край
+   sticky-зоны выносим за сам блок (top = полоса Telegram + высота шапки),
+   а место в потоке резервирует общий margin-bottom: 100% — для этого
+   height блока считаем от border-box. Контент стартует сразу под ней и
+   при скролле уходит ровно под шапку. */
 .hist-detail-head { padding: 14px var(--page-x) 12px; background: var(--bg); }
-.screen-header.hist-detail-head { top: var(--sticky-top); margin-top: calc(-1 * var(--top-reserve)); }
-/* Шапка деталей — «высокая» (заголовок + дата + чипы + статистика), поэтому
-   нижний край sticky-зоны выносим за сам блок: --sticky-top = полоса Telegram
-   + реальная высота шапки (--header-h измеряется JS). Контент под ней стартует
-   сразу после её нижней границы и при скролле уходит ровно под шапку. */
-.screen-header.hist-detail-head { top: calc(var(--sticky-top) + var(--header-h, 0px)); }
+.screen-header.hist-detail-head {
+    box-sizing: content-box;
+    top: calc(var(--sticky-top) + var(--header-h, 0px));
+}
 .hist-detail-title { font-size: 20px; font-weight: 800; color: var(--hc); line-height: 1.25; }
 /* Переключение тренировок одного дня — минималистичные кнопки < > без заливки и границ */
 .hist-detail-nav { display: inline-flex; align-items: center; gap: 2px; flex-shrink: 0; margin-top: 2px; }

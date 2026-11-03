@@ -21,7 +21,7 @@ function renderStats() {
         '<button data-action="select-period" data-payload="all" class="period-btn ' + (state.selectedPeriod === 'all' && !state.selectedMonthKey ? 'active' : '') + '">Всё</button>';
 
     document.getElementById('app-content').innerHTML =
-        '<header class="stats-header card-enter">' +
+        '<header class="stats-header">' +
             '<h1 id="stats-title" class="stats-title">Статистика: ' + escHtml(getPeriodLabel()) + '</h1>' +
             /* Одна строка: [месяцы] [периоды — выезжают справа налево] [фильтр/крестик].
                При открытии панель «7 дней / 30 дней / …» выезжает из-под кнопки фильтра влево,
