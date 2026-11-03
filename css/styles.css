@@ -486,10 +486,9 @@ body.keyboard-open .sticky-bottom-action { display: none !important; }
 .hist-cal-cell-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
 .hist-cal-count { position: absolute; top: 4px; right: 5px; font-size: 8px; font-weight: 800; line-height: 1; color: var(--accent); }
 
-/* Шапка детального просмотра — обычная sticky-шапка экрана: место в потоке
-   она занимает сама, фиксация — на границе --sticky-top (под полосой Telegram).
-   Сплошной фон вместо blur: под шапкой лежит пёстрая карточка записи. */
-.hist-detail-head { padding: 14px var(--page-x) 12px; background: var(--bg); }
+/* Блок детального просмотра — НЕ sticky-шапка, а обычная карточка в потоке:
+   липкая шапка на этом экране не нужна. Отступ сверху compensates полосу Telegram. */
+.hist-detail-head { margin-top: 0; padding: 14px 16px 12px; }
 .hist-detail-title { font-size: 20px; font-weight: 800; color: var(--hc); line-height: 1.25; }
 /* Переключение тренировок одного дня — минималистичные кнопки < > без заливки и границ */
 .hist-detail-nav { display: inline-flex; align-items: center; gap: 2px; flex-shrink: 0; margin-top: 2px; }
