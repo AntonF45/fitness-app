@@ -21,7 +21,7 @@ function renderStats() {
         '<button data-action="select-period" data-payload="all" class="period-btn ' + (state.selectedPeriod === 'all' && !state.selectedMonthKey ? 'active' : '') + '">Всё</button>';
 
     document.getElementById('app-content').innerHTML =
-        '<div class="stats-header bg-tgBg/95 backdrop-blur-md card-enter">' +
+        '<header class="stats-header card-enter">' +
             '<h1 id="stats-title" class="stats-title">Статистика: ' + escHtml(getPeriodLabel()) + '</h1>' +
             /* Одна строка: [месяцы] [периоды — выезжают справа налево] [фильтр/крестик].
                При открытии панель «7 дней / 30 дней / …» выезжает из-под кнопки фильтра влево,
@@ -34,7 +34,7 @@ function renderStats() {
                     '<i class="fa-solid fa-sliders fi-sliders"></i><i class="fa-solid fa-xmark fi-xmark"></i>' +
                 '</button>' +
             '</div>' +
-        '</div>' +
+        '</header>' +
         '<div class="pt-4">' +
             '<div id="stats-summary-container">' + renderGeneralSummaryHTML(filteredHistory) + '</div>' +
             renderMuscleGroupSetsChartHTML(filteredHistory) +
