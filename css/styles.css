@@ -77,10 +77,11 @@
     --tap: 44px;
 
     /* Стеклянные поверхности sticky-шапок и навигации.
-   95% + blur(12px) — ровно как у секундомера на экране тренировки
-   (Tailwind bg-tgBg/95 backdrop-blur-md): шапка заметно полупрозрачна,
-   контент под ней читается сквозь blur. */
-    --glass-bg: color-mix(in srgb, var(--bg) 95%, transparent);
+   80% + blur(12px) — прозрачнее, чем у секундомера (bg-tgBg/95), как просили.
+   ВАЖНО: строится от --tg-theme-bg-color напрямую, а НЕ от --bg: в некоторых
+   WebView базовый фон Telegram сам по себе прозрачный, и color-mix от него
+   давал непрозрачную «белую плашку» вместо стекла. */
+    --glass-bg: color-mix(in srgb, var(--tg-theme-bg-color) 80%, transparent);
     --glass-line: color-mix(in srgb, var(--hint) 22%, transparent);
     --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.04), 0 8px 24px rgba(0, 0, 0, 0.06);
 }
