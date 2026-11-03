@@ -1,66 +1,126 @@
+/* ============================================================
+   Fitnary — дизайн-токены (единый источник стиля для light/dark).
+   Все базовые цвета берутся из Telegram-переменных: тема переключается
+   хостом автоматически, JS не нужен. Акценты — семантические константы.
+   ============================================================ */
 :root {
+    --bg: var(--bg);
+    --bg-secondary: var(--bg-secondary);
+    --text: var(--text);
+    --hint: var(--hint);
+    --accent: var(--tg-theme-link-color, #3b82f6);
+    --accent-strong: var(--tg-theme-button-color, #3b82f6);
+    --accent-on: var(--tg-theme-button-text-color, #ffffff);
+
     --bottom-nav-height: 72px;
     --safe-bottom: env(safe-area-inset-bottom, 0px);
     --safe-top: env(safe-area-inset-top, 0px);
     --extra-top: 0px; /* высота системной кнопки «Закрыть» в fullscreen */
-    --card-bg: rgba(59, 130, 246, 0.04);
-    --card-border: rgba(59, 130, 246, 0.12);
-    --card-radius: 16px;
-    --accent: var(--tg-theme-link-color, #3b82f6);
-    --accent-bg: rgba(59, 130, 246, 0.15);
-    --accent-border: rgba(59, 130, 246, 0.4);
-    --danger: #f87171;
-    --danger-bg: rgba(239, 68, 68, 0.12);
-    --danger-border: rgba(239, 68, 68, 0.3);
-    --warn: #fb923c;
-    --warn-bg: rgba(249, 115, 22, 0.12);
-    --warn-border: rgba(249, 115, 22, 0.3);
-    --inset-bg: rgba(59, 130, 246, 0.08);
-    --inset-border: rgba(59, 130, 246, 0.22);
+
+    /* Поверхности: карточка = мягкая заливка поверх фона экрана,
+       инсет = вложенный блок внутри карточки. */
+    --card-bg: color-mix(in srgb, var(--accent) 5%, var(--bg));
+    --card-border: color-mix(in srgb, var(--accent) 14%, transparent);
+    --card-radius: 18px;
+    --accent-bg: color-mix(in srgb, var(--accent) 16%, transparent);
+    --accent-border: color-mix(in srgb, var(--accent) 42%, transparent);
+    --inset-bg: color-mix(in srgb, var(--accent) 9%, var(--bg));
+    --inset-border: color-mix(in srgb, var(--accent) 22%, transparent);
+
+    /* Семантика (статусы, а не декор) */
+    --danger: #ff453a;
+    --danger-bg: rgba(255, 69, 58, 0.13);
+    --danger-border: rgba(255, 69, 58, 0.32);
+    --warn: #ff9f0a;
+    --warn-bg: rgba(255, 159, 10, 0.13);
+    --warn-border: rgba(255, 159, 10, 0.32);
+    --success: #30d158;
+    --success-bg: rgba(48, 209, 88, 0.14);
+
+    /* Палитра акцентов контента (группы мышц / метрики) — одна на обе темы */
+    --c-blue: #5ac8fa; --c-blue-bg: rgba(90, 200, 250, 0.14);
+    --c-purple: #bf5af2; --c-purple-bg: rgba(191, 90, 242, 0.14);
+    --c-green: #30d158; --c-green-bg: rgba(48, 209, 88, 0.14);
+    --c-orange: #ff9f0a; --c-orange-bg: rgba(255, 159, 10, 0.14);
+    --c-cyan: #64d2ff; --c-cyan-bg: rgba(100, 210, 255, 0.14);
+    --c-red: #ff453a; --c-red-bg: rgba(255, 69, 58, 0.14);
+    --c-gold: #ffd60a; --c-gold-bg: rgba(255, 214, 10, 0.14);
+
+    /* Типографика */
+    --font-display: 26px;
+    --font-title: 17px;
+    --font-body: 15px;
+    --font-meta: 12px;
+
+    /* Ритм и размеры зон */
+    --page-x: 16px;
+    --gap-block: 14px;
+    --tap: 44px;
+
+    /* Стеклянные поверхности sticky-шапок и навигации */
+    --glass-bg: color-mix(in srgb, var(--bg) 82%, transparent);
+    --glass-line: color-mix(in srgb, var(--hint) 22%, transparent);
+    --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.04), 0 8px 24px rgba(0, 0, 0, 0.06);
 }
-body { background-color: var(--tg-theme-bg-color, #1c1c1e); color: var(--tg-theme-text-color, #ffffff); font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; -webkit-tap-highlight-color: transparent; padding-top: calc(var(--safe-top) + var(--extra-top)); padding-bottom: calc(var(--bottom-nav-height) + var(--safe-bottom) + 16px); }
-input, select { background: var(--inset-bg); color: var(--tg-theme-text-color, #ffffff); border: 1px solid var(--inset-border); border-radius: 12px; }
+body { background-color: var(--bg); color: var(--text); font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", Roboto, Helvetica, Arial, sans-serif; -webkit-tap-highlight-color: transparent; padding-top: calc(var(--safe-top) + var(--extra-top)); padding-bottom: calc(var(--bottom-nav-height) + var(--safe-bottom) + 16px); }
+input, select { background: var(--inset-bg); color: var(--text); border: 1px solid var(--inset-border); border-radius: 12px; }
 .input-bare { background: transparent; border: none; border-radius: 8px; }
-.input-bare:focus { outline: none; }
+.input-bare:focus { outline: none; box-shadow: none; }
+.exercise-input, .muscle-input, .exercise-name-input, #prog-name { min-height: var(--tap); }
+#prog-name { background: var(--inset-bg); border: 1px solid var(--inset-border); color: var(--text); }
+#prog-name:focus { border-color: var(--accent-border); box-shadow: 0 0 0 3px var(--accent-bg); }
 input[type=number]::-webkit-inner-spin-button, input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
 input[type=number] { -moz-appearance: textfield; }
 .scroll-container { scrollbar-width: none; -ms-overflow-style: none; scroll-padding-left: 16px; scroll-padding-right: 16px; }
 .scroll-container::-webkit-scrollbar { display: none; }
 .snap-x { scroll-snap-type: x mandatory; }
 .snap-center { scroll-snap-align: center; }
-.stat-chip { background: var(--card-bg); border: 1px solid var(--card-border); transition: all 0.2s ease; min-width: 0; max-width: 180px; white-space: normal; text-align: left; line-height: 1.25; word-break: break-word; }
+.stat-chip { display: inline-flex; align-items: center; min-height: var(--tap); background: var(--card-bg); border: 1px solid var(--card-border); border-radius: 999px; transition: background 0.18s ease, border-color 0.18s ease, color 0.18s ease, transform 0.1s ease; min-width: 0; max-width: 200px; white-space: normal; text-align: left; line-height: 1.25; word-break: break-word; box-shadow: none; }
 .stat-chip:active { transform: scale(0.96); }
-.stat-chip.active { background: var(--accent-bg); border-color: var(--accent-border); color: #ffffff; }
-.stat-chip.inactive { color: var(--tg-theme-hint-color, #8e8e93); }
-.card-enter { animation: cardIn 0.2s ease-out both; }
-@keyframes cardIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+.stat-chip.active { background: var(--accent-strong); border-color: transparent; color: var(--accent-on); font-weight: 600; }
+.stat-chip.inactive { color: var(--hint); }
+.card-enter { animation: cardIn 0.32s cubic-bezier(0.32, 0.72, 0, 1) both; }
+@keyframes cardIn { from { opacity: 0; transform: translateY(10px) scale(0.985); } to { opacity: 1; transform: translateY(0) scale(1); } }
+@media (prefers-reduced-motion: reduce) {
+    .card-enter { animation: none; }
+    *, *::before, *::after { transition-duration: 0.01ms !important; animation-duration: 0.01ms !important; }
+}
 .chart-card { background: var(--card-bg); border: 1px solid var(--card-border); }
 .chart-container-fixed { height: 260px; position: relative; overflow: hidden; }
 .chart-wrapper-fixed { position: absolute; top: 0; left: 0; right: 0; bottom: 0; }
 
-.stats-header {
+/* Единая sticky-шапка экрана (glass + hairline). Один стиль для всех вкладок. */
+.screen-header, .stats-header {
     position: sticky;
-    top: calc(var(--safe-top) + var(--extra-top));
+    top: calc(-1 * calc(var(--safe-top) + var(--extra-top)));
     z-index: 10;
-    border-bottom: 1px solid rgba(142, 142, 147, 0.15);
-    margin-left: -16px;
-    margin-right: -16px;
-    padding: 12px 16px 16px;
+    background: var(--glass-bg);
+    -webkit-backdrop-filter: blur(20px) saturate(160%);
+    backdrop-filter: blur(20px) saturate(160%);
+    border-bottom: 1px solid var(--glass-line);
+    margin-left: calc(-1 * var(--page-x));
+    margin-right: calc(-1 * var(--page-x));
+    margin-top: calc(-1 * var(--page-x));
+    padding: calc(var(--safe-top) + var(--extra-top) + 14px) var(--page-x) 14px;
 }
+.screen-header { padding-bottom: 12px; }
+.screen-title { display: flex; align-items: baseline; gap: 8px; font-size: var(--font-display); font-weight: 800; letter-spacing: -0.5px; line-height: 1.2; text-align: left; color: var(--text); }
+.screen-title .screen-count { font-size: 13px; font-weight: 600; color: var(--hint); letter-spacing: 0; }
+.stats-header { padding-bottom: 14px; }
 .sticky.top-0 { top: calc(var(--safe-top) + var(--extra-top)) !important; }
 .sticky.top-2 { top: calc(var(--safe-top) + var(--extra-top) + 8px) !important; }
 .stats-title {
-    font-size: 20px;
+    font-size: var(--font-display);
     font-weight: 800;
-    letter-spacing: -0.3px;
+    letter-spacing: -0.5px;
     line-height: 1.2;
-    text-align: center;
-    color: var(--tg-theme-hint-color, #8e8e93);
+    text-align: left;
+    color: var(--text);
 }
 .summary-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
-.summary-cell { background: var(--card-bg); border: 1px solid var(--card-border); border-radius: 14px; padding: 10px 8px; text-align: center; min-width: 0; }
+.summary-cell { background: var(--card-bg); border: 1px solid var(--card-border); border-radius: 14px; padding: 12px 8px; text-align: center; min-width: 0; }
 .summary-value { font-size: 18px; font-weight: 700; line-height: 1.2; }
-.summary-label { font-size: 9px; text-transform: uppercase; letter-spacing: 0.5px; color: var(--tg-theme-hint-color, #8e8e93); margin-top: 2px; line-height: 1.2; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.summary-label { font-size: 9px; text-transform: uppercase; letter-spacing: 0.5px; color: var(--hint); margin-top: 2px; line-height: 1.2; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
 /* Фильтр периода в одну строку: [месяцы] [панель периодов] [кнопка фильтра/крестик].
    При нажатии на кнопку панель «7 дней / 30 дней / 90 дней / Всё» выезжает СПРАВА НАЛЕВО
@@ -74,7 +134,7 @@ input[type=number] { -moz-appearance: textfield; }
 .months-track { flex: 1 1 auto; min-width: 0; display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; -ms-overflow-style: none; scroll-padding-left: 4px; padding-right: 2px; transition: transform 0.26s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.2s ease; }
 .months-track::-webkit-scrollbar { display: none; }
 .months-track > * { flex-shrink: 0; }
-.months-empty { font-size: 11px; color: var(--tg-theme-hint-color, #8e8e93); line-height: 36px; white-space: nowrap; padding-left: 2px; }
+.months-empty { font-size: 11px; color: var(--hint); line-height: 40px; white-space: nowrap; padding-left: 2px; }
 /* Месяцы в свёрнутом состоянии въезжают СЛЕВА НАПРАВО (translateX(-100%) → 0).
    pointer-events:none в открытом состоянии — месяцы уже невидимы, тапы по ним исключены. */
 .filter-line.open .months-track { transform: translateX(calc(-100% - 12px)); opacity: 0; pointer-events: none; }
@@ -83,7 +143,7 @@ input[type=number] { -moz-appearance: textfield; }
    именно из-под кнопки фильтра влево, а не приходит со стороны экрана.
    При закрытии панель НЕ уезжает — гаснет на месте (transition:none в .closing),
    поэтому текст «7 дней / 30 дней…» не мелькает поверх кнопки даже долю секунды. */
-.periods-panel { position: absolute; left: 0; right: 44px; top: 50%; transform: translate(-10px, -50%) scaleX(0); transform-origin: 100% 50%; opacity: 0; visibility: hidden; z-index: 2; pointer-events: none; transition: transform 0.26s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.2s ease, visibility 0s linear 0.26s; }
+.periods-panel { position: absolute; left: 0; right: var(--tap); top: 50%; transform: translate(-10px, -50%) scaleX(0); transform-origin: 100% 50%; opacity: 0; visibility: hidden; z-index: 2; pointer-events: none; transition: transform 0.26s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.2s ease, visibility 0s linear 0.26s; }
 .filter-line.open .periods-panel { transform: translate(0, -50%) scaleX(1); opacity: 1; visibility: visible; pointer-events: auto; transition: transform 0.26s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.18s ease 0.04s, visibility 0s; }
 /* Подложка панели — фон ТОЧНО как у всего блока фильтров (.period-filter): та же
    полупрозрачная карточка var(--card-bg) с той же тонкой рамкой var(--card-border).
@@ -108,32 +168,32 @@ input[type=number] { -moz-appearance: textfield; }
    перекрывает клики по кнопкам периодов до конца анимации. */
 .periods-panel.closing { opacity: 0 !important; visibility: hidden !important; pointer-events: none !important; transition: none !important; }
 
-.filter-toggle-btn { width: 36px; height: 36px; border-radius: 10px; background: var(--accent-bg); border: 1px solid rgba(59, 130, 246, 0.25); display: flex; align-items: center; justify-content: center; color: var(--accent); transition: background 0.2s ease; flex-shrink: 0; }
-.filter-toggle-btn:active { transform: scale(0.92); background: rgba(59, 130, 246, 0.2); }
-.filter-toggle-btn.active { background: rgba(59, 130, 246, 0.25); }
-.period-filter { display: flex; gap: 6px; background: var(--card-bg); border: 1px solid var(--card-border); padding: 4px; border-radius: 12px; }
-.period-btn { padding: 6px 12px; border-radius: 8px; font-size: 12px; font-weight: 600; color: var(--tg-theme-hint-color, #8e8e93); transition: all 0.2s ease; white-space: nowrap; }
-.period-btn.active { background: var(--accent-bg); border: 1px solid var(--accent-border); color: #ffffff; }
+.filter-toggle-btn { width: var(--tap); height: var(--tap); border-radius: 10px; background: var(--accent-bg); border: 1px solid var(--card-border); display: flex; align-items: center; justify-content: center; color: var(--accent); transition: background 0.2s ease; flex-shrink: 0; }
+.filter-toggle-btn:active { transform: scale(0.92); background: var(--accent-bg); }
+.filter-toggle-btn.active { background: var(--accent-bg); }
+.period-filter { display: flex; gap: 4px; background: var(--card-bg); border: 1px solid var(--card-border); padding: 4px; border-radius: 14px; }
+.period-btn { padding: 8px 14px; min-height: 36px; border-radius: 10px; font-size: 12.5px; font-weight: 600; color: var(--hint); background: transparent; border: none; transition: background 0.18s ease, color 0.18s ease, transform 0.1s ease; white-space: nowrap; cursor: pointer; }
+.period-btn.active { background: var(--accent-strong); color: var(--accent-on); }
 .period-btn:active { transform: scale(0.95); }
 
-.metric-switcher { display: flex; gap: 4px; background: var(--card-bg); border: 1px solid var(--card-border); padding: 4px; border-radius: 12px; margin-bottom: 12px; }
-.metric-btn { flex: 1; padding: 8px 4px; border-radius: 8px; font-size: 12px; font-weight: 600; text-align: center; color: var(--tg-theme-hint-color, #8e8e93); transition: all 0.2s ease; }
-.metric-btn.active { background: var(--accent-bg); color: #ffffff; border: 1px solid var(--accent-border); }
+.metric-switcher { display: flex; gap: 4px; background: var(--inset-bg); border: none; padding: 3px; border-radius: 12px; margin-bottom: 12px; }
+.metric-btn { flex: 1; min-height: 36px; padding: 8px 4px; border-radius: 9px; font-size: 12.5px; font-weight: 600; text-align: center; color: var(--hint); background: transparent; border: none; transition: background 0.18s ease, color 0.18s ease, transform 0.1s ease; cursor: pointer; }
+.metric-btn.active { background: var(--card-bg); color: var(--text); box-shadow: 0 1px 4px rgba(0,0,0,0.18); }
 .metric-btn:active { transform: scale(0.96); }
 
-.empty-state-block { background: var(--card-bg); border: 1px solid var(--card-border); border-radius: 16px; padding: 24px 16px; text-align: center; color: var(--tg-theme-hint-color, #8e8e93); }
-.empty-state-block i { font-size: 24px; margin-bottom: 8px; opacity: 0.6; }
-.empty-state-block .title { font-size: 13px; font-weight: 600; margin-bottom: 4px; color: var(--tg-theme-text-color, #fff); }
-.empty-state-block .desc { font-size: 11px; line-height: 1.4; }
-.metric-note { font-size: 10px; color: var(--tg-theme-hint-color, #8e8e93); margin-top: 4px; font-style: italic; }
-.estimated-badge { display: inline-block; font-size: 9px; padding: 1px 6px; background: rgba(142, 142, 147, 0.15); color: var(--tg-theme-hint-color, #8e8e93); border-radius: 6px; margin-left: 4px; font-weight: 500; letter-spacing: 0.3px; vertical-align: middle; }
+.empty-state-block { background: var(--card-bg); border: 1px solid var(--card-border); border-radius: var(--card-radius); padding: 28px 20px; text-align: center; color: var(--hint); }
+.empty-state-block i { display: inline-flex; align-items: center; justify-content: center; width: 52px; height: 52px; margin: 0 auto 12px; border-radius: 16px; background: var(--accent-bg); color: var(--accent); font-size: 20px; }
+.empty-state-block .title { font-size: 15px; font-weight: 700; margin-bottom: 4px; color: var(--text); }
+.empty-state-block .desc { font-size: 12.5px; line-height: 1.45; max-width: 30ch; margin: 0 auto; }
+.metric-note { font-size: 10px; color: var(--hint); margin-top: 4px; font-style: italic; }
+.estimated-badge { display: inline-block; font-size: 9px; padding: 1px 6px; background: rgba(142, 142, 147, 0.15); color: var(--hint); border-radius: 6px; margin-left: 4px; font-weight: 500; letter-spacing: 0.3px; vertical-align: middle; }
 .achievement-card { background: var(--card-bg); border: 1px solid var(--card-border); border-radius: 16px; padding: 14px; transition: all 0.2s ease; }
 .achievement-icon { width: 40px; height: 40px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 18px; flex-shrink: 0; }
-.achievement-icon.gold { background: rgba(251, 191, 36, 0.15); color: #fbbf24; }
-.achievement-icon.blue { background: var(--accent-bg); color: #60a5fa; }
-.achievement-icon.green { background: rgba(34, 197, 94, 0.15); color: #4ade80; }
-.achievement-icon.purple { background: rgba(168, 85, 247, 0.15); color: #c084fc; }
-.bodyweight-badge { display: inline-flex; align-items: center; background: rgba(34, 197, 94, 0.15); color: #4ade80; padding: 4px 10px; border-radius: 8px; font-size: 11px; font-weight: 600; }
+.achievement-icon.gold { background: var(--c-gold-bg); color: var(--c-gold); }
+.achievement-icon.blue { background: var(--c-blue-bg); color: var(--c-blue); }
+.achievement-icon.green { background: var(--c-green-bg); color: var(--c-green); }
+.achievement-icon.purple { background: var(--c-purple-bg); color: var(--c-purple); }
+.bodyweight-badge { display: inline-flex; align-items: center; background: var(--success-bg); color: var(--success); padding: 4px 10px; border-radius: 999px; font-size: 11px; font-weight: 600; }
 .drop-badge { display: inline-flex; align-items: center; gap: 4px; background: var(--warn-bg); color: var(--warn); padding: 2px 8px; border-radius: 6px; font-size: 10px; font-weight: 700; letter-spacing: 0.5px; }
 .checkbox-label { display: flex; align-items: center; gap: 10px; cursor: pointer; user-select: none; }
 /* Чекбокс «Собственный вес» — ОДИН круг, без наслоений.
@@ -151,13 +211,13 @@ input[type=number] { -moz-appearance: textfield; }
    а галочка — белая SVG, вписана точно в центр круга через viewBox, поэтому
    не «уезжает» в сторону и не зависит от засечек шрифта. */
 .checkbox-label input[type="checkbox"]:checked {
-    background: #4ade80;
+    background: var(--success);
     /* синие/серые системные стили чекбоксов поверх наших — исключены */
     accent-color: transparent;
 }
 .checkbox-label input[type="checkbox"]:checked::after {
     content: ""; position: absolute; inset: 0;
-    background-color: #ffffff;
+    background-color: #fff;
     -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M9.55 17.6L4.4 12.45l1.6-1.6 3.55 3.55 8.45-8.45 1.6 1.6z'/%3E%3C/svg%3E");
     mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M9.55 17.6L4.4 12.45l1.6-1.6 3.55 3.55 8.45-8.45 1.6 1.6z'/%3E%3C/svg%3E");
     -webkit-mask-repeat: no-repeat; mask-repeat: no-repeat;
@@ -165,12 +225,19 @@ input[type=number] { -moz-appearance: textfield; }
     -webkit-mask-size: 15px 15px; mask-size: 15px 15px;
 }
 /* Текст строки — серый (цвет подсказок приложения). */
-.checkbox-label span { color: var(--tg-theme-hint-color, #8e8e93); }
+.checkbox-label span { color: var(--hint); }
 /* Отклик при нажатии. */
 .checkbox-label input[type="checkbox"]:active { transform: scale(0.92); }
-.modal-backdrop { position: fixed; inset: 0; z-index: 100; display: flex; align-items: center; justify-content: center; background: rgba(0, 0, 0, 0.65); padding: calc(16px + var(--safe-top) + var(--extra-top)) 16px calc(16px + var(--safe-bottom)); }
-.modal-sheet { width: 100%; max-width: 480px; background: var(--tg-theme-secondary-bg-color, #2c2c2e); background: color-mix(in srgb, var(--tg-theme-secondary-bg-color, #2c2c2e) 92%, #3b82f6 8%); color: var(--tg-theme-text-color, #ffffff); border: 1px solid var(--inset-border); border-radius: 20px; padding: 20px; padding-bottom: calc(20px + env(safe-area-inset-bottom, 0px)); animation: modalIn 0.2s ease-out; }
-@keyframes modalIn { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
+/* Модальные окна — bottom sheet: прижаты к низу, drag-handle, safe area. */
+.modal-backdrop { position: fixed; inset: 0; z-index: 100; display: flex; align-items: flex-end; justify-content: center; background: rgba(0, 0, 0, 0.45); -webkit-backdrop-filter: blur(4px); backdrop-filter: blur(4px); padding: 0; animation: backdropIn 0.2s ease-out; }
+.modal-sheet { width: 100%; max-width: 560px; background: var(--bg-secondary); color: var(--text); border: none; border-radius: 22px 22px 0 0; padding: 10px 20px 20px; padding-bottom: calc(20px + var(--safe-bottom)); animation: sheetIn 0.3s cubic-bezier(0.32, 0.72, 0, 1); box-shadow: 0 -8px 40px rgba(0,0,0,0.35); max-height: 88vh; overflow-y: auto; }
+.modal-sheet > .sheet-handle { width: 36px; height: 4px; border-radius: 999px; background: var(--glass-line); margin: 2px auto 14px; }
+@keyframes backdropIn { from { opacity: 0; } to { opacity: 1; } }
+@keyframes sheetIn { from { transform: translateY(40px); opacity: 0.9; } to { transform: translateY(0); opacity: 1; } }
+@media (min-width: 640px) {
+    .modal-backdrop { align-items: center; padding: 20px; }
+    .modal-sheet { border-radius: 22px; max-width: 480px; padding-bottom: 20px; }
+}
 
 .ac-wrapper { position: relative; }
 /* Крестик очистки текста внутри поля ввода (как в строке поиска браузера).
@@ -180,27 +247,27 @@ input[type=number] { -moz-appearance: textfield; }
     position: absolute; top: 50%; transform: translateY(-50%); right: 8px; z-index: 2;
     width: 24px; height: 24px; padding: 0; display: flex; align-items: center; justify-content: center;
     border: none; outline: none; background: transparent; cursor: pointer;
-    color: var(--tg-theme-hint-color, rgba(255, 255, 255, 0.45));
+    color: var(--hint);
     -webkit-tap-highlight-color: transparent;
     transition: color 0.15s ease, opacity 0.15s ease, transform 0.15s ease;
 }
 .input-clear-btn svg { width: 14px; height: 14px; }
-.input-clear-btn:hover, .input-clear-btn:focus-visible { color: var(--tg-theme-text-color, #ffffff); }
+.input-clear-btn:hover, .input-clear-btn:focus-visible { color: var(--text); }
 .input-clear-btn:active { transform: translateY(-50%) scale(0.9); opacity: 0.6; }
 /* Отступ текста справа, чтобы он не заходил под крестик */
 .ac-wrapper input.clearable { padding-right: 38px; }
 .autocomplete-dropdown {
     position: absolute; top: 100%; left: 0; right: 0; z-index: 50; margin-top: 4px;
-    background: var(--tg-theme-secondary-bg-color, #2c2c2e);
-    background: color-mix(in srgb, var(--tg-theme-secondary-bg-color, #2c2c2e) 90%, #3b82f6 10%);
+    background: var(--bg-secondary);
+    background: color-mix(in srgb, var(--bg-secondary) 90%, #3b82f6 10%);
     border: 1px solid var(--inset-border);
     border-radius: 16px; box-shadow: 0 10px 25px rgba(0,0,0,0.5);
     max-height: 200px; overflow-y: auto;
 }
-.autocomplete-item { padding: 12px 16px; font-size: 14px; cursor: pointer; border-bottom: 1px solid rgba(59, 130, 246, 0.12); transition: background 0.15s; }
+.autocomplete-item { min-height: var(--tap); display: flex; flex-direction: column; justify-content: center; padding: 10px 16px; font-size: 14px; cursor: pointer; border-bottom: 1px solid var(--card-border); transition: background 0.15s; }
 .autocomplete-item:last-child { border-bottom: none; }
-.autocomplete-item:hover, .autocomplete-item:active { background: rgba(59, 130, 246, 0.10); }
-.autocomplete-item .ac-group { font-size: 10px; color: var(--tg-theme-hint-color, #8e8e93); margin-top: 2px; }
+.autocomplete-item:hover, .autocomplete-item:active { background: var(--accent-bg); }
+.autocomplete-item .ac-group { font-size: 10px; color: var(--hint); margin-top: 2px; }
 
 /* Плавающая кнопка-«остров»: без подложки и тени */
 .sticky-bottom-action {
@@ -220,28 +287,28 @@ input[type=number] { -moz-appearance: textfield; }
 body.keyboard-open #bottom-nav,
 body.keyboard-open .sticky-bottom-action { display: none !important; }
 
-/* ===== ЕДИНАЯ ДИЗАЙН-СИСТЕМА (эталон — вкладка «Статистика») ===== */
-.app-card { background: var(--card-bg); border: 1px solid var(--card-border); border-radius: var(--card-radius); padding: 14px 12px; }
-.app-inset { background: var(--inset-bg); border: 1px solid var(--inset-border); border-radius: 12px; }
+/* ===== ЕДИНАЯ ДИЗАЙН-СИСТЕМА ===== */
+.app-card { background: var(--card-bg); border: 1px solid var(--card-border); border-radius: var(--card-radius); padding: 16px 14px; box-shadow: var(--shadow-card); }
+.app-inset { background: var(--inset-bg); border: 1px solid var(--inset-border); border-radius: 14px; }
 .app-divide > * + * { border-top: 1px solid var(--card-border); }
 .app-row { border-bottom: 1px solid var(--card-border); }
 .app-row:last-child { border-bottom: none; }
-.section-label { display: block; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; color: var(--tg-theme-hint-color, #8e8e93); margin: 0 0 8px 4px; }
-.btn { display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%; padding: 14px 16px; border: 1px solid transparent; border-radius: 14px; font-size: 14px; font-weight: 600; line-height: 1.2; cursor: pointer; transition: opacity .15s ease, transform .1s ease; }
-.btn:active { transform: scale(0.98); opacity: 0.85; }
-.btn-sm { padding: 10px 12px; font-size: 13px; border-radius: 12px; }
+.section-label { display: block; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.6px; color: var(--hint); margin: 0 0 10px 2px; }
+.btn { display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%; min-height: var(--tap); padding: 14px 16px; border: 1px solid transparent; border-radius: 14px; font-size: 15px; font-weight: 600; line-height: 1.2; cursor: pointer; transition: filter .15s ease, transform .1s ease; }
+.btn:active { transform: scale(0.98); filter: brightness(0.92); }
+.btn-sm { padding: 10px 12px; min-height: 40px; font-size: 13px; border-radius: 12px; }
 .btn-auto { width: auto; }
-.btn-primary { background: var(--tg-theme-button-color, #3b82f6); color: var(--tg-theme-button-text-color, #ffffff); }
+.btn-primary { background: var(--accent-strong); color: var(--accent-on); }
 .btn-secondary { background: var(--card-bg); border-color: var(--card-border); color: var(--accent); }
 .btn-danger { background: var(--danger-bg); border-color: var(--danger-border); color: var(--danger); }
 .btn-warn { background: var(--warn-bg); border-color: var(--warn-border); color: var(--warn); }
 .btn-dashed { background: transparent; border: 1.5px dashed var(--accent-border); color: var(--accent); }
-.btn-icon { width: 36px; height: 36px; padding: 0; border-radius: 12px; background: var(--card-bg); border: 1px solid var(--card-border); color: var(--accent); display: flex; align-items: center; justify-content: center; flex-shrink: 0; transition: opacity .15s ease, transform .1s ease; }
-.btn-icon:active { transform: scale(0.92); opacity: 0.8; }
-.btn-icon.sm { width: 32px; height: 32px; border-radius: 10px; }
+.btn-icon { width: var(--tap); height: var(--tap); padding: 0; border-radius: 12px; background: var(--card-bg); border: 1px solid var(--card-border); color: var(--accent); display: flex; align-items: center; justify-content: center; flex-shrink: 0; transition: filter .15s ease, transform .1s ease; }
+.btn-icon:active { transform: scale(0.92); filter: brightness(0.9); }
+.btn-icon.sm { width: 36px; height: 36px; border-radius: 10px; }
 .btn-icon.danger { color: var(--danger); }
-.btn-icon.primary { background: var(--tg-theme-button-color, #3b82f6); border-color: transparent; color: var(--tg-theme-button-text-color, #ffffff); }
-.step-btn { width: 28px; height: 36px; padding: 0; border-radius: 10px; background: var(--card-bg); border: 1px solid var(--card-border); color: var(--tg-theme-text-color, #ffffff); font-weight: 700; display: flex; align-items: center; justify-content: center; flex-shrink: 0; transition: opacity .15s ease, transform .1s ease; }
+.btn-icon.primary { background: var(--accent-strong); border-color: transparent; color: var(--accent-on); }
+.step-btn { width: 28px; height: 36px; padding: 0; border-radius: 10px; background: var(--card-bg); border: 1px solid var(--card-border); color: var(--text); font-weight: 700; display: flex; align-items: center; justify-content: center; flex-shrink: 0; transition: opacity .15s ease, transform .1s ease; }
 .step-btn:active { transform: scale(0.92); opacity: 0.8; }
 .step-btn.lg { width: 40px; height: 40px; border-radius: 12px; }
 
@@ -267,13 +334,13 @@ body.keyboard-open .sticky-bottom-action { display: none !important; }
 /* Удаление строки подхода: схлопывание высоты (значения задаёт JS inline-стилями). */
 .set-line.set-collapsing { padding-top: 0; padding-bottom: 0; overflow: hidden; pointer-events: none; transition: max-height .22s ease-out, margin-bottom .22s ease-out, opacity .18s ease-out, padding .22s ease-out; }
 /* Порядковый номер подхода — часть единого блока строки (по центру высоты). */
-.set-num { width: 12px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; line-height: 1; color: var(--tg-theme-hint-color, #8e8e93); }
+.set-num { width: 12px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; line-height: 1; color: var(--hint); }
 /* Группа «− [поле+подпись] +» — одна линия; кнопки −/+ во всю высоту блока (поле + подпись). */
 .set-field { display: flex; flex-direction: row; flex-wrap: nowrap; align-items: stretch; gap: 2px; flex: 1 1 0%; min-width: 0; }
 /* Кнопки «−»/«+» шире (30px) — крупнее зона тапа; поле с запасом вмещает «100,5». */
 .set-field .step-btn { flex: 0 0 auto; width: 30px; height: auto; align-self: stretch; font-size: 18px; line-height: 1; }
 /* Кнопки «−»/«+»: без заливки — прозрачные (фон блока подхода наследуется), граница как у карточки упражнения. */
-.set-line .step-btn { background: transparent; border: 1px solid var(--card-border); color: var(--tg-theme-text-color, #ffffff); border-radius: 9px; }
+.set-line .step-btn { background: transparent; border: 1px solid var(--card-border); color: var(--text); border-radius: 9px; }
 .set-line .step-btn:active { opacity: .7; transform: scale(.92); }
 /* Поле ввода: значение по центру; подпись единицы — отдельной строкой снизу. */
 .set-field input { width: 100%; min-width: 0; padding-left: 1px; padding-right: 1px; font-size: 19px; line-height: 32px; height: 32px; text-align: center; }
@@ -282,33 +349,33 @@ body.keyboard-open .sticky-bottom-action { display: none !important; }
     display: block;
     margin-top: 1px;
     font-size: 9px; font-weight: 600; line-height: 1;
-    color: var(--tg-theme-hint-color, #8e8e93);
+    color: var(--hint);
     pointer-events: none;
 }
 /* Группа дроп-подходов — стиль контейнера суперсета: скруглённая со всех сторон карточка, оранжевая полоса слева, аккуратная градиентная заливка (справа растворяется). */
-.drop-group { list-style: none; margin-bottom: 6px; padding: 6px 8px; border-left: 4px solid var(--warn); border-radius: 12px; background: linear-gradient(90deg, rgba(249, 115, 22, 0.08), transparent); }
+.drop-group { list-style: none; margin-bottom: 6px; padding: 6px 8px; border-left: 4px solid var(--warn); border-radius: 12px; background: linear-gradient(90deg, var(--warn-bg), transparent); }
 .drop-group .set-line { margin-bottom: 4px; }
 .drop-group .set-line:last-child { margin-bottom: 0; }
 /* Бейдж прогресса упражнения («2/3» / «✓ Готово»): стиль как у чипа «Собственный вес»; «Готово» — зелёная заливка. */
 .set-progress-badge { font-size: 11px; font-weight: 600; padding: 4px 10px; border-radius: 8px; background: var(--card-bg); border: none; flex-shrink: 0; }
-.set-progress-badge.done { color: #4ade80; background: rgba(34, 197, 94, 0.15); }
-.set-progress-badge.pending { color: var(--tg-theme-hint-color, #8e8e93); }
+.set-progress-badge.done { color: var(--success); background: var(--success-bg); }
+.set-progress-badge.pending { color: var(--hint); }
 /* Крестик удаления подхода — в конце строки, вертикально по центру. */
 .set-del-btn { flex: 0 0 auto; width: 24px; display: flex; align-items: center; justify-content: center; background: transparent; border: none; color: var(--danger); font-size: 13px; opacity: .7; padding: 0; cursor: pointer; -webkit-tap-highlight-color: transparent; touch-action: manipulation; transition: opacity .15s ease, transform .1s ease; }
 .set-del-btn:active { opacity: 1; transform: scale(.88); }
 .exercise-header { user-select: none; -webkit-user-select: none; }
 /* Кнопка «⋮» — меню упражнения: без границы, заливка в цвет карточки. */
-.menu-btn { width: 32px; height: 32px; display: inline-flex; align-items: center; justify-content: center; border-radius: 8px; background: var(--card-bg); color: var(--tg-theme-hint-color, #708499); font-size: 15px; border: none; cursor: pointer; -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
+.menu-btn { width: 32px; height: 32px; display: inline-flex; align-items: center; justify-content: center; border-radius: 8px; background: var(--card-bg); color: var(--hint); font-size: 15px; border: none; cursor: pointer; -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
 .menu-btn:active { opacity: .6; transform: scale(.94); }
 .lp-active { background: var(--accent-bg) !important; border-color: var(--accent-border) !important; }
 /* Подсветка при долгом нажатии — теперь на основном слое строки (у .set-line границы нет). */
 .set-line.lp-active .set-line-inner { background: var(--accent-bg) !important; }
 
 /* ===== Ощущения / заметки подходов (features/workout/set-note-modal.js) ===== */
-.note-textarea { background: var(--tg-theme-bg-color, #1c1c1e); border: 1px solid var(--inset-border); border-radius: 10px; padding: 10px 12px; color: var(--tg-theme-text-color, #ffffff); resize: vertical; min-height: 56px; line-height: 1.35; }
-.note-textarea:focus { outline: none; border-color: var(--accent-border); box-shadow: 0 0 0 3px rgba(59,130,246,.18); }
+.note-textarea { background: var(--bg); border: 1px solid var(--inset-border); border-radius: 10px; padding: 10px 12px; color: var(--text); resize: vertical; min-height: 56px; line-height: 1.35; }
+.note-textarea:focus { outline: none; border-color: var(--accent-border); box-shadow: 0 0 0 3px var(--accent-bg); }
 .chips-row { display: flex; flex-wrap: wrap; gap: 8px; }
-.chip-btn { flex: 0 0 auto; padding: 8px 12px; font-size: 12px; font-weight: 600; line-height: 1.2; border-radius: 999px; background: var(--inset-bg); border: 1px solid var(--inset-border); color: var(--tg-theme-text-color, #ffffff); transition: opacity .15s ease, transform .1s ease; }
+.chip-btn { flex: 0 0 auto; padding: 8px 12px; font-size: 12px; font-weight: 600; line-height: 1.2; border-radius: 999px; background: var(--inset-bg); border: 1px solid var(--inset-border); color: var(--text); transition: opacity .15s ease, transform .1s ease; }
 .chip-btn:active { transform: scale(0.95); opacity: 0.8; }
 .chip-btn.chip-add { color: var(--accent); border-style: dashed; }
 .btn-auto { width: auto; flex: 0 0 auto; }
@@ -318,46 +385,46 @@ body.keyboard-open .sticky-bottom-action { display: none !important; }
 .exercise-actions { display: flex !important; flex-wrap: nowrap !important; align-items: stretch; gap: 8px; margin-top: 8px; }
 .exercise-actions .btn { flex: 1 1 0% !important; width: auto !important; min-width: 0; }
 .btn.has-note { border-color: var(--accent-border); }
-.set-note { margin-top: 6px; font-size: 12px; line-height: 1.4; color: var(--tg-theme-hint-color, #8e8e93); background: var(--inset-bg); border-left: 2px solid var(--warn); border-radius: 8px; padding: 6px 10px; }
+.set-note { margin-top: 6px; font-size: 12px; line-height: 1.4; color: var(--hint); background: var(--inset-bg); border-left: 2px solid var(--warn); border-radius: 8px; padding: 6px 10px; }
 /* Комментарий упражнения: отступ как между подходами (6px), без иконки. */
 .exercise-note { margin-top: 6px; }
 
 /* ===== Вкладка «История» — красочное оформление (features/history/history.view.js) ===== */
-.hist-pal-blue, .hist-stat.blue, .hist-tag.blue, .v.blue, .t.blue { --hc: #60a5fa; --hcbg: rgba(59, 130, 246, 0.15); }
-.hist-pal-purple, .hist-stat.purple, .hist-tag.purple, .v.purple, .t.purple { --hc: #c084fc; --hcbg: rgba(168, 85, 247, 0.15); }
-.hist-pal-green, .hist-stat.green, .hist-tag.green, .v.green, .t.green { --hc: #4ade80; --hcbg: rgba(34, 197, 94, 0.15); }
-.hist-pal-orange, .hist-stat.orange, .hist-tag.orange, .v.orange, .t.orange { --hc: #fb923c; --hcbg: rgba(249, 115, 22, 0.15); }
-.hist-pal-cyan, .hist-stat.cyan, .hist-tag.cyan, .v.cyan { --hc: #22d3ee; --hcbg: rgba(34, 211, 238, 0.15); }
+.hist-pal-blue, .hist-stat.blue, .hist-tag.blue, .v.blue, .t.blue { --hc: var(--c-blue); --hcbg: var(--c-blue-bg); }
+.hist-pal-purple, .hist-stat.purple, .hist-tag.purple, .v.purple, .t.purple { --hc: var(--c-purple); --hcbg: var(--c-purple-bg); }
+.hist-pal-green, .hist-stat.green, .hist-tag.green, .v.green, .t.green { --hc: var(--c-green); --hcbg: var(--c-green-bg); }
+.hist-pal-orange, .hist-stat.orange, .hist-tag.orange, .v.orange, .t.orange { --hc: var(--c-orange); --hcbg: var(--c-orange-bg); }
+.hist-pal-cyan, .hist-stat.cyan, .hist-tag.cyan, .v.cyan { --hc: var(--c-cyan); --hcbg: var(--c-cyan-bg); }
 /* Цвета групп мышц (красная полоска = грудь и т.п.) */
-.mg-red, .hist-mg-badge.red { --hc: #f87171; --hcbg: rgba(239, 68, 68, 0.15); }
-.mg-blue, .hist-mg-badge.blue { --hc: #60a5fa; --hcbg: rgba(59, 130, 246, 0.15); }
-.mg-green, .hist-mg-badge.green { --hc: #4ade80; --hcbg: rgba(34, 197, 94, 0.15); }
-.mg-orange, .hist-mg-badge.orange { --hc: #fb923c; --hcbg: rgba(249, 115, 22, 0.15); }
-.mg-purple, .hist-mg-badge.purple { --hc: #c084fc; --hcbg: rgba(168, 85, 247, 0.15); }
-.mg-cyan, .hist-mg-badge.cyan { --hc: #22d3ee; --hcbg: rgba(34, 211, 238, 0.15); }
-.mg-yellow, .hist-mg-badge.yellow { --hc: #fbbf24; --hcbg: rgba(245, 158, 11, 0.15); }
-.hist-mg-badge { display: inline-flex; align-items: center; gap: 3px; font-size: 10.5px; font-weight: 600; line-height: 1; padding: 4px 8px; border-radius: 999px; background: var(--hcbg, var(--inset-bg)); color: var(--hc, var(--tg-theme-hint-color, #8e8e93)); white-space: nowrap; }
+.mg-red, .hist-mg-badge.red { --hc: var(--c-red); --hcbg: var(--c-red-bg); }
+.mg-blue, .hist-mg-badge.blue { --hc: var(--c-blue); --hcbg: var(--c-blue-bg); }
+.mg-green, .hist-mg-badge.green { --hc: var(--c-green); --hcbg: var(--c-green-bg); }
+.mg-orange, .hist-mg-badge.orange { --hc: var(--c-orange); --hcbg: var(--c-orange-bg); }
+.mg-purple, .hist-mg-badge.purple { --hc: var(--c-purple); --hcbg: var(--c-purple-bg); }
+.mg-cyan, .hist-mg-badge.cyan { --hc: var(--c-cyan); --hcbg: var(--c-cyan-bg); }
+.mg-yellow, .hist-mg-badge.yellow { --hc: var(--c-gold); --hcbg: var(--c-gold-bg); }
+.hist-mg-badge { display: inline-flex; align-items: center; gap: 4px; min-height: 26px; font-size: 11.5px; font-weight: 600; line-height: 1; padding: 5px 10px; border-radius: 999px; background: var(--hcbg, var(--inset-bg)); color: var(--hc, var(--hint)); white-space: nowrap; }
 .hist-mg-badge b { font-weight: 700; opacity: 0.85; }
 .hist-detail-groups { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
 
 /* Сводная панель сверху */
 .hist-summary { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 16px; }
-.hist-stat { background: var(--card-bg); border: 1px solid var(--card-border); border-radius: 14px; padding: 10px 6px; text-align: center; min-width: 0; }
+.hist-stat { background: var(--card-bg); border: 1px solid var(--card-border); border-radius: 14px; padding: 12px 6px; text-align: center; min-width: 0; }
 .hist-stat-icon { width: 28px; height: 28px; margin: 0 auto 6px; border-radius: 9px; background: var(--hcbg); color: var(--hc); display: flex; align-items: center; justify-content: center; font-size: 13px; }
 .hist-stat-value { font-size: 16px; font-weight: 700; line-height: 1.15; color: var(--hc); }
 .hist-stat-unit { font-size: 10px; font-weight: 600; margin-left: 1px; opacity: 0.8; }
-.hist-stat-label { font-size: 10px; color: var(--tg-theme-hint-color, #8e8e93); margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.hist-stat-label { font-size: 10px; color: var(--hint); margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
 /* Карточка тренировки в списке */
 .hist-card { display: flex; align-items: center; gap: 12px; position: relative; overflow: hidden; }
 /* Тонкая цветная полоска слева — по доминирующей группе мышц */
 .hist-card::before { content: ''; position: absolute; left: 0; top: 12px; bottom: 12px; width: 3px; border-radius: 0 3px 3px 0; background: linear-gradient(180deg, var(--hc), transparent); opacity: 0.9; }
-.hist-groups-line { display: flex; align-items: center; gap: 5px; font-size: 11px; color: var(--tg-theme-hint-color, #8e8e93); margin-bottom: 6px; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.hist-groups-line { display: flex; align-items: center; gap: 5px; font-size: 11px; color: var(--hint); margin-bottom: 6px; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .hist-groups-line i { color: var(--hc, var(--accent)); font-size: 10px; flex-shrink: 0; }
 .hist-card-body { flex: 1 1 auto; min-width: 0; }
-.hist-card-arrow { color: var(--tg-theme-hint-color, #8e8e93); font-size: 11px; opacity: 0.5; flex-shrink: 0; }
+.hist-card-arrow { color: var(--hint); font-size: 11px; opacity: 0.5; flex-shrink: 0; }
 .hist-tags { display: flex; flex-wrap: wrap; gap: 6px; }
-.hist-tag { display: inline-flex; align-items: center; gap: 4px; font-size: 11px; font-weight: 600; line-height: 1; padding: 5px 8px; border-radius: 8px; background: var(--hcbg); color: var(--hc); }
+.hist-tag { display: inline-flex; align-items: center; gap: 5px; min-height: 28px; font-size: 11.5px; font-weight: 600; line-height: 1; padding: 6px 10px; border-radius: 999px; background: var(--hcbg); color: var(--hc); }
 .hist-tag i { font-size: 10px; opacity: 0.9; }
 
 /* Подходы в детальном просмотре: номер и результат слева */
@@ -367,22 +434,22 @@ body.keyboard-open .sticky-bottom-action { display: none !important; }
 /* Календарь тренировок: месячная сетка, дни с тренировками — синяя точка */
 .hist-cal-card { background: var(--card-bg); border: 1px solid var(--card-border); border-radius: 16px; padding: 12px 14px 10px; margin-bottom: 16px; }
 .hist-cal-head { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-bottom: 8px; }
-.hist-cal-title { font-size: 13px; font-weight: 700; color: var(--tg-theme-text-color, #fff); display: inline-flex; align-items: center; gap: 7px; text-transform: capitalize; }
+.hist-cal-title { font-size: 13px; font-weight: 700; color: var(--text); display: inline-flex; align-items: center; gap: 7px; text-transform: capitalize; }
 .hist-cal-title i { color: var(--accent); font-size: 12px; }
-.hist-cal-nav { width: 30px; height: 30px; border-radius: 9px; border: none; background: rgba(59, 130, 246, 0.12); color: var(--accent); font-size: 11px; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; transition: background .15s ease, transform .1s ease; }
+.hist-cal-nav { width: 40px; height: 40px; border-radius: 9px; border: none; background: rgba(59, 130, 246, 0.12); color: var(--accent); font-size: 11px; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; transition: background .15s ease, transform .1s ease; }
 .hist-cal-nav:active { transform: scale(0.92); background: rgba(59, 130, 246, 0.22); }
 .hist-cal-nav.off { opacity: 0.3; pointer-events: none; }
 .hist-cal-weekdays { display: grid; grid-template-columns: repeat(7, 1fr); margin-bottom: 4px; }
-.hist-cal-weekdays span { text-align: center; font-size: 10px; font-weight: 700; color: var(--tg-theme-hint-color, #8e8e93); }
+.hist-cal-weekdays span { text-align: center; font-size: 10px; font-weight: 700; color: var(--hint); }
 .hist-cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; }
 .hist-cal-cell { position: relative; aspect-ratio: 1 / 1; min-height: 26px; display: flex; align-items: center; justify-content: center; border-radius: 8px; }
 .hist-cal-cell.empty { visibility: hidden; }
-.hist-cal-day { font-size: 11.5px; font-weight: 600; color: var(--tg-theme-text-color, #fff); line-height: 1; }
+.hist-cal-day { font-size: 11.5px; font-weight: 600; color: var(--text); line-height: 1; }
 .hist-cal-cell.future .hist-cal-day { opacity: 0.35; }
 .hist-cal-cell.today { background: rgba(59, 130, 246, 0.16); box-shadow: inset 0 0 0 1px rgba(59, 130, 246, 0.55); }
 .hist-cal-cell.today .hist-cal-day { color: var(--accent); font-weight: 800; }
 .hist-cal-dot { position: absolute; bottom: 3px; left: 50%; transform: translateX(-50%); width: 5px; height: 5px; border-radius: 50%; background: var(--accent); }
-.hist-cal-foot { display: flex; justify-content: space-between; align-items: center; margin-top: 8px; font-size: 11px; color: var(--tg-theme-hint-color, #8e8e93); }
+.hist-cal-foot { display: flex; justify-content: space-between; align-items: center; margin-top: 8px; font-size: 11px; color: var(--hint); }
 .hist-cal-foot > span { display: inline-flex; align-items: center; gap: 6px; }
 .hist-cal-dot.demo { position: static; transform: none; display: inline-block; }
 .hist-cal-foot a { color: var(--accent); font-weight: 600; cursor: pointer; text-decoration: none; }
@@ -404,44 +471,44 @@ body.keyboard-open .sticky-bottom-action { display: none !important; }
 .hist-detail-nav-btn:active { transform: scale(0.85); opacity: 0.5; }
 .hist-detail-nav-btn.off { opacity: 0.25; pointer-events: none; }
 /* Кнопка удаления тренировки из истории — минималистичная, без заливки и рамок */
-.hist-detail-delete { appearance: none; background: transparent; border: none; outline: none; display: flex; align-items: center; justify-content: flex-end; gap: 7px; margin-top: 12px; padding: 6px 0; width: 100%; font-size: 12.5px; font-weight: 600; color: var(--tg-theme-hint-color, #8e8e93); cursor: pointer; -webkit-tap-highlight-color: transparent; transition: color .15s ease, opacity .1s ease, transform .1s ease; }
+.hist-detail-delete { appearance: none; background: transparent; border: none; outline: none; display: flex; align-items: center; justify-content: flex-end; gap: 7px; margin-top: 12px; padding: 6px 0; width: 100%; font-size: 12.5px; font-weight: 600; color: var(--hint); cursor: pointer; -webkit-tap-highlight-color: transparent; transition: color .15s ease, opacity .1s ease, transform .1s ease; }
 .hist-detail-delete i { font-size: 12px; }
-.hist-detail-delete:hover { color: #ff453a; }
+.hist-detail-delete:hover { color: var(--danger); }
 .hist-detail-delete:active { transform: scale(0.96); opacity: 0.7; }
-.hist-detail-nav-count { font-size: 11px; font-weight: 700; color: var(--tg-theme-hint-color, #8e8e93); min-width: 24px; text-align: center; }
-.hist-detail-date { font-size: 12px; color: var(--tg-theme-hint-color, #8e8e93); margin-top: 3px; }
+.hist-detail-nav-count { font-size: 11px; font-weight: 700; color: var(--hint); min-width: 24px; text-align: center; }
+.hist-detail-date { font-size: 12px; color: var(--hint); margin-top: 3px; }
 .hist-detail-stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-top: 12px; }
 .hist-detail-stat { text-align: center; background: var(--inset-bg); border-radius: 10px; padding: 7px 3px 6px; min-width: 0; }
 .hist-detail-stat .t { font-size: 10px; color: var(--hc); display: inline-flex; align-items: center; justify-content: center; line-height: 1; }
 .hist-detail-stat .v { font-size: 13px; font-weight: 700; color: var(--hc); white-space: nowrap; margin-top: 4px; line-height: 1.2; }
-.hist-detail-stat .l { font-size: 8.5px; color: var(--tg-theme-hint-color, #8e8e93); margin-top: 1px; line-height: 1.25; overflow-wrap: break-word; }
+.hist-detail-stat .l { font-size: 8.5px; color: var(--hint); margin-top: 1px; line-height: 1.25; overflow-wrap: break-word; }
 /* Сводка/рекорды на вкладке статистики — тот же стиль, что и в Истории: FA-иконка в цветной подложке, иконка и значение одним акцентным цветом */
 /* Палитры акцентных цветов для сводки/рекордов статистики — те же цвета, что во вкладке «История».
    ВАЖНО: селекторы должны быть НЕ слабее Tailwind-утилит (.text-base/.font-bold/.mt-0.5 и т.п.),
    поэтому цвет/размер задаются с классом контейнера (.summary-cell / .achievement-card). */
-.summary-cell.stat-metric.blue, .achievement-card.stat-metric-row.blue { --hc: #60a5fa; --hcbg: rgba(59, 130, 246, 0.15); }
-.summary-cell.stat-metric.purple, .achievement-card.stat-metric-row.purple { --hc: #c084fc; --hcbg: rgba(168, 85, 247, 0.15); }
-.summary-cell.stat-metric.green, .achievement-card.stat-metric-row.green { --hc: #4ade80; --hcbg: rgba(34, 197, 94, 0.15); }
-.summary-cell.stat-metric.gold, .achievement-card.stat-metric-row.gold { --hc: #fbbf24; --hcbg: rgba(251, 191, 36, 0.15); }
+.summary-cell.stat-metric.blue, .achievement-card.stat-metric-row.blue { --hc: var(--c-blue); --hcbg: var(--c-blue-bg); }
+.summary-cell.stat-metric.purple, .achievement-card.stat-metric-row.purple { --hc: var(--c-purple); --hcbg: var(--c-purple-bg); }
+.summary-cell.stat-metric.green, .achievement-card.stat-metric-row.green { --hc: var(--c-green); --hcbg: var(--c-green-bg); }
+.summary-cell.stat-metric.gold, .achievement-card.stat-metric-row.gold { --hc: var(--c-gold); --hcbg: var(--c-gold-bg); }
 .summary-cell.stat-metric { padding: 9px 6px 8px; }
 .summary-cell.stat-metric .v { font-size: 16px; font-weight: 700; color: var(--hc); margin-top: 5px; line-height: 1.2; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.summary-cell.stat-metric .l { font-size: 10px; font-weight: 400; text-transform: none; letter-spacing: 0; color: var(--tg-theme-hint-color, #8e8e93); margin-top: 2px; line-height: 1.25; overflow-wrap: break-word; }
+.summary-cell.stat-metric .l { font-size: 10px; font-weight: 400; text-transform: none; letter-spacing: 0; color: var(--hint); margin-top: 2px; line-height: 1.25; overflow-wrap: break-word; }
 .stat-metric-unit { font-size: 10px; font-weight: 600; margin-left: 2px; opacity: 0.8; }
 /* Рекорды: иконка слева, справа вверху значение, внизу подпись */
 .stat-metric-row { display: flex; align-items: center; gap: 10px; text-align: left; }
 .stat-metric-row .hist-stat-icon { margin: 0; width: 34px; height: 34px; font-size: 15px; flex-shrink: 0; }
 /* Значение (справа вверху) — акцентным цветом, как иконка; подпись внизу — серый hint, тем же шрифтом, что в Истории */
 .achievement-card.stat-metric-row .v { font-size: 15px; font-weight: 700; color: var(--hc); line-height: 1.2; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.achievement-card.stat-metric-row .l { font-size: 10px; font-weight: 400; text-transform: none; letter-spacing: 0; color: var(--tg-theme-hint-color, #8e8e93); margin-top: 2px; line-height: 1.25; overflow-wrap: break-word; }
+.achievement-card.stat-metric-row .l { font-size: 10px; font-weight: 400; text-transform: none; letter-spacing: 0; color: var(--hint); margin-top: 2px; line-height: 1.25; overflow-wrap: break-word; }
 
 /* Названия упражнений в карточках программ: серый текст, без подчёркивания */
-.exercise-name { color: var(--tg-theme-hint-color, #8e8e93); text-decoration: none; border-bottom: none; }
+.exercise-name { color: var(--hint); text-decoration: none; border-bottom: none; }
 
 /* Выравнивание «подходы × повторения» в карточках программ (фикс. ширина + моноширинный шрифт) */
 .exercise-reps { display: inline-block; min-width: 4.75rem; text-align: left; font-variant-numeric: tabular-nums; }
 
 /* Кнопки «Начать тренировку» / «Завершить тренировку» — единый стиль:
    фон и цвет шрифта как у бейджей «Собственный вес» / «✓ Готово», граница в цвет шрифта */
-.btn-start-workout, .btn-finish-workout { background: rgba(34, 197, 94, 0.15); color: #4ade80; border: 1px solid #4ade80; box-shadow: none; }
+.btn-start-workout, .btn-finish-workout { background: var(--success-bg); color: var(--success); border: 1px solid color-mix(in srgb, var(--success) 45%, transparent); box-shadow: none; }
 .btn-start-workout:hover, .btn-start-workout:active,
-.btn-finish-workout:hover, .btn-finish-workout:active { background: rgba(34, 197, 94, 0.25); }
+.btn-finish-workout:hover, .btn-finish-workout:active { background: color-mix(in srgb, var(--success) 24%, transparent); }

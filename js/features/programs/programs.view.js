@@ -20,8 +20,8 @@ function renderPrograms() {
         });
         return '<div class="app-card mb-3 card-enter" style="animation-delay: ' + (index * 0.05) + 's"><div class="flex items-start justify-between gap-3 mb-3"><div class="font-semibold text-base break-words flex-1 min-w-0 pt-1">' + escHtml(program.name) + '</div><div class="flex items-center gap-1.5 shrink-0"><button data-action="edit-program" data-payload="' + escAttr(program.id) + '" class="btn-icon" aria-label="Редактировать"><i class="fa-solid fa-pen text-sm"></i></button><button data-action="delete-program" data-payload="' + escAttr(program.id) + '" class="btn-icon danger" aria-label="Удалить"><i class="fa-solid fa-trash text-sm"></i></button></div></div><div class="space-y-0.5 mb-4">' + (blocks.join('') || '<div class="text-tgHint text-xs italic py-1">Нет упражнений</div>') + '</div><button data-action="start-workout" data-payload="' + escAttr(program.id) + '" class="btn btn-start-workout"><i class="fa-solid fa-check text-sm"></i> Начать тренировку</button></div>';
     }).join('') : '<div class="empty-state-block card-enter"><i class="fa-solid fa-list-check"></i><div class="title">Нет созданных программ</div><div class="desc">Создайте первую программу, чтобы начать тренироваться.</div></div>';
-    const label = programs.length ? '<div class="section-label">Программы · ' + programs.length + '</div>' : '';
-    document.getElementById('app-content').innerHTML = label + listHTML +
+    const header = '<header class="screen-header card-enter"><div class="screen-title">Программы' + (programs.length ? '<span class="screen-count">' + programs.length + '</span>' : '') + '</div></header>';
+    document.getElementById('app-content').innerHTML = header + listHTML +
         '<div style="height: 110px"></div>' +
         '<div class="sticky-bottom-action"><button data-action="create-program" class="btn btn-primary"><i class="fa-solid fa-plus"></i> Создать тренировку</button></div>';
 }
