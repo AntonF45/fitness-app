@@ -98,7 +98,7 @@ function renderHistory() {
         groupsLine +
         '<div class="hist-tags"><span class="hist-tag blue"><i class="fa-regular fa-clock"></i> ' + formatDuration(entry.duration) + '</span><span class="hist-tag green"><i class="fa-solid fa-layer-group"></i> ' + st.sets + '</span><span class="hist-tag purple"><i class="fa-solid fa-repeat"></i> ' + st.reps + '</span><span class="hist-tag orange"><i class="fa-solid fa-weight-hanging"></i> ' + (st.tonnage / 1000).toFixed(1) + ' т</span></div></div>' +
         '<i class="fa-solid fa-chevron-right hist-card-arrow"></i></div>'; }).join('') : '<div class="empty-state-block card-enter"><i class="fa-solid fa-clock-rotate-left"></i><div class="title">История пуста</div><div class="desc">Завершите первую тренировку — она появится здесь.</div></div>';
-    const header = '<header class="screen-header card-enter"><div class="screen-title">История' + (history.length ? '<span class="screen-count">' + history.length + '</span>' : '') + '</div></header>';
+    const header = '<header class="screen-header"><div class="screen-title">История' + (history.length ? '<span class="screen-count">' + history.length + '</span>' : '') + '</div></header>';
     document.getElementById('app-content').innerHTML = header + summaryHTML + calendarHTML + (history.length ? '<div class="section-label">Тренировки</div>' : '') + listHTML +
         '<div style="height: 110px"></div>' +
         '<div class="sticky-bottom-action"><button data-action="open-data-menu" class="btn btn-secondary"><i class="fa-solid fa-gear"></i> Управление данными</button></div>';
