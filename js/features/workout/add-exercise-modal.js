@@ -5,7 +5,7 @@ function openAddWorkoutExerciseModal() {
     const existing = document.getElementById('add-exercise-modal'); if (existing) existing.remove();
     const modal = document.createElement('div'); modal.id = 'add-exercise-modal'; modal.className = 'modal-backdrop';
     const groups = getMuscleGroups();
-    modal.innerHTML = '<div class="modal-sheet"><div class="sheet-handle"></div><h2 class="text-xl font-bold mb-4">Новое упражнение</h2>' +
+    modal.innerHTML = '<div class="modal-sheet"><div class="w-10 h-1 bg-tgHint/40 rounded-full mx-auto mb-5"></div><h2 class="text-xl font-bold mb-4">Новое упражнение</h2>' +
         '<div class="ac-wrapper mb-3"><input type="text" id="add-ex-group" placeholder="Группа мышц" data-scope="workout" data-exercise-index="0" class="muscle-input clearable w-full p-3 pr-10 text-sm font-medium" autocomplete="off"><div class="autocomplete-dropdown" id="ac-drop-muscle-workout-0" style="display:none"></div></div>' +
         '<div class="ac-wrapper mb-3"><input type="text" id="add-ex-name" placeholder="Название" data-scope="workout" data-exercise-index="0" class="exercise-name-input clearable w-full p-3 pr-10 text-sm font-medium" autocomplete="off"><div class="autocomplete-dropdown" id="ac-drop-workout-0" style="display:none"></div></div>' +
         '<label class="checkbox-label mb-3 py-1"><input type="checkbox" id="add-ex-bw"><span class="text-sm font-medium">Собственный вес</span></label>' +
