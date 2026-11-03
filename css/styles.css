@@ -70,7 +70,10 @@
 /* ВАЖНО: верхний отступ под полосу Telegram — НЕ на body, а на #app-content
    (см. блок sticky-шапок): padding-top на body не позволяет первому дочернему
    sticky-элементу прилипнуть к верху окна. */
-body { background-color: var(--bg); color: var(--text); font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", Roboto, Helvetica, Arial, sans-serif; -webkit-tap-highlight-color: transparent; padding-bottom: calc(var(--bottom-nav-height) + var(--safe-bottom) + 16px); }
+body { background-color: var(--bg); color: var(--text); font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", Roboto, Helvetica, Arial, sans-serif; -webkit-tap-highlight-color: transparent; padding-top: var(--top-reserve); padding-bottom: calc(var(--bottom-nav-height) + var(--safe-bottom) + 16px); }
+/* Точечно отключаем body-резерв на вкладках с sticky-шапкой — там всю
+   верхнюю резервацию (полоса TG + высота шапки) делает #app-content. */
+body:has(> #app-content.has-sticky-header) { padding-top: 0; }
 input, select { background: var(--inset-bg); color: var(--text); border: 1px solid var(--inset-border); border-radius: 12px; }
 .input-bare { background: transparent; border: none; border-radius: 8px; }
 .input-bare:focus { outline: none; box-shadow: none; }
@@ -113,24 +116,24 @@ input[type=number] { -moz-appearance: textfield; }
    контента не изменилась. Теперь у всех экранов первый дочерний элемент
    прилипает к top:0 ровно как секундомер, а полоса Telegram остаётся над
    липкой зоной свободной (фон body виден сквозь неё). */
-#app-content {
+/* Единая модель sticky-шапок — ровно как на экране тренировки («Секундомер»):
+   1) контент физически начинается ПОСЛЕ строки резервации (полоса Telegram +
+      высота шапки) — её задаёт padding-top контейнера;
+   2) sticky-панель прилипает к top:0 и заполняет эту строку при прокрутке.
+   Экраны БЕЗ sticky-шапки (экран тренировки, детали программы) используют
+   общий body padding-top: var(--top-reserve) — как секундомер до сих пор. */
+#app-content.has-sticky-header {
     box-sizing: border-box;
     min-height: 100dvh;
-    /* Отступ ТОЛЬКО под системную полосу Telegram. Высота шапки сюда не
-       входит: она обеспечивается собственным margin-bottom шапки (= её
-       высоте), который занимает место в потоке ДО контента. Так контент
-       гарантированно стартует после шапки на любом WebView (в Telegram
-       iOS padding-top контейнера не гарантирует позицию первого элемента,
-       если sticky-шапка «вытянута» вверх отрицательным margin). */
-    padding-top: var(--top-reserve);
-    /* Верхняя граница sticky-зоны = нижний край полосы Telegram.
-       Наследуется всеми липкими панелями экрана (шапки, секундомер,
-       суперсет-панель редактора), поэтому ни одна из них не залезает
-       под системные кнопки и не «уезжает» с контентом. */
-    --sticky-top: var(--top-reserve);
+    /* Резерв = полоса Telegram (--top-reserve) + реальная высота шапки
+       (--header-h, измеряет header-offset.js; фолбэк 58px — однострочная). */
+    padding-top: calc(var(--top-reserve) + var(--header-h, 58px));
+    /* Граница прилипания sticky-панелей = верх окна (как у секундомера). */
+    --sticky-top: 0px;
 }
 .screen-header, .stats-header {
     position: sticky;
+    /* Прилипает ровно под полосу Telegram (как секундомер). */
     top: var(--sticky-top);
     z-index: 10;
     background: var(--glass-bg);
@@ -139,22 +142,7 @@ input[type=number] { -moz-appearance: textfield; }
     border-bottom: 1px solid var(--glass-line);
     margin-left: calc(-1 * var(--page-x));
     margin-right: calc(-1 * var(--page-x));
-    /* Шапка — первый дочерний элемент: полностью отменяем верхний padding
-       контейнера, чтобы шапка прилипала ровно под полосу Telegram без щели. */
-    margin-top: calc(-1 * var(--top-reserve));
     padding: 14px var(--page-x);
-    /* Резерв места под шапкой в потоке: height+border+margin-bottom =
-       полная высота блока. Контент физически не может начинаться под
-       шапкой — он идёт сразу за зарезервированным блоком. */
-    margin-bottom: calc(100% + 2px); /* height + border-bottom(1px) + зазор 1px */
-}
-/* Компенсация: у шапки появился нижний отступ (= её высоте), поэтому
-   верхний отступ ПЕРВОГО блока после шапки гасим до привычного --gap-block
-   (14px), чтобы суммарный зазор под шапкой не удвоился. Работает только
-   когда JS измерил реальную высоту (--header-h); до измерения действует
-   безопасное значение по умолчанию 56px (обычная однострочная шапка). */
-.screen-header + *, .stats-header + * {
-    margin-top: calc(var(--gap-block) - var(--header-h, 56px));
 }
 /* Защита sticky-панелей: анимация card-enter задаёт transform (translateY/scale)
    на самом элементе — в Telegram WebView анимированный transform ломает
@@ -168,9 +156,9 @@ input[type=number] { -moz-appearance: textfield; }
 .screen-title .screen-count { font-size: 13px; font-weight: 600; color: var(--hint); letter-spacing: 0; }
 .stats-header { padding-bottom: 14px; }
 .sticky.top-0 { top: var(--sticky-top, 0px) !important; }
-/* Баннер суперсета в редакторе программы: его sticky-top считает JS
-   (header-offset.js, inline-style), поэтому правило без !important. */
-.sticky.top-2 { top: calc(var(--sticky-top, 0px) + 8px); }
+/* Баннер суперсета в редакторе программы (второй sticky-слой): липнет на
+   8px НИЖЕ нижней границы шапки экрана. --header-h измеряет JS. */
+#app-content.has-sticky-header .sticky.top-2 { top: calc(var(--header-h, 58px) + 8px); }
 .stats-title {
     font-size: var(--font-display);
     font-weight: 800;
@@ -524,18 +512,10 @@ body.keyboard-open .sticky-bottom-action { display: none !important; }
 .hist-cal-count { position: absolute; top: 4px; right: 5px; font-size: 8px; font-weight: 800; line-height: 1; color: var(--accent); }
 
 /* Шапка детального просмотра */
-/* Шапка деталей записи — как обычная sticky-шапка экрана (сплошной фон,
-   липнет ровно под полосу Telegram, контент начинается после неё).
-   «Высокая» шапка (заголовок + дата + чипы + статистика): нижний край
-   sticky-зоны выносим за сам блок (top = полоса Telegram + высота шапки),
-   а место в потоке резервирует общий margin-bottom: 100% — для этого
-   height блока считаем от border-box. Контент стартует сразу под ней и
-   при скролле уходит ровно под шапку. */
+/* Шапка деталей записи — обычная sticky-шапка экрана (модель секундомера):
+   резерв места в потоке делает padding-top контейнера (= --header-h,
+   измеряется header-offset.js), поэтому top остаётся --sticky-top. */
 .hist-detail-head { padding: 14px var(--page-x) 12px; background: var(--bg); }
-.screen-header.hist-detail-head {
-    box-sizing: content-box;
-    top: calc(var(--sticky-top) + var(--header-h, 0px));
-}
 .hist-detail-title { font-size: 20px; font-weight: 800; color: var(--hc); line-height: 1.25; }
 /* Переключение тренировок одного дня — минималистичные кнопки < > без заливки и границ */
 .hist-detail-nav { display: inline-flex; align-items: center; gap: 2px; flex-shrink: 0; margin-top: 2px; }

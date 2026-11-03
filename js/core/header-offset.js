@@ -1,45 +1,47 @@
-/* Измеряет реальную высоту sticky-шапки экрана и записывает её в CSS-переменную
-   --header-h на #app-content. Используется правилом из styles.css:
-     .screen-header + *, .stats-header + * { margin-top: calc(var(--gap-block) - var(--header-h)); }
-   Шапка резервирует место в потоке через margin-bottom: 100% (свой собственный
-   height), поэтому контент стартует ПОСЛЕ прилипшей шапки, а не под ней; JS лишь
-   компенсирует удвоение зазора у первого блока. ResizeObserver реагирует на смену
-   контента (разные экраны, перенос строк, поворот), отступ всегда актуален. */
+/* Единая модель sticky-шапок по образцу блока «Секундомер» (экран тренировки):
+   контент физически начинается ПОСЛЕ строки резервации, а sticky-панель
+   прилипает к верху окна и заполняет эту строку при прокрутке.
+
+   Реализация: если первый дочерний элемент #app-content — sticky-шапка
+   (.screen-header / .stats-header), контейнер получает класс has-sticky-header.
+   CSS (#app-content.has-sticky-header) ставит padding-top = полоса Telegram
+   (--top-reserve) + var(--header-h), где --header-h — РЕАЛЬНАЯ высота шапки,
+   которую измеряет этот скрипт (ResizeObserver + MutationObserver реагируют
+   на смену экрана, перенос строк и поворот).
+
+   На экранах без sticky-шапки (тренировка, детали программы) класс снимается:
+   там работает общий body padding-top: var(--top-reserve) — ровно как у
+   секундомера всегда. */
 (function () {
     'use strict';
 
     function applyHeaderHeight() {
         var container = document.getElementById('app-content');
         if (!container) return;
-        // Шапка — любой sticky-заголовок экрана: обычный, статистика,
+
+        // Шапка — ЛЮБОЙ sticky-заголовок экрана: обычный, статистика,
         // детали записи истории или верхняя панель секундомера тренировки.
         var header = container.querySelector(
             ':scope > .screen-header, :scope > .stats-header, :scope > .sticky.top-0'
         );
-        // getBoundingClientRect().height включает padding+border (то, что реально
-        // перекрывает контент при скролле). Для шапки деталей (box-sizing:
-        // content-box) border добавляем явно.
-        var h = 0;
-        if (header) {
-            h = Math.ceil(header.getBoundingClientRect().height);
-            var cs = getComputedStyle(header);
-            if (cs.boxSizing === 'content-box') {
-                h += Math.ceil(parseFloat(cs.borderTopWidth) + parseFloat(cs.borderBottomWidth));
-            }
-        }
-        container.style.setProperty('--header-h', h + 'px');
 
-        // Баннер суперсета (.sticky.top-2) липнет на 8px НИЖЕ нижней границы
-        // шапки редактора. Так как шапки больше нет в DOM, «шаг» отступа
-        // баннера (= высота удалённой шапки) компенсируем напрямую через top.
-        var banner = container.querySelector('.sticky.top-2');
-        if (banner) {
-            // Компенсируем только «шаг» отступа (= высота удалённой шапки),
-            // нижняя граница прилипания баннера — его собственный край.
-            banner.style.top = 'calc(var(--sticky-top, 0px) - ' + h + 'px + 8px)';
-        } else {
+        if (!header) {
+            container.classList.remove('has-sticky-header');
             container.style.removeProperty('--header-h');
+            return;
         }
+
+        container.classList.add('has-sticky-header');
+
+        // getBoundingClientRect().height включает padding+border (то, что
+        // реально перекрывает контент при скролле). Для блоков content-box
+        // border добавляем явно. +1px запас на hairline-границу шапки.
+        var h = Math.ceil(header.getBoundingClientRect().height);
+        var cs = getComputedStyle(header);
+        if (cs.boxSizing === 'content-box') {
+            h += Math.ceil(parseFloat(cs.borderTopWidth) + parseFloat(cs.borderBottomWidth));
+        }
+        container.style.setProperty('--header-h', (h + 1) + 'px');
     }
 
     function init() {
