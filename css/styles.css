@@ -32,19 +32,18 @@
        sticky-элементы липнут к top:0 — ровно под нижним краем полосы. */
     --top-reserve: calc(var(--safe-top) + var(--extra-top));
 
-    /* Поверхности: карточка/инсет = фон приложения + ЕДИНИЦЫ акцента.
-       NOTE: проценты держим минимальными (2–3%): на белом фоне light-темы
-       это визуально чистый белый с едва уловимым холодным оттенком; при
-       5–9% на десктопной теме Telegram (link-color ~#6ab7f2) карточки
-       давали заметную светло-голубую заливку («были белые — стали голубые»).
-       Рамки hairline чуть насыщеннее заливок — разделение читается и без краски. */
-    --card-bg: color-mix(in srgb, var(--accent) 2%, var(--bg));
-    --card-border: color-mix(in srgb, var(--accent) 10%, transparent);
+    /* Поверхности: карточка/инсет = ТОЧНО фон приложения (белый в light).
+       NOTE: любая примесь акцента в заливках («2–3% синего») на десктопной
+       теме Telegram (link-color ~#6ab7f2) давала видимую светло-голубую
+       подложку вместо белой — поэтому заливки выровнены с фоном 1:1,
+       а разделение слоёв дают только hairline-рамки. */
+    --card-bg: var(--bg);
+    --card-border: color-mix(in srgb, var(--hint) 18%, transparent);
     --card-radius: 18px;
     --accent-bg: color-mix(in srgb, var(--accent) 16%, transparent);
     --accent-border: color-mix(in srgb, var(--accent) 42%, transparent);
-    --inset-bg: color-mix(in srgb, var(--accent) 3%, var(--bg));
-    --inset-border: color-mix(in srgb, var(--accent) 16%, transparent);
+    --inset-bg: var(--bg);
+    --inset-border: color-mix(in srgb, var(--hint) 22%, transparent);
 
     /* Семантика (статусы, а не декор) */
     --danger: #ff453a;
@@ -131,19 +130,22 @@ body::before {
     top: 0; left: 0; right: 0;
     height: calc(var(--top-reserve) + 64px);
     background: var(--bg);
-    z-index: 0;
+    z-index: 5; /* выше контента (z auto), НИЖЕ sticky-шапок (z 10):
+                  слой подложки не должен перекрывать сами шапки */
     pointer-events: none;
 }
 .screen-header, .stats-header {
     position: sticky;
     top: var(--sticky-top);
     z-index: 10;
-    /* --glass-bg остаётся «стеклянным» токеном для будущих тем, но здесь
-       обязателен сплошной фон: при прозрачном --tg-theme-bg-color (Desktop)
-       translucent + backdrop-filter рендерились полностью прозрачными —
-       эффект стекла без непрозрачной базы не работает. Hairline снизу и
-       мягкая тень сохраняют разделение слоёв. */
-    background: var(--bg);
+    /* Полупрозрачное «стекло»: translucent-подложка + blur контента под
+       шапкой. Подложка строится поверх НЕПРОЗРАЧНОЙ базы --bg, поэтому
+       даже если хост Telegram прислал прозрачный --tg-theme-bg-color
+       (Desktop), под glass всегда лежит сплошной белый/чёрный слой —
+       контент зашапки просвечивает ровно на 18%, как задумано. */
+    background: var(--glass-bg);
+    -webkit-backdrop-filter: blur(20px) saturate(150%);
+    backdrop-filter: blur(20px) saturate(150%);
     border-bottom: 1px solid var(--glass-line);
     box-shadow: 0 6px 14px -8px rgba(0, 0, 0, 0.18);
     margin-left: calc(-1 * var(--page-x));
