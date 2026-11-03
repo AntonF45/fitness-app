@@ -121,7 +121,7 @@ function renderHistoryDetail(entryId) {
     var daySiblings = DataAPI.getHistory().filter(function (e) { var a = new Date(e.date), b = new Date(entry.date); return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate(); }).sort(function (a, b) { return new Date(b.date) - new Date(a.date); });
     var pos = daySiblings.findIndex(function (e) { return e.id === entry.id; });
     var navCounter = daySiblings.length > 1 ? '<span class="hist-detail-nav"><button type="button" class="hist-detail-nav-btn' + (pos <= 0 ? ' off' : '') + '" data-action="history-detail-prev"' + (pos <= 0 ? ' disabled' : '') + ' aria-label="Предыдущая тренировка в этот день"><i class="fa-solid fa-chevron-left"></i></button><span class="hist-detail-nav-count">' + (pos + 1) + '/' + daySiblings.length + '</span><button type="button" class="hist-detail-nav-btn' + (pos >= daySiblings.length - 1 ? ' off' : '') + '" data-action="history-detail-next"' + (pos >= daySiblings.length - 1 ? ' disabled' : '') + ' aria-label="Следующая тренировка в этот день"><i class="fa-solid fa-chevron-right"></i></button></span>' : '';
-    var headHTML = '<div class="hist-detail-head card-enter ' + dcolor + '">' +
+    var headHTML = '<div class="screen-header hist-detail-head ' + dcolor + '">' +
         '<div class="flex items-start justify-between gap-2"><h2 class="hist-detail-title min-w-0">' + escHtml(entry.programName) + '</h2>' + navCounter + '</div>' +
         '<p class="hist-detail-date"><i class="fa-regular fa-calendar mr-1"></i>' + date + '</p>' +
         groupsChipsHTML +
