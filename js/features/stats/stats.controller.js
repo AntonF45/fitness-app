@@ -38,8 +38,8 @@ function renderStats() {
         '<div class="pt-4">' +
             '<div id="stats-summary-container">' + renderGeneralSummaryHTML(filteredHistory) + '</div>' +
             renderMuscleGroupSetsChartHTML(filteredHistory) +
-            '<div class="mb-3 card-enter"><div class="section-label">Группа мышц</div><div id="muscle-groups-container" class="flex overflow-x-auto gap-2 pb-1 snap-x scroll-container">' + muscleGroupsHTML + '</div></div>' +
-            '<div class="mb-4 card-enter"><div class="section-label">Упражнения</div><div id="exercises-container" class="flex overflow-x-auto gap-2 pb-1 snap-x scroll-container">' + exercisesHTML + '</div></div>' +
+            '<div class="mb-3 card-enter"><div class="section-label">Группа мышц</div><div id="muscle-groups-container" class="flex overflow-x-auto gap-2 pb-1 snap-x scroll-container chips-scroll">' + muscleGroupsHTML + '</div></div>' +
+            '<div class="mb-4 card-enter"><div class="section-label">Упражнения</div><div id="exercises-container" class="flex overflow-x-auto gap-2 pb-1 snap-x scroll-container chips-scroll">' + exercisesHTML + '</div></div>' +
             '<div id="exercise-block-container">' + renderExerciseBlockHTML() + '</div>' +
         '</div>';
 
