@@ -17,7 +17,7 @@ tailwind.config = { darkMode: 'class', theme: { extend: { colors: { tgBg: 'var(-
 </script>
 
 <!-- Стили приложения -->
-<link rel="stylesheet" href="css/styles.css?v=65">
+<link rel="stylesheet" href="css/styles.css?v=64">
 
 <script>
 /* Диагностика: если скрипты приложения не выполнились (часть файлов не загружена),
@@ -33,9 +33,9 @@ setTimeout(function () {
 <body class="min-h-screen">
 <main id="app-content" class="px-4 pt-0 pb-4"></main>
 <nav id="bottom-nav" class="bottom-nav fixed bottom-0 left-0 right-0 flex justify-around z-20">
-<button data-action="switch-tab" data-payload="stats" id="tab-stats" role="tab" aria-selected="false" aria-controls="app-content" class="tab-item"><i class="fa-solid fa-chart-line text-xl mb-1"></i><span class="text-xs font-medium">Статистика</span></button>
-<button data-action="switch-tab" data-payload="programs" id="tab-programs" role="tab" aria-selected="true" aria-controls="app-content" class="tab-item active"><i class="fa-solid fa-list-check text-xl mb-1"></i><span class="text-xs font-medium">Программы</span></button>
-<button data-action="switch-tab" data-payload="history" id="tab-history" role="tab" aria-selected="false" aria-controls="app-content" class="tab-item"><i class="fa-solid fa-clock-rotate-left text-xl mb-1"></i><span class="text-xs font-medium">История</span></button>
+<button data-action="switch-tab" data-payload="stats" id="tab-stats" role="tab" aria-selected="false" aria-controls="app-content" class="tab-item flex flex-col items-center justify-center min-h-[56px] min-w-[64px] text-tgHint"><i class="fa-solid fa-chart-line text-xl mb-1"></i><span class="text-xs font-medium">Статистика</span></button>
+<button data-action="switch-tab" data-payload="programs" id="tab-programs" role="tab" aria-selected="true" aria-controls="app-content" class="tab-item flex flex-col items-center justify-center min-h-[56px] min-w-[64px] text-tgLink"><i class="fa-solid fa-list-check text-xl mb-1"></i><span class="text-xs font-medium">Программы</span></button>
+<button data-action="switch-tab" data-payload="history" id="tab-history" role="tab" aria-selected="false" aria-controls="app-content" class="tab-item flex flex-col items-center justify-center min-h-[56px] min-w-[64px] text-tgHint"><i class="fa-solid fa-clock-rotate-left text-xl mb-1"></i><span class="text-xs font-medium">История</span></button>
 </nav>
 
 <!-- ==================== JS: слои загружаются снизу вверх ==================== -->

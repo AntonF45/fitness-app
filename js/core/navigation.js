@@ -2,7 +2,7 @@
    кнопка «Назад». Не знает деталей рендеринга — только вызывает render*-функции экранов. */
 'use strict';
 
-function updateTabUI(activeTab) { ['stats','programs','history'].forEach(function (tab) { const b = document.getElementById('tab-' + tab); if (!b) return; if (tab === activeTab) { b.classList.add('active'); b.setAttribute('aria-selected', 'true'); } else { b.classList.remove('active'); b.setAttribute('aria-selected', 'false'); } }); }
+function updateTabUI(activeTab) { ['stats','programs','history'].forEach(function (tab) { const b = document.getElementById('tab-' + tab); if (!b) return; if (tab === activeTab) { b.classList.remove('text-tgHint'); b.classList.add('text-tgLink'); b.setAttribute('aria-selected', 'true'); } else { b.classList.remove('text-tgLink'); b.classList.add('text-tgHint'); b.setAttribute('aria-selected', 'false'); } }); }
 function openProgramsScreen() { state.currentTab = 'programs'; state.currentScreen = 'programs'; updateTabUI('programs'); updateBackButton(false); clearMainButton(); renderPrograms(); scrollToTop(); }
 function navigateToTab(tab) { state.currentTab = tab; updateTabUI(tab); navigate(tab); }
 function switchTab(tab) { if (state.currentScreen === 'workout' && state.activeWorkout && tab !== 'workout') { promptWorkoutExit(tab); return; } haptic('light'); navigateToTab(tab); }

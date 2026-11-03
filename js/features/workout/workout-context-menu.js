@@ -37,9 +37,9 @@ function openWorkoutContextMenu(title, subtitle, items) {
     modal.className = 'modal-backdrop';
     modal.innerHTML =
         '<div class="modal-sheet">' +
-            '<div class="sheet-handle"></div>' +
+            '<div class="w-10 h-1 bg-tgHint/40 rounded-full mx-auto mb-4"></div>' +
             '<h2 class="text-lg font-bold leading-snug break-words">' + escHtml(title) + '</h2>' +
-            (subtitle ? '<p class="text-hint text-xs mt-1 mb-4">' + escHtml(subtitle) + '</p>' : '<div class="mb-3"></div>') +
+            (subtitle ? '<p class="text-tgHint text-xs mt-1 mb-4">' + escHtml(subtitle) + '</p>' : '<div class="mb-3"></div>') +
             '<div class="space-y-3">' +
                 items.map(function (it) {
                     return '<button data-action="' + it.action + '" data-payload="' + escAttr(it.payload) + '" class="btn ' + it.cls + '">' +
