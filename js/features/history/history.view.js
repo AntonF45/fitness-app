@@ -101,7 +101,7 @@ function renderHistory() {
     const header = '<header class="screen-header"><div class="screen-title">История' + (history.length ? '<span class="screen-count">' + history.length + '</span>' : '') + '</div></header>';
     document.getElementById('app-content').innerHTML = header + summaryHTML + calendarHTML + (history.length ? '<div class="section-label">Тренировки</div>' : '') + listHTML +
         '<div style="height: 110px"></div>' +
-        '<div class="sticky-bottom-action"><button data-action="open-data-menu" class="btn btn-secondary"><i class="fa-solid fa-gear"></i> Управление данными</button></div>';
+        '<div class="sticky-bottom-action"><button data-action="open-data-menu" class="btn btn-primary"><i class="fa-solid fa-database"></i> Управление данными</button></div>';
 }
 function renderHistoryDetail(entryId) {
     const entry = DataAPI.getHistoryEntryById(entryId);
