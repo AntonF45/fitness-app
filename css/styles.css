@@ -101,7 +101,7 @@ input[type=number] { -moz-appearance: textfield; }
     margin-left: calc(-1 * var(--page-x));
     margin-right: calc(-1 * var(--page-x));
     margin-top: calc(-1 * var(--page-x));
-    padding: calc(var(--safe-top) + var(--extra-top) + 14px) var(--page-x) 14px;
+    padding: calc(var(--safe-top) + var(--extra-top) + 16px) var(--page-x) 14px;
 }
 .screen-header { padding-bottom: 12px; }
 .screen-title { display: flex; align-items: baseline; gap: 8px; font-size: var(--font-display); font-weight: 800; letter-spacing: -0.5px; line-height: 1.2; text-align: left; color: var(--text); }
