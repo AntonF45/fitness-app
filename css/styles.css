@@ -16,13 +16,11 @@
     --safe-bottom: env(safe-area-inset-bottom, 0px);
     --safe-top: env(safe-area-inset-top, 0px);
     --extra-top: 0px; /* высота системной кнопки «Закрыть» в fullscreen */
-    /* Верхняя полоса поверх контента: safe-top + extra-top (задаёт JS из inset'ов
-       Telegram). --app-top-pad — внутренний отступ sticky-шапки = высота полосы,
-       чтобы текст заголовка гарантированно был ниже системных кнопок. */
-    --app-top-inset: calc(var(--safe-top) + var(--extra-top));
-    --app-top-pad: max(var(--app-top-inset), 44px);
-    /* Сплошная версия фона для sticky-панелей (без просветов при скролле) */
-    --bg-solid: var(--tg-theme-bg-color, var(--bg));
+    /* Единая верхняя резервация (как у секундомера на экране тренировки):
+       контент начинается ПОД полосой Telegram, поэтому ни одна sticky-панель
+       не перекрывается системными кнопками. --top-reserve задаёт body padding-top;
+       sticky-элементы липнут к top:0 — ровно под нижним краем полосы. */
+    --top-reserve: calc(var(--safe-top) + var(--extra-top));
 
     /* Поверхности: карточка = мягкая заливка поверх фона экрана,
        инсет = вложенный блок внутри карточки. */
@@ -69,7 +67,7 @@
     --glass-line: color-mix(in srgb, var(--hint) 22%, transparent);
     --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.04), 0 8px 24px rgba(0, 0, 0, 0.06);
 }
-body { background-color: var(--bg); color: var(--text); font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", Roboto, Helvetica, Arial, sans-serif; -webkit-tap-highlight-color: transparent; padding-top: calc(var(--safe-top) + var(--extra-top)); padding-bottom: calc(var(--bottom-nav-height) + var(--safe-bottom) + 16px); }
+body { background-color: var(--bg); color: var(--text); font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", Roboto, Helvetica, Arial, sans-serif; -webkit-tap-highlight-color: transparent; padding-top: var(--top-reserve); padding-bottom: calc(var(--bottom-nav-height) + var(--safe-bottom) + 16px); }
 input, select { background: var(--inset-bg); color: var(--text); border: 1px solid var(--inset-border); border-radius: 12px; }
 .input-bare { background: transparent; border: none; border-radius: 8px; }
 .input-bare:focus { outline: none; box-shadow: none; }
@@ -96,27 +94,26 @@ input[type=number] { -moz-appearance: textfield; }
 .chart-container-fixed { height: 260px; position: relative; overflow: hidden; }
 .chart-wrapper-fixed { position: absolute; top: 0; left: 0; right: 0; bottom: 0; }
 
-/* Единая sticky-шапка экрана — по образцу блока «Секундомер» на экране тренировки:
-   он прижат к верху content-safe-area (под полосой Telegram), поэтому не перекрывается
-   системными кнопками. Тот же приём: sticky с ОТРИЦАТЕЛЬНЫМ top — шапка «прячется»
-   под верхнюю полосу (высота = --app-top-inset), а её внутренний отступ
-   (--app-top-pad) опускает текст ниже кнопок. Сплошной фон (--bg-solid) — контент
-   скроллится ПОД шапкой и не просвечивает через неё. */
+/* Единая sticky-шапка экрана — по модели блока «Секундомер»: контент начинается
+   под полосой Telegram (body padding-top = --top-reserve), поэтому шапка липнет
+   к top:0 — ровно под нижним краем полосы и системные кнопки её не перекрывают. */
 .screen-header, .stats-header {
     position: sticky;
-    top: calc(-1 * var(--app-top-pad));
+    top: 0;
     z-index: 10;
-    background: var(--bg-solid);
+    background: var(--glass-bg);
+    -webkit-backdrop-filter: blur(20px) saturate(160%);
+    backdrop-filter: blur(20px) saturate(160%);
     border-bottom: 1px solid var(--glass-line);
     margin-left: calc(-1 * var(--page-x));
     margin-right: calc(-1 * var(--page-x));
     margin-top: calc(-1 * var(--page-x));
-    padding: calc(var(--app-top-pad) + 12px) var(--page-x) 12px;
+    padding: 14px var(--page-x);
 }
+.screen-header { padding-bottom: 12px; }
 .screen-title { display: flex; align-items: baseline; gap: 8px; font-size: var(--font-display); font-weight: 800; letter-spacing: -0.5px; line-height: 1.2; text-align: left; color: var(--text); }
 .screen-title .screen-count { font-size: 13px; font-weight: 600; color: var(--hint); letter-spacing: 0; }
-/* Sticky-элементы внутри контента (секундомер, шапка редактора): липнут ровно
-   под нижним краем верхней полосы Telegram — как «Секундомер». */
+.stats-header { padding-bottom: 14px; }
 .sticky.top-0 { top: 0 !important; }
 .sticky.top-2 { top: 8px !important; }
 .stats-title {
