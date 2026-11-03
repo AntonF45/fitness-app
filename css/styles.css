@@ -129,14 +129,10 @@ input[type=number] { -moz-appearance: textfield; }
     position: sticky;
     top: var(--sticky-top);
     z-index: 10;
-    /* Полупрозрачное «стекло»: translucent-подложка + blur контента под
-       шапкой. Двойной фон: НЕПРОЗРАЧНАЯ база --bg (сплошной белый/чёрный) +
-       поверх неё glass 82%. Это нужно для Telegram Desktop, где хост присылает
-       прозрачный --tg-theme-bg-color — без базы стекло было бы полностью
-       прозрачным и нечитаемым. На мобильных клиентах визуально то же самое:
-       контент за шапкой просвечивает ровно на 18%, как задумано. */
-    background: var(--glass-bg), var(--bg);
-    background-color: var(--bg);
+    /* Полупрозрачное «стекло»: ЕДИНСТВЕННЫЙ слой — glass 82% + blur контента
+       под шапкой. Никакой непрозрачной базы: с базовым цветом шапка физически
+       не может быть прозрачной (это и был баг). */
+    background: var(--glass-bg);
     -webkit-backdrop-filter: blur(20px) saturate(150%);
     backdrop-filter: blur(20px) saturate(150%);
     border-bottom: 1px solid var(--glass-line);
