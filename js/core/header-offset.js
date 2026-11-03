@@ -1,6 +1,6 @@
 /* Измеряет реальную высоту sticky-шапки экрана и записывает её в CSS-переменную
    --header-h на #app-content. Используется правилом из styles.css:
-     #app-content > :not(.screen-header):not(.stats-header) { margin-top: var(--header-h); }
+     #app-content { padding-top: calc(var(--top-reserve) + var(--header-h)); }
    чтобы контент страницы начинался ПОСЛЕ прилипшей шапки, а не под ней.
    ResizeObserver реагирует на смену контента (разные экраны, перенос строк,
    поворот экрана), поэтому отступ всегда равен актуальной высоте шапки. */
@@ -10,7 +10,11 @@
     function applyHeaderHeight() {
         var container = document.getElementById('app-content');
         if (!container) return;
-        var header = container.querySelector(':scope > .screen-header, :scope > .stats-header');
+        // Шапка — любой sticky-заголовок экрана: обычный, статистика,
+        // детали записи истории или верхняя панель секундомера тренировки.
+        var header = container.querySelector(
+            ':scope > .screen-header, :scope > .stats-header, :scope > .sticky.top-0'
+        );
         var h = header ? Math.ceil(header.getBoundingClientRect().height) : 0;
         container.style.setProperty('--header-h', h + 'px');
     }
