@@ -160,8 +160,16 @@ input[type=number] { -moz-appearance: textfield; }
    и остаётся сплошной --glass-bg (шапка читаемая, просто без стекла).
    Прежний color-mix при отсутствии поддержки делал background invalid →
    initial value = сплошной белый — это и был «белый фон», который мы видели. */
+/* Стало (ВСТАВИТЬ): */
 .screen-header, .stats-header {
-    background-color: rgba(from var(--bg) r g b / 0.95);
+    /* 
+      1. Фолбэк для очень старых устройств: берем базовый цвет (он будет сплошным, но хотя бы не сломает верстку).
+      2. color-mix: берет цвет темы Telegram и делает его на 92% непрозрачным (8% прозрачности для эффекта стекла).
+      3. Если --tg-theme-bg-color вдруг приходит прозрачным (Telegram Desktop), 
+         мы используем --bg-secondary как надежную сплошную основу, чтобы стекло не превратилось в "дыру".
+    */
+    background-color: var(--bg);
+    background-color: color-mix(in srgb, var(--tg-theme-bg-color, var(--bg-secondary)) 92%, transparent);
 }
 /* Содержимое шапки — над стеклянным слоем (иначе z-index:-1 перекрывал бы текст). */
 .screen-header > *, .stats-header > * { position: relative; z-index: 1; }
