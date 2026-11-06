@@ -142,17 +142,31 @@ input[type=number] { -moz-appearance: textfield; }
     position: sticky;
     top: var(--sticky-top);
     z-index: 10;
-    /* Дословно стили секундомера (bg-tgBg/95 backdrop-blur-md): полупрозрачный
-       фон + backdrop-filter прямо на элементе. Никаких ::before-плашек и
-       opacity-слоёв — именно они делали шапку визуально сплошной. */
-    background-color: var(--glass-bg);
-    -webkit-backdrop-filter: var(--glass-blur);
-    backdrop-filter: var(--glass-blur);
+    
+    /* 1. Надежный фолбэк для очень старых устройств */
+    background-color: var(--bg);
+    
+    /* 2. Магия стекла: 85% цвета темы + 15% прозрачности. 
+       Если 85% всё ещё кажется мутным, попробуйте 80% или 75% */
+    background-color: color-mix(in srgb, var(--bg) 85%, transparent);
+    
+    /* 3. Усиленное размытие и насыщенность для премиального эффекта стекла */
+    -webkit-backdrop-filter: blur(16px) saturate(180%);
+    backdrop-filter: blur(16px) saturate(180%);
+    
+    /* 4. Тонкая граница снизу обязательна для эффекта стекла (она уже была у вас, оставляем) */
     border-bottom: 1px solid var(--glass-line);
     box-shadow: none;
+    
     margin-left: calc(-1 * var(--page-x));
     margin-right: calc(-1 * var(--page-x));
     padding: 14px var(--page-x);
+}
+
+/* Содержимое шапки должно быть выше слоя размытия */
+.screen-header > *, .stats-header > * { 
+    position: relative; 
+    z-index: 1; 
 }
 /* Прозрачность фона шапки ровно 95% — как у секундомера (Tailwind bg-tgBg/95).
    Реализовано каскадом из ДВУХ объявлений, а не color-mix: если хост не
