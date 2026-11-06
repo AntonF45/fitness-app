@@ -1,20 +1,4 @@
-/* ============================================================
-   Fitnary — дизайн-токены (единый источник стиля для light/dark).
-   Все базовые цвета берутся из Telegram-переменных: тема переключается
-   хостом автоматически, JS не нужен. Акценты — семантические константы.
-   ============================================================ */
 :root {
-    /* Базовые цвета — из темы Telegram (единственный источник истины).
-       NOTE 1: раньше здесь было `--bg: var(--bg)` (самоссылка) — переменная
-       получала invalid значение и все поверхности (в т.ч. панель навигации)
-       рендерились прозрачными.
-       NOTE 2: в Telegram Desktop/веб-клиенте --tg-theme-bg-color приходит
-       ПРОЗРАЧным. Раньше сюда примешивали непрозрачную подложку («сплошной
-       белый») — из-за этого body и sticky-шапка были БЕЛЫМИ плашками, а
-       эффект «стекла» пропадал. Теперь фон остаётся таким, каким его дал
-       хост: контент просвечивает окно, а шапка — полупрозрачная над ним.
-       Сплошной фолбэк (#fff/#0c0c0c) срабатывает только если хост вообще
-       не прислал переменную темы (открытие вне Telegram). */
     --bg: var(--tg-theme-bg-color, #ffffff);
     --bg-secondary: var(--tg-theme-secondary-bg-color, #f2f2f7);
     --text: color-mix(in srgb, var(--tg-theme-text-color, #000000) 100%, transparent);
@@ -26,18 +10,9 @@
     --bottom-nav-height: 72px;
     --safe-bottom: env(safe-area-inset-bottom, 0px);
     --safe-top: env(safe-area-inset-top, 0px);
-    --extra-top: 0px; /* высота системной кнопки «Закрыть» в fullscreen */
-    /* Единая верхняя резервация (как у секундомера на экране тренировки):
-       контент начинается ПОД полосой Telegram, поэтому ни одна sticky-панель
-       не перекрывается системными кнопками. --top-reserve задаёт body padding-top;
-       sticky-элементы липнут к top:0 — ровно под нижним краем полосы. */
+    --extra-top: 0px; 
     --top-reserve: calc(var(--safe-top) + var(--extra-top));
 
-    /* Поверхности: карточка/инсет = ТОЧНО фон приложения (белый в light).
-       NOTE: любая примесь акцента в заливках («2–3% синего») на десктопной
-       теме Telegram (link-color ~#6ab7f2) давала видимую светло-голубую
-       подложку вместо белой — поэтому заливки выровнены с фоном 1:1,
-       а разделение слоёв дают только hairline-рамки. */
     --card-bg: var(--bg);
     --card-border: color-mix(in srgb, var(--hint) 18%, transparent);
     --card-radius: 18px;
@@ -46,17 +21,10 @@
     --inset-bg: var(--bg);
     --inset-border: color-mix(in srgb, var(--hint) 22%, transparent);
 
-    /* Семантика (статусы, а не декор) */
-    --danger: #ff453a;
-    --danger-bg: rgba(255, 69, 58, 0.13);
-    --danger-border: rgba(255, 69, 58, 0.32);
-    --warn: #ff9f0a;
-    --warn-bg: rgba(255, 159, 10, 0.13);
-    --warn-border: rgba(255, 159, 10, 0.32);
-    --success: #30d158;
-    --success-bg: rgba(48, 209, 88, 0.14);
+    --danger: #ff453a; --danger-bg: rgba(255, 69, 58, 0.13); --danger-border: rgba(255, 69, 58, 0.32);
+    --warn: #ff9f0a; --warn-bg: rgba(255, 159, 10, 0.13); --warn-border: rgba(255, 159, 10, 0.32);
+    --success: #30d158; --success-bg: rgba(48, 209, 88, 0.14);
 
-    /* Палитра акцентов контента (группы мышц / метрики) — одна на обе темы */
     --c-blue: #5ac8fa; --c-blue-bg: rgba(90, 200, 250, 0.14);
     --c-purple: #bf5af2; --c-purple-bg: rgba(191, 90, 242, 0.14);
     --c-green: #30d158; --c-green-bg: rgba(48, 209, 88, 0.14);
@@ -65,30 +33,15 @@
     --c-red: #ff453a; --c-red-bg: rgba(255, 69, 58, 0.14);
     --c-gold: #ffd60a; --c-gold-bg: rgba(255, 214, 10, 0.14);
 
-    /* Типографика */
-    --font-display: 26px;
-    --font-title: 17px;
-    --font-body: 15px;
-    --font-meta: 12px;
+    --font-display: 26px; --font-title: 17px; --font-body: 15px; --font-meta: 12px;
+    --page-x: 16px; --gap-block: 14px; --tap: 44px;
 
-    /* Ритм и размеры зон */
-    --page-x: 16px;
-    --gap-block: 14px;
-    --tap: 44px;
-
-    /* Стекло шапок = копия секундомера (bg-tgBg/95 backdrop-blur-md).
-       Сплошная база --glass-bg; прозрачность 95% добавляется вторым
-       объявлением у самих шапок (rgba(from …)) — каскадом, а не color-mix:
-       неподдерживаемое значение отбрасывается и остаётся читаемая база. */
     --glass-bg: var(--bg);
     --glass-blur: blur(12px) saturate(150%);
     --glass-line: color-mix(in srgb, var(--hint) 22%, transparent);
     --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.04), 0 8px 24px rgba(0, 0, 0, 0.06);
 }
-/* Верхний отступ под системную полосу Telegram — именно на body: тогда
-   content-box страницы начинается ровно под кнопками, и sticky-шапки
-   (top: var(--top-reserve)) прилипают к этой же линии — никогда не уходят
-   под «Закрыть/назад» и не оставляют пустой щели над собой. */
+
 body { background-color: var(--bg); color: var(--text); font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", Roboto, Helvetica, Arial, sans-serif; -webkit-tap-highlight-color: transparent; padding-top: var(--top-reserve); padding-bottom: calc(var(--bottom-nav-height) + var(--safe-bottom) + 16px); }
 html { scroll-padding-top: var(--top-reserve); }
 input, select { background: var(--inset-bg); color: var(--text); border: 1px solid var(--inset-border); border-radius: 12px; }
@@ -103,110 +56,51 @@ input[type=number] { -moz-appearance: textfield; }
 .scroll-container::-webkit-scrollbar { display: none; }
 .snap-x { scroll-snap-type: x mandatory; }
 .snap-center { scroll-snap-align: center; }
-.stat-chip { display: inline-flex; align-items: center; min-height: var(--tap); background: var(--card-bg); border: 1px solid var(--card-border); border-radius: 999px; transition: background 0.18s ease, border-color 0.18s ease, color 0.18s ease, transform 0.1s ease; box-shadow: none; /* в горизонтальном скролле чипы не сжимаются и не дробят текст */ flex: 0 0 auto; white-space: nowrap; }
-/* Контейнеры чипов (группы мышц / упражнения) — горизонтальный скролл:
-   flex-дети по умолчанию пытаются «ужаться» под ширину экрана → перенос и
-   дробление текста. shrink:0 + nowrap решают это на уровне CSS. */
+
+.stat-chip { display: inline-flex; align-items: center; min-height: var(--tap); background: var(--card-bg); border: 1px solid var(--card-border); border-radius: 999px; transition: background 0.18s ease, border-color 0.18s ease, color 0.18s ease, transform 0.1s ease; box-shadow: none; flex: 0 0 auto; white-space: nowrap; }
 .chips-scroll > * { flex-shrink: 0; white-space: nowrap; }
 .chips-scroll { scrollbar-width: none; -ms-overflow-style: none; }
 .chips-scroll::-webkit-scrollbar { display: none; }
 .stat-chip:active { transform: scale(0.96); }
 .stat-chip.active { background: var(--accent-strong); border-color: transparent; color: var(--accent-on); font-weight: 600; }
 .stat-chip.inactive { color: var(--hint); }
+
 .card-enter { animation: cardIn 0.32s cubic-bezier(0.32, 0.72, 0, 1) both; }
 @keyframes cardIn { from { opacity: 0; transform: translateY(10px) scale(0.985); } to { opacity: 1; transform: translateY(0) scale(1); } }
 @media (prefers-reduced-motion: reduce) {
     .card-enter { animation: none; }
     *, *::before, *::after { transition-duration: 0.01ms !important; animation-duration: 0.01ms !important; }
 }
+
 .chart-card { background: var(--card-bg); border: 1px solid var(--card-border); }
 .chart-container-fixed { height: 260px; position: relative; overflow: hidden; }
 .chart-wrapper-fixed { position: absolute; top: 0; left: 0; right: 0; bottom: 0; }
 
-/* Модель sticky-шапок. Граница прилипания = нижний край полосы Telegram
-   (--top-reserve = safe-area + кнопка «Закрыть»), потому что body уже имеет
-   padding-top той же величины: в покое шапка стоит вплотную под полосой
-   (как секундомер), а при прокрутке фиксируется ровно под кнопками — они её
-   не перекрывают. Никаких padding-top на контейнере и компенсирующих
-   отрицательных margin'ов: они и ломали фиксацию (sticky не может выйти
-   выше содержимого родителя). */
 #app-content { --sticky-top: var(--top-reserve); }
-/* СЛОЙ ПОД sticky-шапками: в Telegram Desktop фон окна (--tg-theme-bg-color)
-   прозрачный, и полупрозрачное «стекло» шапки просвечивало бы «дырой» до
-   рабочего стола. Отдельную непрозрачную плашку под шапкой делать НЕЛЬЗЯ —
-   она делала шапку визуально сплошной (это и убиралось в прошлых правках):
-   стекло = только фон шапки (95% + blur), фон окна остаётся таким, каким его дал
-   хост. */
 
+/* ===== STICKY HEADERS (GLASS EFFECT) ===== */
 .screen-header, .stats-header {
     position: sticky;
     top: var(--sticky-top);
     z-index: 10;
-    
-    /* 1. СБРОС: принудительно убираем любой сплошной фон, который мог прилипнуть */
-    background-color: transparent !important;
-    
-    /* 2. НАДЕЖНАЯ ПРОЗРАЧНОСТЬ (работает в 100% браузеров) */
-    /* Светлая тема: белый цвет с 75% непрозрачности (25% прозрачности для стекла) */
     background: rgba(255, 255, 255, 0.75) !important;
-    
-    /* Темная тема: черный цвет с 75% непрозрачности (идеально для вашего дизайна) */
-    @media (prefers-color-scheme: dark) {
-        background: rgba(0, 0, 0, 0.75) !important;
-    }
-    
-    /* 3. Попытка использовать точный цвет темы Telegram (для современных браузеров).
-       Если браузер не понимает color-mix, он проигнорирует эту строку, 
-       и останется работать надежный rgba выше. */
-    background: color-mix(in srgb, var(--tg-theme-bg-color, #ffffff) 75%, transparent) !important;
-
-    /* 4. Усиленный эффект матового стекла */
     -webkit-backdrop-filter: blur(16px) saturate(180%) !important;
     backdrop-filter: blur(16px) saturate(180%) !important;
-    
-    /* 5. Остальные стили без изменений */
     border-bottom: 1px solid var(--glass-line);
     box-shadow: none;
     margin-left: calc(-1 * var(--page-x));
     margin-right: calc(-1 * var(--page-x));
     padding: 14px var(--page-x);
 }
-
-/* Содержимое шапки должно быть выше слоя размытия, иначе текст тоже размоется */
-.screen-header > *, .stats-header > * { 
-    position: relative; 
-    z-index: 1; 
+@media (prefers-color-scheme: dark) {
+    .screen-header, .stats-header {
+        background: rgba(0, 0, 0, 0.75) !important;
+    }
 }
-
-/* Содержимое шапки должно быть выше слоя размытия */
-.screen-header > *, .stats-header > * { 
-    position: relative; 
-    z-index: 1; 
+.screen-header > *, .stats-header > * {
+    position: relative;
+    z-index: 1;
 }
-/* Прозрачность фона шапки ровно 95% — как у секундомера (Tailwind bg-tgBg/95).
-   Реализовано каскадом из ДВУХ объявлений, а не color-mix: если хост не
-   поддерживает относительный синтаксис rgba(from …), декларация отбрасывается
-   и остаётся сплошной --glass-bg (шапка читаемая, просто без стекла).
-   Прежний color-mix при отсутствии поддержки делал background invalid →
-   initial value = сплошной белый — это и был «белый фон», который мы видели. */
-/* Стало (ВСТАВИТЬ): */
-.screen-header, .stats-header {
-    /* 
-      1. Фолбэк для очень старых устройств: берем базовый цвет (он будет сплошным, но хотя бы не сломает верстку).
-      2. color-mix: берет цвет темы Telegram и делает его на 92% непрозрачным (8% прозрачности для эффекта стекла).
-      3. Если --tg-theme-bg-color вдруг приходит прозрачным (Telegram Desktop), 
-         мы используем --bg-secondary как надежную сплошную основу, чтобы стекло не превратилось в "дыру".
-    */
-    background-color: var(--bg);
-    background-color: color-mix(in srgb, var(--tg-theme-bg-color, var(--bg-secondary)) 92%, transparent);
-}
-/* Содержимое шапки — над стеклянным слоем (иначе z-index:-1 перекрывал бы текст). */
-.screen-header > *, .stats-header > * { position: relative; z-index: 1; }
-/* Защита sticky-панелей: анимация card-enter задаёт transform (translateY/scale)
-   на самом элементе — в Telegram WebView анимированный transform ломает
-   фиксацию sticky («панель уезжает вместе с контентом»). Поэтому на шапках
-   card-enter не используется (убран из разметки); появление заголовков —
-   через fade без transform. */
 @keyframes headerFadeIn { from { opacity: 0; } to { opacity: 1; } }
 .screen-header .screen-title, .stats-header .stats-title { animation: headerFadeIn 0.3s ease both; }
 .screen-header { padding-bottom: 12px; }
@@ -214,66 +108,30 @@ input[type=number] { -moz-appearance: textfield; }
 .screen-title .screen-count { font-size: 13px; font-weight: 600; color: var(--hint); letter-spacing: 0; }
 .stats-header { padding-bottom: 14px; }
 .sticky.top-0 { top: var(--sticky-top, 0px) !important; }
-/* Баннер суперсета в редакторе программы (второй sticky-слой): липнет на
-   8px НИЖЕ нижней границы шапки экрана. --header-h измеряет JS ниже. */
 #app-content.has-sticky-header .sticky.top-2 { top: calc(var(--top-reserve) + var(--header-h, 58px) + 8px); }
-.stats-title {
-    font-size: var(--font-display);
-    font-weight: 800;
-    letter-spacing: -0.5px;
-    line-height: 1.2;
-    text-align: left;
-    color: var(--text);
-}
+.stats-title { font-size: var(--font-display); font-weight: 800; letter-spacing: -0.5px; line-height: 1.2; text-align: left; color: var(--text); }
+
 .summary-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
 .summary-cell { background: var(--card-bg); border: 1px solid var(--card-border); border-radius: 14px; padding: 12px 8px; text-align: center; min-width: 0; }
 .summary-value { font-size: 18px; font-weight: 700; line-height: 1.2; }
 .summary-label { font-size: 9px; text-transform: uppercase; letter-spacing: 0.5px; color: var(--hint); margin-top: 2px; line-height: 1.2; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
-/* Фильтр периода в одну строку: [месяцы] [панель периодов] [кнопка фильтра/крестик].
-   При нажатии на кнопку панель «7 дней / 30 дней / 90 дней / Всё» выезжает СПРАВА НАЛЕВО
-   (translateX 100% → 0), а месяцы тем же сдвигом уходят за левый край экрана;
-   на месте кнопки фильтра крестик появляется синхронно (crossfade двух слоёв иконок).
-   Всё анимируется одним классом .open — никаких пересборок DOM и «опережающих» элементов. */
 .filter-line { position: relative; display: flex; align-items: center; gap: 8px; margin-top: 12px; overflow: hidden; }
-/* Месяцы занимают всю ширину строки (до кнопки) и уезжают влево при открытии панели.
-   pointer-events:none в открытом состоянии — пока панель уезжает назад, по месяцам
-   нельзя «промахнуться» тапом (они всё ещё видны во время анимации). */
 .months-track { flex: 1 1 auto; min-width: 0; display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; -ms-overflow-style: none; scroll-padding-left: 4px; padding-right: 2px; transition: transform 0.26s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.2s ease; }
 .months-track::-webkit-scrollbar { display: none; }
 .months-track > * { flex-shrink: 0; }
 .months-empty { font-size: 11px; color: var(--hint); line-height: 40px; white-space: nowrap; padding-left: 2px; }
-/* Месяцы в свёрнутом состоянии въезжают СЛЕВА НАПРАВО (translateX(-100%) → 0).
-   pointer-events:none в открытом состоянии — месяцы уже невидимы, тапы по ним исключены. */
 .filter-line.open .months-track { transform: translateX(calc(-100% - 12px)); opacity: 0; pointer-events: none; }
-/* Панель периодов при открытии «РАСТЁТ ИЗ КНОПКИ ФИЛЬТРА»: transform-origin — правый
-   край (возле кнопки), scale.X 0 → 1 + лёгкое затухание — визуально панель выезжает
-   именно из-под кнопки фильтра влево, а не приходит со стороны экрана.
-   При закрытии панель НЕ уезжает — гаснет на месте (transition:none в .closing),
-   поэтому текст «7 дней / 30 дней…» не мелькает поверх кнопки даже долю секунды. */
 .periods-panel { position: absolute; left: 0; right: var(--tap); top: 50%; transform: translate(-10px, -50%) scaleX(0); transform-origin: 100% 50%; opacity: 0; visibility: hidden; z-index: 2; pointer-events: none; transition: transform 0.26s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.2s ease, visibility 0s linear 0.26s; }
 .filter-line.open .periods-panel { transform: translate(0, -50%) scaleX(1); opacity: 1; visibility: visible; pointer-events: auto; transition: transform 0.26s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.18s ease 0.04s, visibility 0s; }
-/* Подложка панели — фон ТОЧНО как у всего блока фильтров (.period-filter): та же
-   полупрозрачная карточка var(--card-bg) с той же тонкой рамкой var(--card-border).
-   Прежние варианты (тёмно-серый, var(--accent-bg)) не совпадали по оттенку — убраны. */
 .stats-header .periods-panel { background: var(--card-bg); border-color: var(--card-border); }
-/* Кнопка фильтра = два слоя иконок (ползунки/крестик). В ЗАКРЫТОМ состоянии crossfade
-   выключен (transition: none): при нажатии на крестик ползунок появляется мгновенно,
-   без «долгой перекраски». При открытии анимация остаётся плавной. */
 #filter-toggle-btn { position: relative; flex-shrink: 0; }
 #filter-toggle-btn .fi-sliders, #filter-toggle-btn .fi-xmark { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; }
 #filter-toggle-btn .fi-xmark { opacity: 0; transform: rotate(-90deg) scale(0.6); }
 .filter-line.open #filter-toggle-btn .fi-sliders { opacity: 0; transform: rotate(90deg) scale(0.6); }
 .filter-line.open #filter-toggle-btn .fi-xmark { opacity: 1; transform: rotate(0) scale(1); }
-.filter-line:not(.open) #filter-toggle-btn .fi-sliders,
-.filter-line:not(.open) #filter-toggle-btn .fi-xmark { transition: none; }
-.filter-line.open #filter-toggle-btn .fi-sliders,
-.filter-line.open #filter-toggle-btn .fi-xmark { transition: opacity 0.18s ease, transform 0.24s cubic-bezier(0.4, 0, 0.2, 1); }
-
-/* Панель периодов в закрытии (.closing ставит toggleFilterPanel): гаснет МГНОВЕННО —
-   opacity:0 и visibility:hidden без перехода, поэтому текст «7 дней / 30 дней…» не
-   просвечивает ни долю секунды поверх кнопки фильтра на уезде; pointer-events:none
-   перекрывает клики по кнопкам периодов до конца анимации. */
+.filter-line:not(.open) #filter-toggle-btn .fi-sliders, .filter-line:not(.open) #filter-toggle-btn .fi-xmark { transition: none; }
+.filter-line.open #filter-toggle-btn .fi-sliders, .filter-line.open #filter-toggle-btn .fi-xmark { transition: opacity 0.18s ease, transform 0.24s cubic-bezier(0.4, 0, 0.2, 1); }
 .periods-panel.closing { opacity: 0 !important; visibility: hidden !important; pointer-events: none !important; transition: none !important; }
 
 .filter-toggle-btn { width: var(--tap); height: var(--tap); border-radius: 10px; background: var(--accent-bg); border: 1px solid var(--card-border); display: flex; align-items: center; justify-content: center; color: var(--accent); transition: background 0.2s ease; flex-shrink: 0; }
@@ -295,48 +153,24 @@ input[type=number] { -moz-appearance: textfield; }
 .empty-state-block .desc { font-size: 12.5px; line-height: 1.45; max-width: 30ch; margin: 0 auto; }
 .metric-note { font-size: 10px; color: var(--hint); margin-top: 4px; font-style: italic; }
 .estimated-badge { display: inline-block; font-size: 9px; padding: 1px 6px; background: rgba(142, 142, 147, 0.15); color: var(--hint); border-radius: 6px; margin-left: 4px; font-weight: 500; letter-spacing: 0.3px; vertical-align: middle; }
+
 .achievement-card { background: var(--card-bg); border: 1px solid var(--card-border); border-radius: 16px; padding: 14px; transition: all 0.2s ease; }
 .achievement-icon { width: 40px; height: 40px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 18px; flex-shrink: 0; }
 .achievement-icon.gold { background: var(--c-gold-bg); color: var(--c-gold); }
 .achievement-icon.blue { background: var(--c-blue-bg); color: var(--c-blue); }
 .achievement-icon.green { background: var(--c-green-bg); color: var(--c-green); }
 .achievement-icon.purple { background: var(--c-purple-bg); color: var(--c-purple); }
+
 .bodyweight-badge { display: inline-flex; align-items: center; background: var(--success-bg); color: var(--success); padding: 4px 10px; border-radius: 999px; font-size: 11px; font-weight: 600; }
 .drop-badge { display: inline-flex; align-items: center; gap: 4px; background: var(--warn-bg); color: var(--warn); padding: 2px 8px; border-radius: 6px; font-size: 10px; font-weight: 700; letter-spacing: 0.5px; }
+
 .checkbox-label { display: flex; align-items: center; gap: 10px; cursor: pointer; user-select: none; }
-/* Чекбокс «Собственный вес» — ОДИН круг, без наслоений.
-   Нативный input скрыт, но остаётся в DOM: работают клик по label и .checked.
-   Раньше круг рисовался псевдоэлементами текстового span и растягивался по его
-   высоте («вытянутые круги»). Теперь у круга есть собственный жёсткий размер. */
-.checkbox-label input[type="checkbox"] {
-    appearance: none; -webkit-appearance: none;
-    flex: 0 0 22px; width: 22px; height: 22px; box-sizing: border-box;
-    margin: 0; border: none; outline: none;
-    border-radius: 50%; background: #ffffff;
-    position: relative; cursor: pointer; transition: background 0.15s ease;
-}
-/* Отмеченное состояние: зелёная заливка (светло-зелёный из палитры приложения),
-   а галочка — белая SVG, вписана точно в центр круга через viewBox, поэтому
-   не «уезжает» в сторону и не зависит от засечек шрифта. */
-.checkbox-label input[type="checkbox"]:checked {
-    background: var(--success);
-    /* синие/серые системные стили чекбоксов поверх наших — исключены */
-    accent-color: transparent;
-}
-.checkbox-label input[type="checkbox"]:checked::after {
-    content: ""; position: absolute; inset: 0;
-    background-color: #fff;
-    -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M9.55 17.6L4.4 12.45l1.6-1.6 3.55 3.55 8.45-8.45 1.6 1.6z'/%3E%3C/svg%3E");
-    mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M9.55 17.6L4.4 12.45l1.6-1.6 3.55 3.55 8.45-8.45 1.6 1.6z'/%3E%3C/svg%3E");
-    -webkit-mask-repeat: no-repeat; mask-repeat: no-repeat;
-    -webkit-mask-position: center; mask-position: center;
-    -webkit-mask-size: 15px 15px; mask-size: 15px 15px;
-}
-/* Текст строки — серый (цвет подсказок приложения). */
+.checkbox-label input[type="checkbox"] { appearance: none; -webkit-appearance: none; flex: 0 0 22px; width: 22px; height: 22px; box-sizing: border-box; margin: 0; border: none; outline: none; border-radius: 50%; background: #ffffff; position: relative; cursor: pointer; transition: background 0.15s ease; }
+.checkbox-label input[type="checkbox"]:checked { background: var(--success); accent-color: transparent; }
+.checkbox-label input[type="checkbox"]:checked::after { content: ""; position: absolute; inset: 0; background-color: #fff; -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M9.55 17.6L4.4 12.45l1.6-1.6 3.55 3.55 8.45-8.45 1.6 1.6z'/%3E%3C/svg%3E"); mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M9.55 17.6L4.4 12.45l1.6-1.6 3.55 3.55 8.45-8.45 1.6 1.6z'/%3E%3C/svg%3E"); -webkit-mask-repeat: no-repeat; mask-repeat: no-repeat; -webkit-mask-position: center; mask-position: center; -webkit-mask-size: 15px 15px; mask-size: 15px 15px; }
 .checkbox-label span { color: var(--hint); }
-/* Отклик при нажатии. */
 .checkbox-label input[type="checkbox"]:active { transform: scale(0.92); }
-/* Модальные окна — bottom sheet: прижаты к низу, drag-handle, safe area. */
+
 .modal-backdrop { position: fixed; inset: 0; z-index: 100; display: flex; align-items: flex-end; justify-content: center; background: rgba(0, 0, 0, 0.45); -webkit-backdrop-filter: blur(4px); backdrop-filter: blur(4px); padding: 0; animation: backdropIn 0.2s ease-out; }
 .modal-sheet { width: 100%; max-width: 560px; background: var(--bg-secondary); color: var(--text); border: none; border-radius: 22px 22px 0 0; padding: 10px 20px 20px; padding-bottom: calc(20px + var(--safe-bottom)); animation: sheetIn 0.3s cubic-bezier(0.32, 0.72, 0, 1); box-shadow: 0 -8px 40px rgba(0,0,0,0.35); max-height: 88vh; overflow-y: auto; }
 .modal-sheet > .sheet-handle { width: 36px; height: 4px; border-radius: 999px; background: var(--glass-line); margin: 2px auto 14px; }
@@ -348,97 +182,39 @@ input[type=number] { -moz-appearance: textfield; }
 }
 
 .ac-wrapper { position: relative; }
-/* Крестик очистки текста внутри поля ввода (как в строке поиска браузера).
-   Минималистичный стиль: без заливки и границ — только тонкий знак «×» приглушённого цвета,
-   при наведении становится ярче, при нажатии слегка уменьшается. */
-.input-clear-btn {
-    position: absolute; top: 50%; transform: translateY(-50%); right: 8px; z-index: 2;
-    width: 24px; height: 24px; padding: 0; display: flex; align-items: center; justify-content: center;
-    border: none; outline: none; background: transparent; cursor: pointer;
-    color: var(--hint);
-    -webkit-tap-highlight-color: transparent;
-    transition: color 0.15s ease, opacity 0.15s ease, transform 0.15s ease;
-}
+.input-clear-btn { position: absolute; top: 50%; transform: translateY(-50%); right: 8px; z-index: 2; width: 24px; height: 24px; padding: 0; display: flex; align-items: center; justify-content: center; border: none; outline: none; background: transparent; cursor: pointer; color: var(--hint); -webkit-tap-highlight-color: transparent; transition: color 0.15s ease, opacity 0.15s ease, transform 0.15s ease; }
 .input-clear-btn svg { width: 14px; height: 14px; }
 .input-clear-btn:hover, .input-clear-btn:focus-visible { color: var(--text); }
 .input-clear-btn:active { transform: translateY(-50%) scale(0.9); opacity: 0.6; }
-/* Отступ текста справа, чтобы он не заходил под крестик */
 .ac-wrapper input.clearable { padding-right: 38px; }
-.autocomplete-dropdown {
-    position: absolute; top: 100%; left: 0; right: 0; z-index: 50; margin-top: 4px;
-    background: var(--bg-secondary);
-    background: color-mix(in srgb, var(--bg-secondary) 90%, #3b82f6 10%);
-    border: 1px solid var(--inset-border);
-    border-radius: 16px; box-shadow: 0 10px 25px rgba(0,0,0,0.5);
-    max-height: 200px; overflow-y: auto;
-}
+.autocomplete-dropdown { position: absolute; top: 100%; left: 0; right: 0; z-index: 50; margin-top: 4px; background: var(--bg-secondary); background: color-mix(in srgb, var(--bg-secondary) 90%, #3b82f6 10%); border: 1px solid var(--inset-border); border-radius: 16px; box-shadow: 0 10px 25px rgba(0,0,0,0.5); max-height: 200px; overflow-y: auto; }
 .autocomplete-item { min-height: var(--tap); display: flex; flex-direction: column; justify-content: center; padding: 10px 16px; font-size: 14px; cursor: pointer; border-bottom: 1px solid var(--card-border); transition: background 0.15s; }
 .autocomplete-item:last-child { border-bottom: none; }
 .autocomplete-item:hover, .autocomplete-item:active { background: var(--accent-bg); }
 .autocomplete-item .ac-group { font-size: 10px; color: var(--hint); margin-top: 2px; }
 
-/* Плавающая кнопка-«остров»: без подложки и тени */
-.sticky-bottom-action {
-    position: fixed;
-    left: 16px;
-    right: 16px;
-    bottom: calc(var(--bottom-nav-height) + var(--safe-bottom) + 12px);
-    z-index: 15;
-    pointer-events: none;
-}
-.sticky-bottom-action > * {
-    pointer-events: auto;
-    border: 1px solid var(--card-border);
-}
+.sticky-bottom-action { position: fixed; left: 16px; right: 16px; bottom: calc(var(--bottom-nav-height) + var(--safe-bottom) + 12px); z-index: 15; pointer-events: none; }
+.sticky-bottom-action > * { pointer-events: auto; border: 1px solid var(--card-border); }
+body.keyboard-open #bottom-nav, body.keyboard-open .sticky-bottom-action { display: none !important; }
 
-/* Когда открыта клавиатура — скрываем плавающие кнопки и нижнюю навигацию */
-body.keyboard-open #bottom-nav,
-body.keyboard-open .sticky-bottom-action { display: none !important; }
-
-/* ===== НИЖНЯЯ ПАНЕЛЬ НАВИГАЦИИ =====
-   Сплошной фон в цвет фона приложения (белый в light-теме) — без blur,
-   чтобы контент под панелью не просвечивал. Верхняя hairline-граница
-   отделяет панель от контента.
-
-   ВАЖНО: !important здесь обязателен — Tailwind CDN генерирует утилиты
-   (.bg-tgBg и т.п.) после нашей ссылки на styles.css и с той же
-   специфичностью перебивал прозрачным током темы фон панели. */
-#bottom-nav {
-    background: var(--bg) !important;
-    background-color: var(--bg) !important;
-    border-top: 1px solid var(--card-border);
-}
-/* Активный таб — акцентный цвет (текст + иконка), неактивные — приглушённые. */
+#bottom-nav { background: var(--bg) !important; background-color: var(--bg) !important; border-top: 1px solid var(--card-border); }
 #bottom-nav .tab-item { color: var(--hint); transition: color .15s ease; }
 #bottom-nav .tab-item.text-tgLink { color: var(--accent); }
 
-/* ===== АВТОСКРЫТИЕ ПРИ ПРОКРУТКЕ =====
-   Вниз — панель навигации и плавающие кнопки уходят за нижний край,
-   вверх — возвращаются. transform не ломает position: fixed;
-   pointer-events:none в скрытом состоянии блокирует тапы «в пустоту». */
 @media (prefers-reduced-motion: no-preference) {
-    /* Плавность в обе стороны: мягкий «spring» при появлении и чуть более
-       быстрый ease-in при уходе — классическая iOS-анимация панелей. */
-    #bottom-nav,
-    .sticky-bottom-action {
-        transition: transform .34s cubic-bezier(.32,.72,0,1), opacity .24s ease;
-        will-change: transform;
-    }
-    body.nav-hidden #bottom-nav,
-    body.nav-hidden .sticky-bottom-action {
-        transition: transform .24s cubic-bezier(.4,0,1,1), opacity .18s ease;
-    }
+    #bottom-nav, .sticky-bottom-action { transition: transform .34s cubic-bezier(.32,.72,0,1), opacity .24s ease; will-change: transform; }
+    body.nav-hidden #bottom-nav, body.nav-hidden .sticky-bottom-action { transition: transform .24s cubic-bezier(.4,0,1,1), opacity .18s ease; }
 }
 body.nav-hidden #bottom-nav { transform: translateY(100%); }
 body.nav-hidden .sticky-bottom-action { transform: translateY(calc(100vh - var(--bottom-pos, 84px) + 60px)); opacity: 0; pointer-events: none; }
 
-/* ===== ЕДИНАЯ ДИЗАЙН-СИСТЕМА ===== */
 .app-card { background: var(--card-bg); border: 1px solid var(--card-border); border-radius: var(--card-radius); padding: 16px 14px; box-shadow: var(--shadow-card); }
 .app-inset { background: var(--inset-bg); border: 1px solid var(--inset-border); border-radius: 14px; }
 .app-divide > * + * { border-top: 1px solid var(--card-border); }
 .app-row { border-bottom: 1px solid var(--card-border); }
 .app-row:last-child { border-bottom: none; }
 .section-label { display: block; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.6px; color: var(--hint); margin: 0 0 10px 2px; }
+
 .btn { display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%; min-height: var(--tap); padding: 14px 16px; border: 1px solid transparent; border-radius: 14px; font-size: 15px; font-weight: 600; line-height: 1.2; cursor: pointer; transition: filter .15s ease, transform .1s ease; }
 .btn:active { transform: scale(0.98); filter: brightness(0.92); }
 .btn-sm { padding: 10px 12px; min-height: 40px; font-size: 13px; border-radius: 12px; }
@@ -457,66 +233,41 @@ body.nav-hidden .sticky-bottom-action { transform: translateY(calc(100vh - var(-
 .step-btn:active { transform: scale(0.92); opacity: 0.8; }
 .step-btn.lg { width: 40px; height: 40px; border-radius: 12px; }
 
-/* ===== Карточка упражнения: строки подходов — единый блок в цвет карточки, без границы ===== */
 .sets-list { list-style: none; padding-left: 0; margin: 0; }
 .set-line { position: relative; background: transparent; border: none; border-radius: 12px; margin-bottom: 6px; overflow: hidden; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; }
 .set-line:last-child { margin-bottom: 0; }
-/* Основной слой строки; прозрачный — фон наследуется от карточки упражнения,
-   а внутри группы дроп-сетов — от её оранжевой заливки. */
 .set-line-inner { position: relative; z-index: 1; background: transparent; border-radius: 12px; padding: 6px 6px; }
 .set-line-main { display: flex; align-items: stretch; gap: 4px; }
-/* На узких экранах (≤380px) экономим горизонталь под увеличенные кнопки −/+ :
-   плотнее отступы строки и уже номер/крестик — «100,5» помещается даже в суперсете. */
 @media (max-width: 380px) {
     .set-line-inner { padding: 6px 2px; }
     .set-line-main { gap: 2px; }
     .app-card { padding-left: 8px; padding-right: 8px; }
     #app-content { padding-left: 10px; padding-right: 10px; }
-    /* На самых узких экранах (например iPhone SE 320px) строки в суперсете
-       дополнительно уплотняем — иначе «100,5» не влезает между кнопками −/+. */
     .drop-group { padding: 6px 4px; border-left-width: 3px; }
 }
-/* Удаление строки подхода: схлопывание высоты (значения задаёт JS inline-стилями). */
 .set-line.set-collapsing { padding-top: 0; padding-bottom: 0; overflow: hidden; pointer-events: none; transition: max-height .22s ease-out, margin-bottom .22s ease-out, opacity .18s ease-out, padding .22s ease-out; }
-/* Порядковый номер подхода — часть единого блока строки (по центру высоты). */
 .set-num { width: 12px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; line-height: 1; color: var(--hint); }
-/* Группа «− [поле+подпись] +» — одна линия; кнопки −/+ во всю высоту блока (поле + подпись). */
 .set-field { display: flex; flex-direction: row; flex-wrap: nowrap; align-items: stretch; gap: 2px; flex: 1 1 0%; min-width: 0; }
-/* Кнопки «−»/«+» шире (30px) — крупнее зона тапа; поле с запасом вмещает «100,5». */
 .set-field .step-btn { flex: 0 0 auto; width: 30px; height: auto; align-self: stretch; font-size: 18px; line-height: 1; }
-/* Кнопки «−»/«+»: без заливки — прозрачные (фон блока подхода наследуется), граница как у карточки упражнения. */
 .set-line .step-btn { background: transparent; border: 1px solid var(--card-border); color: var(--text); border-radius: 9px; }
 .set-line .step-btn:active { opacity: .7; transform: scale(.92); }
-/* Поле ввода: значение по центру; подпись единицы — отдельной строкой снизу. */
 .set-field input { width: 100%; min-width: 0; padding-left: 1px; padding-right: 1px; font-size: 19px; line-height: 32px; height: 32px; text-align: center; }
 .set-input-col { position: relative; flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; align-items: center; }
-.unit-suffix {
-    display: block;
-    margin-top: 1px;
-    font-size: 9px; font-weight: 600; line-height: 1;
-    color: var(--hint);
-    pointer-events: none;
-}
-/* Группа дроп-подходов — стиль контейнера суперсета: скруглённая со всех сторон карточка, оранжевая полоса слева, аккуратная градиентная заливка (справа растворяется). */
+.unit-suffix { display: block; margin-top: 1px; font-size: 9px; font-weight: 600; line-height: 1; color: var(--hint); pointer-events: none; }
 .drop-group { list-style: none; margin-bottom: 6px; padding: 6px 8px; border-left: 4px solid var(--warn); border-radius: 12px; background: linear-gradient(90deg, var(--warn-bg), transparent); }
 .drop-group .set-line { margin-bottom: 4px; }
 .drop-group .set-line:last-child { margin-bottom: 0; }
-/* Бейдж прогресса упражнения («2/3» / «✓ Готово»): стиль как у чипа «Собственный вес»; «Готово» — зелёная заливка. */
 .set-progress-badge { font-size: 11px; font-weight: 600; padding: 4px 10px; border-radius: 8px; background: var(--card-bg); border: none; flex-shrink: 0; }
 .set-progress-badge.done { color: var(--success); background: var(--success-bg); }
 .set-progress-badge.pending { color: var(--hint); }
-/* Крестик удаления подхода — в конце строки, вертикально по центру. */
 .set-del-btn { flex: 0 0 auto; width: 24px; display: flex; align-items: center; justify-content: center; background: transparent; border: none; color: var(--danger); font-size: 13px; opacity: .7; padding: 0; cursor: pointer; -webkit-tap-highlight-color: transparent; touch-action: manipulation; transition: opacity .15s ease, transform .1s ease; }
 .set-del-btn:active { opacity: 1; transform: scale(.88); }
 .exercise-header { user-select: none; -webkit-user-select: none; }
-/* Кнопка «⋮» — меню упражнения: без границы, заливка в цвет карточки. */
 .menu-btn { width: 32px; height: 32px; display: inline-flex; align-items: center; justify-content: center; border-radius: 8px; background: var(--card-bg); color: var(--hint); font-size: 15px; border: none; cursor: pointer; -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
 .menu-btn:active { opacity: .6; transform: scale(.94); }
 .lp-active { background: var(--accent-bg) !important; border-color: var(--accent-border) !important; }
-/* Подсветка при долгом нажатии — теперь на основном слое строки (у .set-line границы нет). */
 .set-line.lp-active .set-line-inner { background: var(--accent-bg) !important; }
 
-/* ===== Ощущения / заметки подходов (features/workout/set-note-modal.js) ===== */
 .note-textarea { background: var(--bg); border: 1px solid var(--inset-border); border-radius: 10px; padding: 10px 12px; color: var(--text); resize: vertical; min-height: 56px; line-height: 1.35; }
 .note-textarea:focus { outline: none; border-color: var(--accent-border); box-shadow: 0 0 0 3px var(--accent-bg); }
 .chips-row { display: flex; flex-wrap: wrap; gap: 8px; }
@@ -524,23 +275,17 @@ body.nav-hidden .sticky-bottom-action { transform: translateY(calc(100vh - var(-
 .chip-btn:active { transform: scale(0.95); opacity: 0.8; }
 .chip-btn.chip-add { color: var(--accent); border-style: dashed; }
 .btn-auto { width: auto; flex: 0 0 auto; }
-/* Кнопки «+ Подход» / «Дроп-сет»: растягиваются на всю ширину блока, деля её пополам.
-   !important — из-за CDN Tailwind: его утилита .btn { width: 100% } генерируется в рантайме
-   и вставляется в <head> ПОСЛЕ нашего стилевика, перебивая обычные правила без !important. */
 .exercise-actions { display: flex !important; flex-wrap: nowrap !important; align-items: stretch; gap: 8px; margin-top: 8px; }
 .exercise-actions .btn { flex: 1 1 0% !important; width: auto !important; min-width: 0; }
 .btn.has-note { border-color: var(--accent-border); }
 .set-note { margin-top: 6px; font-size: 12px; line-height: 1.4; color: var(--hint); background: var(--inset-bg); border-left: 2px solid var(--warn); border-radius: 8px; padding: 6px 10px; }
-/* Комментарий упражнения: отступ как между подходами (6px), без иконки. */
 .exercise-note { margin-top: 6px; }
 
-/* ===== Вкладка «История» — красочное оформление (features/history/history.view.js) ===== */
 .hist-pal-blue, .hist-stat.blue, .hist-tag.blue, .v.blue, .t.blue { --hc: var(--c-blue); --hcbg: var(--c-blue-bg); }
 .hist-pal-purple, .hist-stat.purple, .hist-tag.purple, .v.purple, .t.purple { --hc: var(--c-purple); --hcbg: var(--c-purple-bg); }
 .hist-pal-green, .hist-stat.green, .hist-tag.green, .v.green, .t.green { --hc: var(--c-green); --hcbg: var(--c-green-bg); }
 .hist-pal-orange, .hist-stat.orange, .hist-tag.orange, .v.orange, .t.orange { --hc: var(--c-orange); --hcbg: var(--c-orange-bg); }
 .hist-pal-cyan, .hist-stat.cyan, .hist-tag.cyan, .v.cyan { --hc: var(--c-cyan); --hcbg: var(--c-cyan-bg); }
-/* Цвета групп мышц (красная полоска = грудь и т.п.) */
 .mg-red, .hist-mg-badge.red { --hc: var(--c-red); --hcbg: var(--c-red-bg); }
 .mg-blue, .hist-mg-badge.blue { --hc: var(--c-blue); --hcbg: var(--c-blue-bg); }
 .mg-green, .hist-mg-badge.green { --hc: var(--c-green); --hcbg: var(--c-green-bg); }
@@ -552,7 +297,6 @@ body.nav-hidden .sticky-bottom-action { transform: translateY(calc(100vh - var(-
 .hist-mg-badge b { font-weight: 700; opacity: 0.85; }
 .hist-detail-groups { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
 
-/* Сводная панель сверху */
 .hist-summary { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 16px; }
 .hist-stat { background: var(--card-bg); border: 1px solid var(--card-border); border-radius: 14px; padding: 12px 6px; text-align: center; min-width: 0; }
 .hist-stat-icon { width: 28px; height: 28px; margin: 0 auto 6px; border-radius: 9px; background: var(--hcbg); color: var(--hc); display: flex; align-items: center; justify-content: center; font-size: 13px; }
@@ -560,9 +304,7 @@ body.nav-hidden .sticky-bottom-action { transform: translateY(calc(100vh - var(-
 .hist-stat-unit { font-size: 10px; font-weight: 600; margin-left: 1px; opacity: 0.8; }
 .hist-stat-label { font-size: 10px; color: var(--hint); margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
-/* Карточка тренировки в списке */
 .hist-card { display: flex; align-items: center; gap: 12px; position: relative; overflow: hidden; }
-/* Тонкая цветная полоска слева — по доминирующей группе мышц */
 .hist-card::before { content: ''; position: absolute; left: 0; top: 12px; bottom: 12px; width: 3px; border-radius: 0 3px 3px 0; background: linear-gradient(180deg, var(--hc), transparent); opacity: 0.9; }
 .hist-groups-line { display: flex; align-items: center; gap: 5px; font-size: 11px; color: var(--hint); margin-bottom: 6px; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .hist-groups-line i { color: var(--hc, var(--accent)); font-size: 10px; flex-shrink: 0; }
@@ -572,11 +314,9 @@ body.nav-hidden .sticky-bottom-action { transform: translateY(calc(100vh - var(-
 .hist-tag { display: inline-flex; align-items: center; gap: 5px; min-height: 28px; font-size: 11.5px; font-weight: 600; line-height: 1; padding: 6px 10px; border-radius: 999px; background: var(--hcbg); color: var(--hc); }
 .hist-tag i { font-size: 10px; opacity: 0.9; }
 
-/* Подходы в детальном просмотре: номер и результат слева */
 .hist-set-num { flex-shrink: 0; width: 20px; height: 20px; border-radius: 7px; background: var(--hcbg, var(--inset-bg)); color: var(--hc, var(--accent)); display: inline-flex; align-items: center; justify-content: center; font-size: 10.5px; font-weight: 700; }
 .hist-set-result { font-size: 13px; }
 
-/* Календарь тренировок: месячная сетка, дни с тренировками — синяя точка */
 .hist-cal-card { background: var(--card-bg); border: 1px solid var(--card-border); border-radius: 16px; padding: 12px 14px 10px; margin-bottom: 16px; }
 .hist-cal-head { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-bottom: 8px; }
 .hist-cal-title { font-size: 13px; font-weight: 700; color: var(--text); display: inline-flex; align-items: center; gap: 7px; text-transform: capitalize; }
@@ -598,7 +338,6 @@ body.nav-hidden .sticky-bottom-action { transform: translateY(calc(100vh - var(-
 .hist-cal-foot > span { display: inline-flex; align-items: center; gap: 6px; }
 .hist-cal-dot.demo { position: static; transform: none; display: inline-block; }
 .hist-cal-foot a { color: var(--accent); font-weight: 600; cursor: pointer; text-decoration: none; }
-/* Кликабельный день календаря с тренировкой -> подробности */
 .hist-cal-cell.clickable { cursor: pointer; }
 .hist-cal-cell-btn { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; background: transparent; border: none; border-radius: 8px; cursor: pointer; padding: 0; font: inherit; color: inherit; -webkit-tap-highlight-color: transparent; transition: background .15s ease, transform .1s ease; }
 .hist-cal-cell-btn:hover { background: rgba(59, 130, 246, 0.12); }
@@ -606,26 +345,13 @@ body.nav-hidden .sticky-bottom-action { transform: translateY(calc(100vh - var(-
 .hist-cal-cell-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
 .hist-cal-count { position: absolute; top: 4px; right: 5px; font-size: 8px; font-weight: 800; line-height: 1; color: var(--accent); }
 
-/* Блок детального просмотра — НЕ sticky-шапка, а обычный блок в потоке:
-   без рамки, заливки и тени — акцент только цветным заголовком (--hc).
-   По ширине = остальные блоки экрана: #app-content уже даёт page-x отступы,
-   поэтому здесь только вертикальные отступы (без горизонтальных). */
-.hist-detail-head {
-    margin-top: 0;
-    padding: 14px 0 12px;
-    background: transparent;
-    border: none;
-    box-shadow: none;
-    border-radius: 0;
-}
+.hist-detail-head { margin-top: 0; padding: 14px 0 12px; background: transparent; border: none; box-shadow: none; border-radius: 0; }
 .hist-detail-title { font-size: 20px; font-weight: 800; color: var(--hc); line-height: 1.25; }
-/* Переключение тренировок одного дня — минималистичные кнопки < > без заливки и границ */
 .hist-detail-nav { display: inline-flex; align-items: center; gap: 2px; flex-shrink: 0; margin-top: 2px; }
 .hist-detail-nav-btn { appearance: none; background: transparent; border: none; outline: none; padding: 6px 8px; font-size: 14px; line-height: 1; color: var(--hc); cursor: pointer; border-radius: 8px; opacity: 0.85; -webkit-tap-highlight-color: transparent; transition: opacity .15s ease, transform .1s ease; }
 .hist-detail-nav-btn:hover { opacity: 1; }
 .hist-detail-nav-btn:active { transform: scale(0.85); opacity: 0.5; }
 .hist-detail-nav-btn.off { opacity: 0.25; pointer-events: none; }
-/* Кнопка удаления тренировки из истории — минималистичная, без заливки и рамок */
 .hist-detail-delete { appearance: none; background: transparent; border: none; outline: none; display: flex; align-items: center; justify-content: flex-end; gap: 7px; margin-top: 12px; padding: 6px 0; width: 100%; font-size: 12.5px; font-weight: 600; color: var(--hint); cursor: pointer; -webkit-tap-highlight-color: transparent; transition: color .15s ease, opacity .1s ease, transform .1s ease; }
 .hist-detail-delete i { font-size: 12px; }
 .hist-detail-delete:hover { color: var(--danger); }
@@ -637,10 +363,7 @@ body.nav-hidden .sticky-bottom-action { transform: translateY(calc(100vh - var(-
 .hist-detail-stat .t { font-size: 10px; color: var(--hc); display: inline-flex; align-items: center; justify-content: center; line-height: 1; }
 .hist-detail-stat .v { font-size: 13px; font-weight: 700; color: var(--hc); white-space: nowrap; margin-top: 4px; line-height: 1.2; }
 .hist-detail-stat .l { font-size: 8.5px; color: var(--hint); margin-top: 1px; line-height: 1.25; overflow-wrap: break-word; }
-/* Сводка/рекорды на вкладке статистики — тот же стиль, что и в Истории: FA-иконка в цветной подложке, иконка и значение одним акцентным цветом */
-/* Палитры акцентных цветов для сводки/рекордов статистики — те же цвета, что во вкладке «История».
-   ВАЖНО: селекторы должны быть НЕ слабее Tailwind-утилит (.text-base/.font-bold/.mt-0.5 и т.п.),
-   поэтому цвет/размер задаются с классом контейнера (.summary-cell / .achievement-card). */
+
 .summary-cell.stat-metric.blue, .achievement-card.stat-metric-row.blue { --hc: var(--c-blue); --hcbg: var(--c-blue-bg); }
 .summary-cell.stat-metric.purple, .achievement-card.stat-metric-row.purple { --hc: var(--c-purple); --hcbg: var(--c-purple-bg); }
 .summary-cell.stat-metric.green, .achievement-card.stat-metric-row.green { --hc: var(--c-green); --hcbg: var(--c-green-bg); }
@@ -649,21 +372,13 @@ body.nav-hidden .sticky-bottom-action { transform: translateY(calc(100vh - var(-
 .summary-cell.stat-metric .v { font-size: 16px; font-weight: 700; color: var(--hc); margin-top: 5px; line-height: 1.2; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .summary-cell.stat-metric .l { font-size: 10px; font-weight: 400; text-transform: none; letter-spacing: 0; color: var(--hint); margin-top: 2px; line-height: 1.25; overflow-wrap: break-word; }
 .stat-metric-unit { font-size: 10px; font-weight: 600; margin-left: 2px; opacity: 0.8; }
-/* Рекорды: иконка слева, справа вверху значение, внизу подпись */
 .stat-metric-row { display: flex; align-items: center; gap: 10px; text-align: left; }
 .stat-metric-row .hist-stat-icon { margin: 0; width: 34px; height: 34px; font-size: 15px; flex-shrink: 0; }
-/* Значение (справа вверху) — акцентным цветом, как иконка; подпись внизу — серый hint, тем же шрифтом, что в Истории */
 .achievement-card.stat-metric-row .v { font-size: 15px; font-weight: 700; color: var(--hc); line-height: 1.2; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .achievement-card.stat-metric-row .l { font-size: 10px; font-weight: 400; text-transform: none; letter-spacing: 0; color: var(--hint); margin-top: 2px; line-height: 1.25; overflow-wrap: break-word; }
 
-/* Названия упражнений в карточках программ: серый текст, без подчёркивания */
 .exercise-name { color: var(--hint); text-decoration: none; border-bottom: none; }
-
-/* Выравнивание «подходы × повторения» в карточках программ (фикс. ширина + моноширинный шрифт) */
 .exercise-reps { display: inline-block; min-width: 4.75rem; text-align: left; font-variant-numeric: tabular-nums; }
 
-/* Кнопки «Начать тренировку» / «Завершить тренировку» — единый стиль:
-   фон и цвет шрифта как у бейджей «Собственный вес» / «✓ Готово», граница в цвет шрифта */
 .btn-start-workout, .btn-finish-workout { background: var(--success-bg); color: var(--success); border: 1px solid color-mix(in srgb, var(--success) 45%, transparent); box-shadow: none; }
-.btn-start-workout:hover, .btn-start-workout:active,
-.btn-finish-workout:hover, .btn-finish-workout:active { background: color-mix(in srgb, var(--success) 24%, transparent); }
+.btn-start-workout:hover, .btn-start-workout:active, .btn-finish-workout:hover, .btn-finish-workout:active { background: color-mix(in srgb, var(--success) 24%, transparent); }
