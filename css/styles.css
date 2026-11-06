@@ -76,12 +76,11 @@
     --gap-block: 14px;
     --tap: 44px;
 
-    /* Стекло шапок = дословная копия стилей секундомера (workout.controller.js):
-       классы `bg-tgBg/95 backdrop-blur-md` → Tailwind компилирует их в
-       background-color: color-mix(in srgb, var(--tg-theme-bg-color) 95%, transparent)
-       и backdrop-filter: blur(12px) saturate(150%). Здесь — те же две декларации
-       прямо на элементе (без псевдоэлементов и opacity-трюков). */
-    --glass-bg: color-mix(in srgb, var(--tg-theme-bg-color) 95%, transparent);
+    /* Стекло шапок = копия секундомера (bg-tgBg/95 backdrop-blur-md).
+       Сплошная база --glass-bg; прозрачность 95% добавляется вторым
+       объявлением у самих шапок (rgba(from …)) — каскадом, а не color-mix:
+       неподдерживаемое значение отбрасывается и остаётся читаемая база. */
+    --glass-bg: var(--bg);
     --glass-blur: blur(12px) saturate(150%);
     --glass-line: color-mix(in srgb, var(--hint) 22%, transparent);
     --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.04), 0 8px 24px rgba(0, 0, 0, 0.06);
@@ -154,6 +153,15 @@ input[type=number] { -moz-appearance: textfield; }
     margin-left: calc(-1 * var(--page-x));
     margin-right: calc(-1 * var(--page-x));
     padding: 14px var(--page-x);
+}
+/* Прозрачность фона шапки ровно 95% — как у секундомера (Tailwind bg-tgBg/95).
+   Реализовано каскадом из ДВУХ объявлений, а не color-mix: если хост не
+   поддерживает относительный синтаксис rgba(from …), декларация отбрасывается
+   и остаётся сплошной --glass-bg (шапка читаемая, просто без стекла).
+   Прежний color-mix при отсутствии поддержки делал background invalid →
+   initial value = сплошной белый — это и был «белый фон», который мы видели. */
+.screen-header, .stats-header {
+    background-color: rgba(from var(--bg) r g b / 0.95);
 }
 /* Содержимое шапки — над стеклянным слоем (иначе z-index:-1 перекрывал бы текст). */
 .screen-header > *, .stats-header > * { position: relative; z-index: 1; }
