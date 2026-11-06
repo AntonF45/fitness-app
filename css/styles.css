@@ -76,18 +76,15 @@
     --gap-block: 14px;
     --tap: 44px;
 
-    /* Стеклянные поверхности sticky-шапок и навигации.
-   80% + blur(12px) — прозрачнее, чем у секундомера (bg-tgBg/95), как просили.
-   ВАЖНО: строится от --tg-theme-bg-color напрямую, а НЕ от --bg: в некоторых
-   WebView базовый фон Telegram сам по себе прозрачный, и color-mix от него
-   давал непрозрачную «белую плашку» вместо стекла. */
-    /* Стекло шапок = точная копия секундомера (bg-tgBg/95 + backdrop-blur-md).
-       Значение задаёт JS (js/core/glass.js): rgb(0,0,0,0) по умолчанию →
-       прозрачно всегда; если Telegram отдаёт цвет с альфа-каналом (#RRGGBBAA),
-       берётся он же с alpha .95; иначе hex конвертируется в rgba(r,g,b,.95).
-       Именно rgba() гарантирует полупрозрачность во всех WebView — в отличие
-       от color-mix(), который на старых движках роняет фон в сплошную заливку. */
-    --glass-bg: rgb(0, 0, 0, 0);
+    /* Стекло шапок = ТОЧНАЯ копия секундомера. Секундомер сделан tailwind-классом
+       bg-tgBg/95, то есть rgb(var(--tg-theme-bg-color) / 0.95). Но наш --bg — это
+       var(--tg-theme-bg-color, #ffffff) (hex/rgba целиком), поэтому синтаксис
+       slash-alpha к нему неприменим (даёт invalid → сплошная белая плашка —
+       именно так шапка теряла прозрачность). Решение то же, что у tailwind для
+       цвета-переменной: background-color: var(--bg); opacity: 0.95 на псевдоэлементе.
+       Никакого JS-фолбэка не нужно — значения берутся из темы хостом. */
+    --glass-opacity: 0.95;
+    --glass-blur: 12px;
     --glass-line: color-mix(in srgb, var(--hint) 22%, transparent);
     --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.04), 0 8px 24px rgba(0, 0, 0, 0.06);
 }
@@ -141,26 +138,37 @@ input[type=number] { -moz-appearance: textfield; }
    прозрачный, и полупрозрачное «стекло» шапки просвечивало бы «дырой» до
    рабочего стола. Отдельную непрозрачную плашку под шапкой делать НЕЛЬЗЯ —
    она делала шапку визуально сплошной (это и убиралось в прошлых правках):
-   стекло = только --glass-bg + blur, фон окна остаётся таким, каким его дал
+   стекло = только фон шапки (95% + blur), фон окна остаётся таким, каким его дал
    хост. */
 
 .screen-header, .stats-header {
     position: sticky;
     top: var(--sticky-top);
     z-index: 10;
-    /* Полупрозрачное «стекло» как у секундомера (bg-tgBg/95 + blur(12px)):
-       --glass-bg строится от --bg: в мобильных клиентах фон сплошной →
-       получается лёгкое матовое стекло; в Desktop он прозрачный →
-       backdrop-filter размывает контент прямо под шапкой. */
-    background: var(--glass-bg);
-    -webkit-backdrop-filter: blur(12px);
-    backdrop-filter: blur(12px);
+    /* Стекло = bg-tgBg/95 + blur(12px) — те же значения, что у секундомера.
+       Слой фона живёт на ::before с opacity (см. токен --glass-opacity):
+       так backdrop-filter размывает контент под шапкой, а сама шапка остаётся
+       полупрозрачной. Текст шапки — отдельным слоем (::after-контент через
+       position:relative), поэтому opacity слоя его не затрагивает. */
+    background: transparent;
     border-bottom: 1px solid var(--glass-line);
     box-shadow: none;
     margin-left: calc(-1 * var(--page-x));
     margin-right: calc(-1 * var(--page-x));
     padding: 14px var(--page-x);
 }
+.screen-header::before, .stats-header::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    background-color: var(--bg);
+    opacity: var(--glass-opacity);
+    -webkit-backdrop-filter: blur(var(--glass-blur));
+    backdrop-filter: blur(var(--glass-blur));
+}
+/* Содержимое шапки — над стеклянным слоем (иначе z-index:-1 перекрывал бы текст). */
+.screen-header > *, .stats-header > * { position: relative; z-index: 1; }
 /* Защита sticky-панелей: анимация card-enter задаёт transform (translateY/scale)
    на самом элементе — в Telegram WebView анимированный transform ломает
    фиксацию sticky («панель уезжает вместе с контентом»). Поэтому на шапках
