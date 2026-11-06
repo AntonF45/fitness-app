@@ -143,24 +143,39 @@ input[type=number] { -moz-appearance: textfield; }
     top: var(--sticky-top);
     z-index: 10;
     
-    /* 1. Надежный фолбэк для очень старых устройств */
-    background-color: var(--bg);
+    /* 1. СБРОС: принудительно убираем любой сплошной фон, который мог прилипнуть */
+    background-color: transparent !important;
     
-    /* 2. Магия стекла: 85% цвета темы + 15% прозрачности. 
-       Если 85% всё ещё кажется мутным, попробуйте 80% или 75% */
-    background-color: color-mix(in srgb, var(--bg) 75%, transparent);
+    /* 2. НАДЕЖНАЯ ПРОЗРАЧНОСТЬ (работает в 100% браузеров) */
+    /* Светлая тема: белый цвет с 75% непрозрачности (25% прозрачности для стекла) */
+    background: rgba(255, 255, 255, 0.75) !important;
     
-    /* 3. Усиленное размытие и насыщенность для премиального эффекта стекла */
-    -webkit-backdrop-filter: blur(16px) saturate(180%);
-    backdrop-filter: blur(16px) saturate(180%);
+    /* Темная тема: черный цвет с 75% непрозрачности (идеально для вашего дизайна) */
+    @media (prefers-color-scheme: dark) {
+        background: rgba(0, 0, 0, 0.75) !important;
+    }
     
-    /* 4. Тонкая граница снизу обязательна для эффекта стекла (она уже была у вас, оставляем) */
+    /* 3. Попытка использовать точный цвет темы Telegram (для современных браузеров).
+       Если браузер не понимает color-mix, он проигнорирует эту строку, 
+       и останется работать надежный rgba выше. */
+    background: color-mix(in srgb, var(--tg-theme-bg-color, #ffffff) 75%, transparent) !important;
+
+    /* 4. Усиленный эффект матового стекла */
+    -webkit-backdrop-filter: blur(16px) saturate(180%) !important;
+    backdrop-filter: blur(16px) saturate(180%) !important;
+    
+    /* 5. Остальные стили без изменений */
     border-bottom: 1px solid var(--glass-line);
     box-shadow: none;
-    
     margin-left: calc(-1 * var(--page-x));
     margin-right: calc(-1 * var(--page-x));
     padding: 14px var(--page-x);
+}
+
+/* Содержимое шапки должно быть выше слоя размытия, иначе текст тоже размоется */
+.screen-header > *, .stats-header > * { 
+    position: relative; 
+    z-index: 1; 
 }
 
 /* Содержимое шапки должно быть выше слоя размытия */
