@@ -148,7 +148,7 @@ input[type=number] { -moz-appearance: textfield; }
     
     /* 2. Магия стекла: 85% цвета темы + 15% прозрачности. 
        Если 85% всё ещё кажется мутным, попробуйте 80% или 75% */
-    background-color: color-mix(in srgb, var(--bg) 85%, transparent);
+    background-color: color-mix(in srgb, var(--bg) 75%, transparent);
     
     /* 3. Усиленное размытие и насыщенность для премиального эффекта стекла */
     -webkit-backdrop-filter: blur(16px) saturate(180%);
