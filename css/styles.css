@@ -81,9 +81,13 @@
    ВАЖНО: строится от --tg-theme-bg-color напрямую, а НЕ от --bg: в некоторых
    WebView базовый фон Telegram сам по себе прозрачный, и color-mix от него
    давал непрозрачную «белую плашку» вместо стекла. */
-    /* Стекло шапок = точная копия секундомера: 95% фона Telegram + blur(12px)
-       (backdrop-blur-md). */
-    --glass-bg: color-mix(in srgb, var(--tg-theme-bg-color) 95%, transparent);
+    /* Стекло шапок = точная копия секундомера (bg-tgBg/95 + backdrop-blur-md).
+       Значение задаёт JS (js/core/glass.js): rgb(0,0,0,0) по умолчанию →
+       прозрачно всегда; если Telegram отдаёт цвет с альфа-каналом (#RRGGBBAA),
+       берётся он же с alpha .95; иначе hex конвертируется в rgba(r,g,b,.95).
+       Именно rgba() гарантирует полупрозрачность во всех WebView — в отличие
+       от color-mix(), который на старых движках роняет фон в сплошную заливку. */
+    --glass-bg: rgb(0, 0, 0, 0);
     --glass-line: color-mix(in srgb, var(--hint) 22%, transparent);
     --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.04), 0 8px 24px rgba(0, 0, 0, 0.06);
 }
