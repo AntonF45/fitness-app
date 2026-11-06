@@ -76,15 +76,13 @@
     --gap-block: 14px;
     --tap: 44px;
 
-    /* Стекло шапок = ТОЧНАЯ копия секундомера. Секундомер сделан tailwind-классом
-       bg-tgBg/95, то есть rgb(var(--tg-theme-bg-color) / 0.95). Но наш --bg — это
-       var(--tg-theme-bg-color, #ffffff) (hex/rgba целиком), поэтому синтаксис
-       slash-alpha к нему неприменим (даёт invalid → сплошная белая плашка —
-       именно так шапка теряла прозрачность). Решение то же, что у tailwind для
-       цвета-переменной: background-color: var(--bg); opacity: 0.95 на псевдоэлементе.
-       Никакого JS-фолбэка не нужно — значения берутся из темы хостом. */
-    --glass-opacity: 0.95;
-    --glass-blur: 12px;
+    /* Стекло шапок = дословная копия стилей секундомера (workout.controller.js):
+       классы `bg-tgBg/95 backdrop-blur-md` → Tailwind компилирует их в
+       background-color: color-mix(in srgb, var(--tg-theme-bg-color) 95%, transparent)
+       и backdrop-filter: blur(12px) saturate(150%). Здесь — те же две декларации
+       прямо на элементе (без псевдоэлементов и opacity-трюков). */
+    --glass-bg: color-mix(in srgb, var(--tg-theme-bg-color) 95%, transparent);
+    --glass-blur: blur(12px) saturate(150%);
     --glass-line: color-mix(in srgb, var(--hint) 22%, transparent);
     --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.04), 0 8px 24px rgba(0, 0, 0, 0.06);
 }
@@ -145,27 +143,17 @@ input[type=number] { -moz-appearance: textfield; }
     position: sticky;
     top: var(--sticky-top);
     z-index: 10;
-    /* Стекло = bg-tgBg/95 + blur(12px) — те же значения, что у секундомера.
-       Слой фона живёт на ::before с opacity (см. токен --glass-opacity):
-       так backdrop-filter размывает контент под шапкой, а сама шапка остаётся
-       полупрозрачной. Текст шапки — отдельным слоем (::after-контент через
-       position:relative), поэтому opacity слоя его не затрагивает. */
-    background: transparent;
+    /* Дословно стили секундомера (bg-tgBg/95 backdrop-blur-md): полупрозрачный
+       фон + backdrop-filter прямо на элементе. Никаких ::before-плашек и
+       opacity-слоёв — именно они делали шапку визуально сплошной. */
+    background-color: var(--glass-bg);
+    -webkit-backdrop-filter: var(--glass-blur);
+    backdrop-filter: var(--glass-blur);
     border-bottom: 1px solid var(--glass-line);
     box-shadow: none;
     margin-left: calc(-1 * var(--page-x));
     margin-right: calc(-1 * var(--page-x));
     padding: 14px var(--page-x);
-}
-.screen-header::before, .stats-header::before {
-    content: "";
-    position: absolute;
-    inset: 0;
-    z-index: -1;
-    background-color: var(--bg);
-    opacity: var(--glass-opacity);
-    -webkit-backdrop-filter: blur(var(--glass-blur));
-    backdrop-filter: blur(var(--glass-blur));
 }
 /* Содержимое шапки — над стеклянным слоем (иначе z-index:-1 перекрывал бы текст). */
 .screen-header > *, .stats-header > * { position: relative; z-index: 1; }
