@@ -83,20 +83,31 @@ input[type=number] { -moz-appearance: textfield; }
     position: sticky;
     top: var(--sticky-top);
     z-index: 10;
+    
+    /* 1. Сброс любого сплошного фона */
+    background-color: transparent !important;
+    
+    /* 2. Светлая тема: белый с 75% непрозрачности */
     background: rgba(255, 255, 255, 0.75) !important;
+    
+    /* 3. Тёмная тема: чёрный с 75% непрозрачности */
+    @media (prefers-color-scheme: dark) {
+        background: rgba(0, 0, 0, 0.75) !important;
+    }
+    
+    /* 4. Эффект матового стекла */
     -webkit-backdrop-filter: blur(16px) saturate(180%) !important;
     backdrop-filter: blur(16px) saturate(180%) !important;
+    
+    /* 5. Остальные стили */
     border-bottom: 1px solid var(--glass-line);
     box-shadow: none;
     margin-left: calc(-1 * var(--page-x));
     margin-right: calc(-1 * var(--page-x));
     padding: 14px var(--page-x);
 }
-@media (prefers-color-scheme: dark) {
-    .screen-header, .stats-header {
-        background: rgba(0, 0, 0, 0.75) !important;
-    }
-}
+
+/* Содержимое шапки выше слоя размытия */
 .screen-header > *, .stats-header > * {
     position: relative;
     z-index: 1;
