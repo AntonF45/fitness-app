@@ -10,7 +10,7 @@
     --bottom-nav-height: 72px;
     --safe-bottom: env(safe-area-inset-bottom, 0px);
     --safe-top: env(safe-area-inset-top, 0px);
-    --extra-top: 0px; 
+    --extra-top: 0px;
     --top-reserve: calc(var(--safe-top) + var(--extra-top));
 
     --card-bg: var(--bg);
@@ -21,9 +21,14 @@
     --inset-bg: var(--bg);
     --inset-border: color-mix(in srgb, var(--hint) 22%, transparent);
 
-    --danger: #ff453a; --danger-bg: rgba(255, 69, 58, 0.13); --danger-border: rgba(255, 69, 58, 0.32);
-    --warn: #ff9f0a; --warn-bg: rgba(255, 159, 10, 0.13); --warn-border: rgba(255, 159, 10, 0.32);
-    --success: #30d158; --success-bg: rgba(48, 209, 88, 0.14);
+    --danger: #ff453a;
+    --danger-bg: rgba(255, 69, 58, 0.13);
+    --danger-border: rgba(255, 69, 58, 0.32);
+    --warn: #ff9f0a;
+    --warn-bg: rgba(255, 159, 10, 0.13);
+    --warn-border: rgba(255, 159, 10, 0.32);
+    --success: #30d158;
+    --success-bg: rgba(48, 209, 88, 0.14);
 
     --c-blue: #5ac8fa; --c-blue-bg: rgba(90, 200, 250, 0.14);
     --c-purple: #bf5af2; --c-purple-bg: rgba(191, 90, 242, 0.14);
@@ -33,8 +38,14 @@
     --c-red: #ff453a; --c-red-bg: rgba(255, 69, 58, 0.14);
     --c-gold: #ffd60a; --c-gold-bg: rgba(255, 214, 10, 0.14);
 
-    --font-display: 26px; --font-title: 17px; --font-body: 15px; --font-meta: 12px;
-    --page-x: 16px; --gap-block: 14px; --tap: 44px;
+    --font-display: 26px;
+    --font-title: 17px;
+    --font-body: 15px;
+    --font-meta: 12px;
+
+    --page-x: 16px;
+    --gap-block: 14px;
+    --tap: 44px;
 
     --glass-bg: var(--bg);
     --glass-blur: blur(12px) saturate(150%);
@@ -78,36 +89,25 @@ input[type=number] { -moz-appearance: textfield; }
 
 #app-content { --sticky-top: var(--top-reserve); }
 
-/* ===== STICKY HEADERS (GLASS EFFECT) ===== */
 .screen-header, .stats-header {
     position: sticky;
     top: var(--sticky-top);
     z-index: 10;
-    
-    /* 1. Сброс любого сплошного фона */
     background-color: transparent !important;
-    
-    /* 2. Светлая тема: белый с 75% непрозрачности */
-    background: rgba(255, 255, 255, 0.5) !important;
-    
-    /* 3. Тёмная тема: чёрный с 75% непрозрачности */
-    @media (prefers-color-scheme: dark) {
-        background: rgba(0, 0, 0, 0.5) !important;
-    }
-    
-    /* 4. Эффект матового стекла */
+    background: rgba(255, 255, 255, 0.75) !important;
     -webkit-backdrop-filter: blur(16px) saturate(180%) !important;
     backdrop-filter: blur(16px) saturate(180%) !important;
-    
-    /* 5. Остальные стили */
     border-bottom: 1px solid var(--glass-line);
     box-shadow: none;
     margin-left: calc(-1 * var(--page-x));
     margin-right: calc(-1 * var(--page-x));
     padding: 14px var(--page-x);
 }
-
-/* Содержимое шапки выше слоя размытия */
+@media (prefers-color-scheme: dark) {
+    .screen-header, .stats-header {
+        background: rgba(0, 0, 0, 0.75) !important;
+    }
+}
 .screen-header > *, .stats-header > * {
     position: relative;
     z-index: 1;
