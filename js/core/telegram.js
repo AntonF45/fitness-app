@@ -48,6 +48,9 @@ const USER_ID = tg.initDataUnsafe?.user?.id || 'local_test_user_' + Math.random(
 function haptic(type) { try { if (type === 'success' || type === 'error' || type === 'warning') tg.HapticFeedback?.notificationOccurred(type); else tg.HapticFeedback?.impactOccurred(type || 'light'); } catch (e) {} }
 function showAlert(message) { try { tg.showAlert(message); } catch (e) { alert(message); } }
 function showConfirm(message, callback) { try { tg.showConfirm(message, callback); } catch (e) { callback(confirm(message)); } }
+/* Смена темы Telegram: все CSS-токены читают --tg-theme-* напрямую и обновляются сами;
+   перерисовываем только текущий экран, чтобы canvas-график Chart.js перечитал цвета. */
+try { tg.onEvent('themeChanged', function () { try { navigate(state.currentScreen || state.currentTab || 'programs'); } catch (e) {} }); } catch (e) {}
 try { tg.BackButton.onClick(function () { navigateBack(); }); } catch (e) {}
 function updateBackButton(isSubScreen) { try { if (isSubScreen) tg.BackButton.show(); else tg.BackButton.hide(); } catch (e) {} }
 function clearMainButton() { try { tg.MainButton.hide(); } catch (e) {} }
