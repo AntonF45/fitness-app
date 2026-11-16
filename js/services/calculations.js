@@ -14,8 +14,16 @@ function getExerciseTypeByName(name) {
     for (let j = 0; j < history.length; j++) { const ex = (history[j].exercises || []).find(function (e) { return e.name === name; }); if (ex) return ex.exerciseType || 'weighted'; }
     return 'weighted';
 }
+/* Месяцы по ВСЕЙ истории тренировок — стабильный список для фильтра периода.
+   Не зависит от выбранного упражнения, поэтому выбор группы/упражнения не сбрасывает месяц. */
+function getAvailableMonthsForHistory() {
+    const monthSet = new Set();
+    DataAPI.getHistory().forEach(function (entry) { const key = formatLocalMonthKey(entry.date); if (key) monthSet.add(key); });
+    if (monthSet.size === 0) { const now = new Date(); for (let i = 0; i < 6; i++) monthSet.add(formatLocalMonthKey(new Date(now.getFullYear(), now.getMonth() - i, 1))); }
+    return Array.from(monthSet).sort(function (a, b) { return b.localeCompare(a); }).map(function (key) { const p = key.split('-'); return { key: key, label: MONTHS_RU[Number(p[1]) - 1] + ' ' + p[0] }; });
+}
 function getPeriodLabel() {
-    if (state.selectedMonthKey) { const m = getAvailableMonthsForExercise(null).find(function (x) { return x.key === state.selectedMonthKey; }); return m ? m.label : 'месяц'; }
+    if (state.selectedMonthKey) { const m = getAvailableMonthsForHistory().find(function (x) { return x.key === state.selectedMonthKey; }); return m ? m.label : 'месяц'; }
     return ({ week: '7 дней', month: '30 дней', quarter: '90 дней', all: 'всё время' })[state.selectedPeriod] || 'всё время';
 }
 function getFilteredHistory(history, period) {

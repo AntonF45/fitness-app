@@ -50,6 +50,12 @@ document.addEventListener('click', function (event) {
             case 'reset-data': { const m = document.getElementById('data-menu-modal'); if (m) m.remove(); resetAllData(); break; }
             case 'close-modal': { const m = document.getElementById(target.dataset.modal); if (m) m.remove(); break; }
             case 'history-detail': navigate('history_detail', { entryId: payload }); break;
+            case 'history-delete-entry': deleteHistoryEntry(payload); break;
+            case 'history-detail-prev': histDetailSibling(-1); break;
+            case 'history-detail-next': histDetailSibling(1); break;
+            case 'hist-cal-prev': histCalShift(-1); break;
+            case 'hist-cal-next': histCalShift(1); break;
+            case 'hist-cal-today': window._histCalMonth = null; renderHistory(); haptic('light'); break;
             case 'open-mg-modal': openMuscleGroupsModal(); break;
             case 'mg-add': mgAdd(); break;
             case 'mg-edit-start': mgEditState = payload; renderMgList(); break;
@@ -58,6 +64,7 @@ document.addEventListener('click', function (event) {
             case 'mg-delete': mgDelete(payload); break;
             case 'ac-pick': pickAutocomplete(target); break;
             case 'ac-muscle-pick': pickMuscleAutocomplete(target); break;
+            case 'ac-clear': clearInputByAction(target); break;
             case 'add-workout-exercise': openAddWorkoutExerciseModal(); break;
             case 'add-workout-exercise-confirm': confirmAddWorkoutExercise(); break;
         }
@@ -94,6 +101,8 @@ document.addEventListener('input', function (e) {
 document.addEventListener('focusin', function (e) {
     try {
         const t = e.target;
+        // При переходе фокуса на поле с подсказками скрываем дропдауны всех остальных полей.
+        if (t.classList.contains('muscle-input') || t.classList.contains('exercise-name-input')) hideAllAutocomplete();
         if (t.classList.contains('muscle-input')) { updateMuscleAutocomplete(t); return; }
         if (t.classList.contains('exercise-name-input')) { updateAutocomplete(t); return; }
     } catch (err) {

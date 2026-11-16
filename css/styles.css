@@ -1,4 +1,11 @@
 :root {
+    --bg: var(--tg-theme-bg-color, #ffffff);
+    --bg-secondary: var(--tg-theme-secondary-bg-color, #f2f2f7);
+    --text: color-mix(in srgb, var(--tg-theme-text-color, #000000) 100%, transparent);
+    --hint: color-mix(in srgb, var(--tg-theme-hint-color, #8e8e93) 100%, transparent);
+    --accent: var(--tg-theme-link-color, #3b82f6);
+    --accent-strong: var(--tg-theme-button-color, #3b82f6);
+    --accent-on: var(--tg-theme-button-text-color, #ffffff);
     --bottom-nav-height: 72px;
     --safe-bottom: env(safe-area-inset-bottom, 0px);
     --safe-top: env(safe-area-inset-top, 0px);
@@ -81,7 +88,7 @@ input[type=checkbox], input[type=radio] { min-height: 0; }
    остаётся непрозрачный тематический фон. */
 .stats-header {
     position: sticky;
-    top: calc(var(--safe-top) + var(--extra-top));
+    top: var(--sticky-top);
     z-index: 10;
     border-bottom: 1px solid var(--neutral-fill);
     margin-left: calc(-1 * var(--page-x));
@@ -101,8 +108,254 @@ input[type=checkbox], input[type=radio] { min-height: 0; }
 .stats-title {
     font-size: var(--fs-lg);
     font-weight: 800;
-    letter-spacing: -0.3px;
+    letter-spacing: -0.5px;
     line-height: 1.2;
+    text-align: left;
+    color: var(--text);
+}
+
+.summary-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+}
+
+.summary-cell {
+    background: var(--card-bg);
+    border: 1px solid var(--card-border);
+    border-radius: 14px;
+    padding: 12px 8px;
+    text-align: center;
+    min-width: 0;
+}
+
+.summary-value {
+    font-size: 18px;
+    font-weight: 700;
+    line-height: 1.2;
+}
+
+.summary-label {
+    font-size: 9px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--hint);
+    margin-top: 2px;
+    line-height: 1.2;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.filter-line {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 12px;
+    overflow: hidden;
+}
+
+.months-track {
+    flex: 1 1 auto;
+    min-width: 0;
+    display: flex;
+    gap: 6px;
+    overflow-x: auto;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+    scroll-padding-left: 4px;
+    padding-right: 2px;
+    transition: transform 0.26s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.2s ease;
+}
+
+.months-track::-webkit-scrollbar {
+    display: none;
+}
+
+.months-track > * {
+    flex-shrink: 0;
+}
+
+.months-empty {
+    font-size: 11px;
+    color: var(--hint);
+    line-height: 40px;
+    white-space: nowrap;
+    padding-left: 2px;
+}
+
+.filter-line.open .months-track {
+    transform: translateX(calc(-100% - 12px));
+    opacity: 0;
+    pointer-events: none;
+}
+
+.periods-panel {
+    position: absolute;
+    left: 0;
+    right: var(--tap);
+    top: 50%;
+    transform: translate(-10px, -50%) scaleX(0);
+    transform-origin: 100% 50%;
+    opacity: 0;
+    visibility: hidden;
+    z-index: 2;
+    pointer-events: none;
+    transition: transform 0.26s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.2s ease, visibility 0s linear 0.26s;
+}
+
+.filter-line.open .periods-panel {
+    transform: translate(0, -50%) scaleX(1);
+    opacity: 1;
+    visibility: visible;
+    pointer-events: auto;
+    transition: transform 0.26s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.18s ease 0.04s, visibility 0s;
+}
+
+.stats-header .periods-panel {
+    background: var(--card-bg);
+    border-color: var(--card-border);
+}
+
+#filter-toggle-btn {
+    position: relative;
+    flex-shrink: 0;
+}
+
+#filter-toggle-btn .fi-sliders, #filter-toggle-btn .fi-xmark {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+#filter-toggle-btn .fi-xmark {
+    opacity: 0;
+    transform: rotate(-90deg) scale(0.6);
+}
+
+.filter-line.open #filter-toggle-btn .fi-sliders {
+    opacity: 0;
+    transform: rotate(90deg) scale(0.6);
+}
+
+.filter-line.open #filter-toggle-btn .fi-xmark {
+    opacity: 1;
+    transform: rotate(0) scale(1);
+}
+
+.filter-line:not(.open) #filter-toggle-btn .fi-sliders, .filter-line:not(.open) #filter-toggle-btn .fi-xmark {
+    transition: none;
+}
+
+.filter-line.open #filter-toggle-btn .fi-sliders, .filter-line.open #filter-toggle-btn .fi-xmark {
+    transition: opacity 0.18s ease, transform 0.24s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.periods-panel.closing {
+    opacity: 0 !important;
+    visibility: hidden !important;
+    pointer-events: none !important;
+    transition: none !important;
+}
+
+.filter-toggle-btn {
+    width: var(--tap);
+    height: var(--tap);
+    border-radius: 10px;
+    background: var(--accent-bg);
+    border: 1px solid var(--card-border);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--accent);
+    transition: background 0.2s ease;
+    flex-shrink: 0;
+}
+
+.filter-toggle-btn:active {
+    transform: scale(0.92);
+    background: var(--accent-bg);
+}
+
+.filter-toggle-btn.active {
+    background: var(--accent-bg);
+}
+
+.period-filter {
+    display: flex;
+    gap: 4px;
+    background: var(--card-bg);
+    border: 1px solid var(--card-border);
+    padding: 4px;
+    border-radius: 14px;
+}
+
+.period-btn {
+    padding: 8px 14px;
+    min-height: 36px;
+    border-radius: 10px;
+    font-size: 12.5px;
+    font-weight: 600;
+    color: var(--hint);
+    background: transparent;
+    border: none;
+    transition: background 0.18s ease, color 0.18s ease, transform 0.1s ease;
+    white-space: nowrap;
+    cursor: pointer;
+}
+
+.period-btn.active {
+    background: var(--accent-strong);
+    color: var(--accent-on);
+}
+
+.period-btn:active {
+    transform: scale(0.95);
+}
+
+.metric-switcher {
+    display: flex;
+    gap: 4px;
+    background: var(--inset-bg);
+    border: none;
+    padding: 3px;
+    border-radius: 12px;
+    margin-bottom: 12px;
+}
+
+.metric-btn {
+    flex: 1;
+    min-height: 36px;
+    padding: 8px 4px;
+    border-radius: 9px;
+    font-size: 12.5px;
+    font-weight: 600;
+    text-align: center;
+    color: var(--hint);
+    background: transparent;
+    border: none;
+    transition: background 0.18s ease, color 0.18s ease, transform 0.1s ease;
+    cursor: pointer;
+}
+
+.metric-btn.active {
+    background: var(--card-bg);
+    color: var(--text);
+    box-shadow: 0 1px 4px rgba(0,0,0,0.18);
+}
+
+.metric-btn:active {
+    transform: scale(0.96);
+}
+
+.empty-state-block {
+    background: var(--card-bg);
+    border: 1px solid var(--card-border);
+    border-radius: var(--card-radius);
+    padding: 28px 20px;
     text-align: center;
     color: var(--tg-theme-hint-color, #8e8e93);
 }
@@ -163,7 +416,6 @@ input[type=checkbox], input[type=radio] { min-height: 0; }
 .autocomplete-item:hover, .autocomplete-item:active { background: var(--accent-bg); }
 .autocomplete-item .ac-group { font-size: var(--fs-xs); color: var(--tg-theme-hint-color, #8e8e93); margin-top: 2px; }
 
-/* Плавающая кнопка-«остров»: без подложки и тени */
 .sticky-bottom-action {
     position: fixed;
     left: var(--page-x);
@@ -172,6 +424,7 @@ input[type=checkbox], input[type=radio] { min-height: 0; }
     z-index: 15;
     pointer-events: none;
 }
+
 .sticky-bottom-action > * {
     pointer-events: auto;
     border: 1px solid var(--card-border);

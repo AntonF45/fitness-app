@@ -17,7 +17,7 @@ tailwind.config = { darkMode: 'class', theme: { extend: { colors: { tgBg: 'var(-
 </script>
 
 <!-- Стили приложения -->
-<link rel="stylesheet" href="css/styles.css?v=17">
+<link rel="stylesheet" href="css/styles.css?v=91">
 
 <script>
 /* Диагностика: если скрипты приложения не выполнились (часть файлов не загружена),
@@ -41,40 +41,42 @@ setTimeout(function () {
 <!-- ==================== JS: слои загружаются снизу вверх ==================== -->
 <!-- core: базовые утилиты и интеграция с Telegram -->
 <script src="js/core/utils.js"></script>
-<script src="js/core/telegram.js"></script>
+<script src="js/core/telegram.js?v=2"></script>
 <!-- state: единый источник истины -->
 <script src="js/state/app-state.js"></script>
 <script src="js/state/active-workout-storage.js"></script>
 <script src="js/state/set-input-drafts.js?v=5"></script>
 <!-- services: данные и доменные вычисления -->
 <script src="js/services/data-api.js"></script>
-<script src="js/services/muscle-groups.js"></script>
-<script src="js/services/calculations.js"></script>
+<script src="js/services/muscle-groups.js?v=3"></script>
+<script src="js/services/calculations.js?v=2"></script>
 <script src="js/services/data-management.js"></script>
 <!-- core: маршрутизация -->
-<script src="js/core/navigation.js"></script>
+<script src="js/core/navigation.js?v=2"></script>
+<script src="js/core/header-offset.js?v=5"></script>
+<script src="js/core/scroll-nav.js?v=1"></script>
 <!-- features/programs -->
 <script src="js/features/programs/supersets.js"></script>
-<script src="js/features/programs/autocomplete.js"></script>
-<script src="js/features/programs/programs.view.js"></script>
-<script src="js/features/programs/program-edit.view.js"></script>
+<script src="js/features/programs/autocomplete.js?v=8"></script>
+<script src="js/features/programs/programs.view.js?v=6"></script>
+<script src="js/features/programs/program-edit.view.js?v=2"></script>
 <script src="js/features/programs/editor.controller.js"></script>
 <script src="js/features/programs/muscle-groups.controller.js"></script>
 <!-- features/stats -->
-<script src="js/features/stats/stats.view.js"></script>
+<script src="js/features/stats/stats.view.js?v=11"></script>
 <script src="js/features/stats/stats.chart.js"></script>
-<script src="js/features/stats/stats.controller.js"></script>
+<script src="js/features/stats/stats.controller.js?v=9"></script>
 <!-- features/workout -->
-<script src="js/features/workout/workout.controller.js?v=14"></script>
-<script src="js/features/workout/add-exercise-modal.js"></script>
-<script src="js/features/workout/workout-exit-modal.js"></script>
+<script src="js/features/workout/workout.controller.js?v=16"></script>
+<script src="js/features/workout/add-exercise-modal.js?v=2"></script>
+<script src="js/features/workout/workout-exit-modal.js?v=2"></script>
 <script src="js/features/workout/set-note-modal.js?v=4"></script>
 <script src="js/features/workout/workout-context-menu.js?v=4"></script>
 <!-- features/history -->
-<script src="js/features/history/history.view.js?v=4"></script>
+<script src="js/features/history/history.view.js?v=18"></script>
 <!-- ui: делегирование событий, клавиатура, safe area -->
 <script src="js/ui/long-press.js"></script>
-<script src="js/ui/event-delegation.js?v=6"></script>
+<script src="js/ui/event-delegation.js?v=11"></script>
 <script src="js/ui/keyboard.js"></script>
 <script src="js/ui/safe-area.js"></script>
 <!-- точка входа -->
